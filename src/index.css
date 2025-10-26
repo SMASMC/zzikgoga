@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'BMJUA';
+  font-synthesis: none;
+  src:
+    url('/fonts/BMJUA_otf.otf') format('opentype'),
+    url('/fonts/BMJUA_ttf.ttf') format('truetype');
+}
