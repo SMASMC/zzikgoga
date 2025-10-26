@@ -5,23 +5,35 @@ Jenkins + GitLab + Nginx + Docker를 이용한 Blue-Green 무중단 배포 인�
 ## 프로젝트 구조
 
 ```
-S13P31A102/
-├── jenkins/                     # Jenkins 파이프라인
-│   ├── ci-build.groovy         # 통합 CI (Frontend/Backend)
-│   ├── cd-deploy.groovy        # 통합 CD (Frontend/Backend)
-│   ├── ci-docker-build.groovy  # (레거시) 백엔드 CI
-│   └── blue-green-deploy.groovy # (레거시) 백엔드 CD
+S13P31A102/                      # infra/master 브랜치
+├── jenkins/                     # Jenkins 파이프라인 (중앙 관리)
+│   ├── ci-build.groovy         # ⭐ 통합 CI (Frontend/Backend)
+│   ├── cd-deploy.groovy        # ⭐ 통합 CD (Frontend/Backend)
+│   ├── ci-pipeline-shared.groovy  # (레거시) 백엔드 CI
+│   ├── ci-docker-build.groovy     # (레거시) 백엔드 Docker 빌드
+│   └── blue-green-deploy.groovy   # (레거시) 백엔드 CD
 ├── scripts/                     # 배포 스크립트
-│   ├── deploy.sh               # Blue-Green 배포
+│   ├── deploy.sh               # Blue-Green 배포 (Frontend/Backend 지원)
 │   └── setup-ssl.sh            # SSL 설정 (Docker certbot)
 ├── docker/                      # Docker 관련 설정
-│   ├── nginx/
-│   │   └── zzik.kr.conf        # Nginx HTTPS 설정
+│   ├── docker-compose-blue.yml    # Blue 환경 (Frontend)
+│   ├── docker-compose-green.yml   # Green 환경 (Frontend)
+│   ├── docker-compose.common.yml  # 공통 (Database)
 │   └── .env.example            # 환경변수 템플릿
+├── nginx/                       # Nginx 설정
+│   ├── zzik.kr.conf            # Frontend HTTPS
+│   ├── nginx-blue.conf         # Backend API Blue
+│   └── nginx-green.conf        # Backend API Green
+├── dockerfile                   # Frontend Dockerfile (Vite + Nginx)
 ├── EC2-SETUP.md                # EC2 배포 상세 가이드
 ├── .gitignore
 └── README.md
 ```
+
+**중요**: infra/master에서 모든 인프라 설정을 중앙 관리합니다.
+- fe/master: React 소스 코드만 (package.json, src/)
+- be/master: Spring Boot 소스만 (build.gradle, src/)
+- infra/master: 모든 배포 설정 (이 저장소)
 
 ## 브랜치 전략
 
@@ -150,47 +162,73 @@ sudo chown -R $USER:$USER /opt/zzikgoga
 
 ### 7. Jenkins Job 생성
 
-#### CI Job: zzikgoga-ci
+**중요**: 모든 파이프라인은 **infra/master**에서 가져옵니다. fe/be 저장소에 파일 복사 불필요!
+
+#### CI Job: zzikgoga-frontend-ci
 
 ```
+New Item → Pipeline
+Name: zzikgoga-frontend-ci
+
 Type: Pipeline
 Pipeline script from SCM:
-  Repository: <fe 또는 be 저장소 URL>
-  Branch: */fe/master 또는 */be/master
+  SCM: Git
+  Repository URL: <infra 저장소 URL>  ⭐ infra 저장소!
+  Branch: */infra/master
   Script Path: jenkins/ci-build.groovy
 
+Parameters (자동 추가됨):
+  - PROJECT_TYPE: frontend
+  - BRANCH_NAME: fe/master
+  - REPO_URL: <fe 저장소 URL>
+  - SHARED_WORKSPACE: /tmp/shared-workspace
+
 빌드 트리거:
-  - GitLab webhook
-  - Poll SCM: H/5 * * * * (5분마다)
+  ✓ GitLab webhook (선택사항)
+  ✓ Poll SCM: H/5 * * * * (5분마다)
+```
+
+#### CI Job: zzikgoga-backend-ci (백엔드용)
+
+```
+Name: zzikgoga-backend-ci
+
+Pipeline script from SCM:
+  Repository URL: <infra 저장소 URL>  ⭐ 동일!
+  Branch: */infra/master
+  Script Path: jenkins/ci-build.groovy
 
 Parameters:
-  PROJECT_TYPE: frontend (또는 backend)
-  BRANCH_NAME: fe/master (또는 be/master)
+  - PROJECT_TYPE: backend
+  - BRANCH_NAME: be/master
+  - REPO_URL: <be 저장소 URL>
 ```
 
-**주의**: `jenkins/ci-build.groovy`를 fe/be 저장소에 복사해야 합니다.
-
-```bash
-# fe/master 브랜치에
-mkdir -p jenkins
-cp /tmp/infra/jenkins/ci-build.groovy jenkins/
-
-# be/master 브랜치에도 동일
-```
-
-#### CD Job: zzikgoga-deploy
+#### CD Job: zzikgoga-frontend-cd
 
 ```
+Name: zzikgoga-frontend-cd
+
 Type: Pipeline
 Pipeline script from SCM:
-  Repository: <infra 저장소 URL>
+  Repository URL: <infra 저장소 URL>
   Branch: */infra/master
   Script Path: jenkins/cd-deploy.groovy
 
 Parameters:
-  PROJECT_TYPE: frontend (또는 backend)
-  DEPLOY_MODE: local (EC2 내부) 또는 remote-ssh (외부 Jenkins)
-  DOMAIN: zzik.kr
+  - PROJECT_TYPE: frontend
+  - DEPLOY_MODE: local (또는 remote-ssh)
+  - SSH_HOST: (remote-ssh 모드에서만)
+```
+
+#### CD Job: zzikgoga-backend-cd (백엔드용)
+
+```
+Name: zzikgoga-backend-cd
+
+Parameters:
+  - PROJECT_TYPE: backend
+  - DEPLOY_MODE: local
 ```
 
 ### 8. Jenkins Credentials 등록
@@ -223,114 +261,165 @@ Branch filter: fe/master (또는 be/master)
 
 ### CI Pipeline (ci-build.groovy)
 
-**트리거**: fe/master 또는 be/master에 push
+**저장소**: infra/master의 jenkins/ci-build.groovy
+**소스 체크아웃**: 파이프라인 내부에서 fe/master 또는 be/master를 체크아웃
 
 ```
-1. 환경 설정 (Node.js 또는 Java)
-2. 의존성 설치
+1. Checkout Source (infra 파이프라인이 fe/be 저장소 체크아웃)
+   - Frontend: fe/master 체크아웃
+   - Backend: be/master 체크아웃
+
+2. 환경 설정
+   - Frontend: Node.js 확인
+   - Backend: Java 21 설정
+
+3. 의존성 설치
    - Frontend: npm ci
-   - Backend: ./gradlew
-3. 빌드
+   - Backend: Gradle (빌드 시 자동)
+
+4. 빌드
    - Frontend: npm run build → dist/
-   - Backend: ./gradlew build → build/libs/
-4. 공유 디렉토리 복사
+   - Backend: ./gradlew clean build → build/libs/
+
+5. 공유 디렉토리 복사
    → /tmp/shared-workspace/zzikgoga-frontend/
    → /tmp/shared-workspace/zzikgoga-backend/
-5. 테스트 실행
+
+6. 테스트 실행 (Backend만)
 ```
 
 ### CD Pipeline (cd-deploy.groovy)
 
+**저장소**: infra/master의 jenkins/cd-deploy.groovy
 **트리거**: CI 성공 후 수동/자동
 
 ```
-1. 아티팩트 복사
-   공유 디렉토리 → /opt/zzikgoga/frontend/ (또는 backend/)
+1. 아티팩트 검증
+   공유 디렉토리에 빌드 결과물 확인
 
-2. 환경변수 로드 (Frontend만)
-   Jenkins Credentials → .env
+2. 환경변수 준비 (Frontend만)
+   Jenkins Credentials → docker/.env
 
-3. 배포 스크립트 실행
-   - infra 저장소에서 scripts/deploy.sh 가져오기
-   - Blue-Green 배포 실행
-   - 심볼릭 링크 전환
+3. 배포 디렉토리 준비
+   /opt/zzikgoga/frontend/ (또는 backend/)
 
-4. 헬스 체크
-   - Frontend: https://zzik.kr/health
-   - Backend: http://localhost:8080/actuator/health
+4. 파일 복사
+   - 빌드 결과물: 공유 디렉토리 → 배포 디렉토리
+   - 인프라 설정: infra/master → 배포 디렉토리
+     (dockerfile, docker/, nginx/, scripts/)
 
-5. 검증
+5. Docker 이미지 빌드
+   docker build -t zzikgoga-frontend:latest .
+
+6. Blue-Green 배포 실행
+   PROJECT_TYPE=frontend ./scripts/deploy.sh
+
+7. 헬스 체크
+   - Frontend: http://localhost:3001/health (또는 3002)
+   - Backend: http://localhost:8081/health-check (또는 8082)
 ```
 
 ## Blue-Green 배포
 
-### Frontend 디렉토리 구조
+### Frontend Docker 컨테이너 구조
 
 ```
-/var/www/zzikgoga/
-├── blue/
-│   ├── index.html
-│   ├── assets/
-│   └── env-config.js
-├── green/
-│   ├── index.html
-│   ├── assets/
-│   └── env-config.js
-├── current → blue/  # 심볼릭 링크
-└── .active-env      # "blue" 또는 "green"
+Docker Containers:
+├── zzikgoga-frontend-blue (포트 3001)
+│   └── Nginx + React 빌드 파일
+└── zzikgoga-frontend-green (포트 3002)
+    └── Nginx + React 빌드 파일
+
+Nginx Proxy:
+  활성 컨테이너로 트래픽 전환
+```
+
+### Backend Docker 컨테이너 구조
+
+```
+Docker Containers:
+├── zzikgoga-blue (포트 8081)
+│   └── Spring Boot + DB 연결
+└── zzikgoga-green (포트 8082)
+    └── Spring Boot + DB 연결
+
+Shared:
+└── db (PostgreSQL 16)
 ```
 
 ### 배포 프로세스
 
-1. 현재 활성 환경 확인 (`.active-env`)
+1. 현재 활성 환경 확인 (docker ps로 실행 중인 컨테이너 확인)
 2. 대기 환경 결정 (blue ↔ green)
-3. dist 파일 복사 + 환경변수 주입
-4. 심볼릭 링크 전환 (무중단)
-5. Nginx 리로드
-6. 이전 환경 유지 (롤백 대비)
+3. 새 Docker 이미지로 대기 환경 컨테이너 시작
+4. 헬스 체크 (최대 40회 시도, 5초 간격)
+5. Nginx 설정 전환 (nginx-blue.conf ↔ nginx-green.conf)
+6. 이전 환경 컨테이너 중지 및 제거
+7. 롤백 대비 이미지는 유지 (zzikgoga-frontend:latest-previous)
 
 ## 환경변수 관리
 
-### fe/master 브랜치에 추가
+### Docker 환경변수 (infra/master에서 관리)
 
-```bash
-# infra 저장소에서 복사
-cp docker/.env.example <fe-repo>/.env.example
-cp docker/.gitignore <fe-repo>/.gitignore
+**docker/.env.example** 템플릿:
+```env
+# Database Configuration (for backend)
+POSTGRES_DB=
+POSTGRES_USER=
+POSTGRES_PASSWORD=
 
-# 프로덕션 .env 생성
-cd <fe-repo>
-cp .env.example .env
-# 값 수정
+# Frontend Environment Variables
+VITE_APP_ENV=
+VITE_API_URL=
+VITE_DOMAIN=
 ```
 
-**`.env` 예시:**
+**프로덕션 .env 생성:**
+```bash
+cd infra/master
+cp docker/.env.example docker/.env
+
+# 값 수정
+vim docker/.env
+```
+
+**프로덕션 예시 (docker/.env):**
 ```env
+# Database
+POSTGRES_DB=postgres
+POSTGRES_USER=zzik325325
+POSTGRES_PASSWORD=your_secure_password
+
+# Frontend
 VITE_APP_ENV=production
-VITE_API_URL=https://zzik.kr/api
+VITE_API_URL=https://api.zzik.kr
 VITE_DOMAIN=zzik.kr
 ```
 
-### 런타임 환경변수 주입
+### Jenkins Credentials 등록
 
-`scripts/deploy.sh`가 자동으로 `env-config.js` 생성:
+Jenkins에서 `.env` 파일을 Secret File로 관리:
 
-```javascript
-window.ENV = {
-  VITE_API_URL: "https://zzik.kr/api",
-  VITE_APP_ENV: "production",
-  VITE_DOMAIN: "zzik.kr"
-};
 ```
+Manage Jenkins → Credentials → Global
+
+1. fe-prod-env-file
+   Kind: Secret file
+   File: docker/.env (업로드)
+   Description: Frontend production environment
+```
+
+### 환경변수 주입 방식
+
+**Frontend (Docker 컨테이너)**:
+- Jenkins가 Credentials에서 .env 가져옴
+- docker-compose가 .env 로드
+- 컨테이너 내부에서 환경변수 사용 가능
 
 **React에서 사용:**
-```html
-<!-- public/index.html -->
-<script src="/env-config.js"></script>
-```
-
 ```javascript
-console.log(window.ENV.VITE_API_URL);
+// Vite가 빌드 시 자동 주입
+console.log(import.meta.env.VITE_API_URL)
 ```
 
 ## 운영 가이드
@@ -338,33 +427,61 @@ console.log(window.ENV.VITE_API_URL);
 ### 배포 상태 확인
 
 ```bash
-# 활성 환경
-cat /var/www/zzikgoga/.active-env
+# 실행 중인 컨테이너 확인
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
-# 심볼릭 링크
-ls -lh /var/www/zzikgoga/current
+# Frontend 컨테이너
+docker ps | grep zzikgoga-frontend
 
-# 배포 정보
-cat /var/www/zzikgoga/current/deploy-info.txt
+# Backend 컨테이너
+docker ps | grep zzikgoga
+
+# 빌드 정보 확인
+cat /tmp/shared-workspace/zzikgoga-frontend/build-info.txt
 
 # Nginx 상태
 sudo systemctl status nginx
+
+# 활성 Nginx 설정 확인
+ls -la /etc/nginx/sites-enabled/
+
+# 컨테이너 로그
+docker logs zzikgoga-frontend-blue --tail 50
+docker logs zzikgoga-frontend-green --tail 50
 ```
 
 ### 수동 롤백
 
+**Frontend:**
 ```bash
-# 활성 환경 확인
-ACTIVE=$(cat /var/www/zzikgoga/.active-env)
+# 1. 현재 활성 컨테이너 확인
+docker ps | grep zzikgoga-frontend
 
-# 반대 환경으로
-NEW_ENV=$([ "$ACTIVE" = "blue" ] && echo "green" || echo "blue")
+# 2. 이전 이미지로 새 컨테이너 시작
+docker stop zzikgoga-frontend-blue  # 또는 green
+docker run -d --name zzikgoga-frontend-blue \
+  -p 3001:80 \
+  --env-file /opt/zzikgoga/frontend/docker/.env \
+  zzikgoga-frontend:latest-previous
 
-# 전환
-sudo rm -f /var/www/zzikgoga/current
-sudo ln -s /var/www/zzikgoga/$NEW_ENV /var/www/zzikgoga/current
-echo $NEW_ENV > /var/www/zzikgoga/.active-env
+# 3. 헬스 체크
+curl http://localhost:3001/health
+
+# 4. Nginx 설정 전환 (필요시)
+sudo cp /opt/zzikgoga/frontend/nginx/nginx-blue.conf \
+  /etc/nginx/sites-available/zzik.kr
 sudo systemctl reload nginx
+```
+
+**또는 deploy.sh 재실행:**
+```bash
+cd /opt/zzikgoga/frontend
+
+# 이전 이미지를 latest로 태그
+docker tag zzikgoga-frontend:latest-previous zzikgoga-frontend:latest
+
+# 배포 스크립트 실행
+PROJECT_TYPE=frontend ./scripts/deploy.sh
 ```
 
 ### SSL 인증서 관리
