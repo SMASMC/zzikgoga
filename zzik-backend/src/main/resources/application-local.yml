@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/zzik
+    username: postgres
+    password: postgres
+  data.redis:
+    host: host.docker.internal
+    port: 6379
+    password: zzik
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+
+jwt:
+  secret-key:
+    access-token: zzikAccessAccessAccessTokenSecretKeyForzzik
+    refresh-token: zzikRefreshRefreshRefreshTokenSecretKeyForzzik
+
+swagger:
+  server-url: "http://localhost:8081/api"
+  description: "Local 테스트용 서버"

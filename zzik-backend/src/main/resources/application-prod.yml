@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://db:${POSTGRES_PORT}/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+  data.redis:
+    host: zzik_redis
+    port: ${REDIS_PORT}
+    password: ${REDIS_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        show_sql: false
+        format_sql: false
+
+jwt:
+  secret-key:
+    access-token: ${JWT_ACCESS_SECRET}
+    refresh-token: ${JWT_REFRESH_SECRET}
+
+swagger:
+  server-url: "${PROD_BASE_URL}/api"
+  description: "프로덕션 서버"
