@@ -1,0 +1,7 @@
+# Dependencies
+node_modules/
+
+# (기타 무시할 파일들)
+.env
+dist/
+*.log
