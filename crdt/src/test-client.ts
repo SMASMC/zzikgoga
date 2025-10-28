@@ -1,3 +1,5 @@
+import { WebSocket as NodeWS } from 'ws'
+;(global as any).WebSocket = NodeWS
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 
@@ -9,6 +11,8 @@ const provider = new WebsocketProvider(
 );
 
 const tripInfo = ydoc.getMap('tripInfo');
+// const tripSchedule = ydoc.getMap('schedules');
+// const tripBudget = ydoc.getMap('budgets');
 
 function logTitleDebug(prefix: string) {
   const node = tripInfo.get('title');
@@ -46,15 +50,28 @@ provider.on('sync', (isSynced: boolean) => {
 function runTest() {
   console.log('[Client] runTest()');
   const node = tripInfo.get('title');
+  // const node2 = tripSchedule.get('title');
+  // const node3 = tripBudget.get('description');
 
   if (!(node instanceof Y.Text)) {
     console.log('[Client] title is not Y.Text, abort');
     return;
   }
 
+  // if (!(node3 instanceof Y.Text)) {
+  //   console.log('[Client] title is not Y.Text, abort');
+  //   return;
+  // }
+
   // 단순 prepend
-  node.insert(0, `Force Title ${Date.now()} / `);
+  node.insert(0, `test 3 `);
+  // node3.insert(0, `test `);
 
   console.log('[Client] after local insert:');
   logTitleDebug('[Client] after edit');
+
+  setTimeout(() => {
+    provider.disconnect();
+    console.log('[Client] Disconnected.');
+  }, 2000); // 2초간 대기하며 전송 보장
 }

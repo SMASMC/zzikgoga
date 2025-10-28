@@ -63,6 +63,13 @@ function toIsoString(v: any): string {
  */
 export async function loadYDocFromDB(tripId: number, doc: Y.Doc): Promise<Y.Doc> {
     const client = await pool.connect();
+
+    try {
+        await client.query('SET search_path TO test;');
+    } catch (e) {
+        console.warn('[DB Load] Failed to set search_path. (이 무시는 로컬 테스트 시 괜찮을 수 있음)', (e as Error).message);
+    }
+
     console.log(`[DB Load] Loading trip ${tripId} from PostgreSQL...`);
 
     try {
@@ -91,82 +98,92 @@ export async function loadYDocFromDB(tripId: number, doc: Y.Doc): Promise<Y.Doc>
         );
 
         // 4. 메모리 상에서 날짜별로 정리 (schedules/budgets)
-        // schedules: Map<dateKey, Y.Array<Y.Map>>
-        const schedulesByDate = new Map<string, Y.Array<Y.Map<any>>>();
+        // 4.1. Schedules 그룹화 (Yjs 타입 사용 X)
+        const scheduleRowsByDate = new Map<string, any[]>();
         for (const row of scheduleRes.rows) {
             const dateKey = toDateKey(row.start_time);
-
-            let yArr = schedulesByDate.get(dateKey);
-            if (!yArr) {
-                yArr = new Y.Array<Y.Map<any>>();
-                schedulesByDate.set(dateKey, yArr);
+            if (!scheduleRowsByDate.has(dateKey)) {
+                scheduleRowsByDate.set(dateKey, []);
             }
-
-            const yScheduleItem = new Y.Map<any>();
-            yScheduleItem.set('id', row.schedule_id);
-            yScheduleItem.set('start_time', toIsoString(row.start_time));
-            yScheduleItem.set('offset_time', toIsoString(row.offset_time));
-            yScheduleItem.set('memo', new Y.Text(row.memo || ''));
-            yScheduleItem.set('has_location', !!row.has_location);
-
-            if (row.has_location && row.location_id) {
-                yScheduleItem.set('location', {
-                    id: row.location_id,
-                    name: row.location_name,
-                    full_address: row.full_address,
-                    detail: row.detail,
-                    latitude: row.latitude,
-                    longitude: row.longitude,
-                });
-            } else {
-                yScheduleItem.set('location', null);
-            }
-
-            yArr.push([yScheduleItem]);
+            scheduleRowsByDate.get(dateKey)!.push(row);
         }
 
-        // budgets: Map<dateKey, Y.Array<Y.Map>>
-        const budgetsByDate = new Map<string, Y.Array<Y.Map<any>>>();
+        // 4.2. Budgets 그룹화 (Yjs 타입 사용 X)
+        const budgetRowsByDate = new Map<string, any[]>();
         for (const b of budgetRes.rows) {
             const dateKey = toDateKey(b.date);
-
-            let yArr = budgetsByDate.get(dateKey);
-            if (!yArr) {
-                yArr = new Y.Array<Y.Map<any>>();
-                budgetsByDate.set(dateKey, yArr);
+            if (!budgetRowsByDate.has(dateKey)) {
+                budgetRowsByDate.set(dateKey, []);
             }
-
-            const yBudgetItem = new Y.Map<any>();
-            yBudgetItem.set('id', b.id);
-            yBudgetItem.set('category', b.category);
-            yBudgetItem.set('amount', toNumber(b.amount));
-            yBudgetItem.set('description', new Y.Text(b.description || ''));
-
-            yArr.push([yBudgetItem]);
+            budgetRowsByDate.get(dateKey)!.push(b);
         }
 
         // 5. 전부 doc에 밀어넣는 구간만 동기 transact로 묶는다
+        // 5. 모든 Yjs 객체 생성을 Y.transact 내부에서 수행
         Y.transact(doc, () => {
             // tripInfo
             const tripInfoMap = doc.getMap('tripInfo');
             tripInfoMap.clear();
             tripInfoMap.set('id', tripRow.id);
             tripInfoMap.set('title', new Y.Text(tripRow.title || ''));
-            tripInfoMap.set('start_date', tripRow.start_date);
-            tripInfoMap.set('end_date', tripRow.end_date);
+            tripInfoMap.set('start_date', toDateKey(tripRow.start_date));
+            tripInfoMap.set('end_date', toDateKey(tripRow.end_date));
 
             // schedules
             const schedulesMap = doc.getMap('schedules');
             schedulesMap.clear();
-            for (const [dateKey, yArr] of schedulesByDate.entries()) {
-                schedulesMap.set(dateKey, yArr);
+
+            // doc에 연결된 schedulesMap 내부에 Y.Array와 Y.Map을 생성
+            for (const [dateKey, rows] of scheduleRowsByDate.entries()) {
+                const yDayArray = new Y.Array<Y.Map<any>>();
+                schedulesMap.set(dateKey, yDayArray); // 👈 Y.Array를 doc에 즉시 연결
+
+                for (const row of rows) {
+                    const yScheduleItem = new Y.Map<any>();
+
+                    // 👈 Y.Map을 yDayArray에 즉시 연결
+                    // (push 하기 전에 Y.Text를 set 해야 함)
+                    yScheduleItem.set('id', row.schedule_id);
+                    const localTime = toIsoString(row.start_time).slice(0, 16);
+                    yScheduleItem.set('start_time', localTime);
+                    yScheduleItem.set('offset_time', toIsoString(row.offset_time));
+                    yScheduleItem.set('memo', new Y.Text(row.memo || '')); // 👈 Y.Text가 Y.Map에 연결됨
+                    yScheduleItem.set('has_location', !!row.has_location);
+
+                    if (row.has_location && row.location_id) {
+                        yScheduleItem.set('location', {
+                            id: row.location_id,
+                            name: row.location_name,
+                            full_address: row.full_address,
+                            detail: row.detail,
+                            latitude: row.latitude,
+                            longitude: row.longitude,
+                        });
+                    } else {
+                        yScheduleItem.set('location', null);
+                    }
+
+                    yDayArray.push([yScheduleItem]); // 👈 Y.Map을 yDayArray에 연결
+                }
             }
 
             // budgets
             const budgetsMap = doc.getMap('budgets');
             budgetsMap.clear();
-            for (const [dateKey, yArr] of budgetsByDate.entries()) {
-                budgetsMap.set(dateKey, yArr);
+
+            for (const [dateKey, rows] of budgetRowsByDate.entries()) {
+                const yDayArray = new Y.Array<Y.Map<any>>();
+                budgetsMap.set(dateKey, yDayArray); // 👈 Y.Array를 doc에 즉시 연결
+
+                for (const b of rows) {
+                    const yBudgetItem = new Y.Map<any>();
+                    yBudgetItem.set('id', b.id);
+                    yBudgetItem.set('category', b.category);
+                    yBudgetItem.set('amount', toNumber(b.amount));
+                    yBudgetItem.set('description', new Y.Text(b.description || '')); // 👈 Y.Text가 Y.Map에 연결됨
+
+                    yDayArray.push([yBudgetItem]); // 👈 Y.Map을 yDayArray에 연결
+                }
             }
         }, 'db_load');
 
