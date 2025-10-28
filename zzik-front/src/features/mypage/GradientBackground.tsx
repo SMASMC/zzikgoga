@@ -5,13 +5,15 @@ const GradientBackground = ({ children }: { children: React.ReactNode }) => {
       <div
         className="absolute w-72 h-72 opacity-20 blur-[80px] left-[40%] top-[100px]"
         style={{
-          background: 'radial-gradient(ellipse 98% 98% at 30% 30%, #7DD3FC 0%, #3B82F6 50%, #1E40AF 100%)',
+          background:
+            'radial-gradient(ellipse 98% 98% at 30% 30%, #7DD3FC 0%, #3B82F6 50%, #1E40AF 100%)',
         }}
       />
       <div
         className="absolute w-80 h-80 opacity-20 blur-[90px] left-[10%] top-[600px]"
         style={{
-          background: 'radial-gradient(ellipse 98% 98% at 30% 30%, #CFF3FF 0%, #7DD3FC 50%, #3B82F6 100%)',
+          background:
+            'radial-gradient(ellipse 98% 98% at 30% 30%, #CFF3FF 0%, #7DD3FC 50%, #3B82F6 100%)',
         }}
       />
       {children}
