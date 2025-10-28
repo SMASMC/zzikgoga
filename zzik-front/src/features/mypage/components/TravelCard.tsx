@@ -1,5 +1,6 @@
 // TravelCard.tsx
 import { useState } from 'react'
+import { TravelAddCardProps } from '../types/mypage'
 
 const TravelCard = ({ title, date, img }: { title: string; date: string; img: string }) => {
   const [isButtonHovered, setIsButtonHovered] = useState(false)
@@ -57,15 +58,10 @@ const TravelCard = ({ title, date, img }: { title: string; date: string; img: st
 }
 
 // TravelAddCard.tsx
-const TravelAddCard = () => {
-  // TODO: 여행 생성 팝업 함수 연결 필요
-  const handleCreateTravel = () => {
-    // 여기에 여행 생성 팝업 열기 함수 추가
-  }
-
+const TravelAddCard = ({ onCreateTravel }: TravelAddCardProps) => {
   return (
     <div
-      onClick={handleCreateTravel}
+      onClick={onCreateTravel}
       className="group bg-white rounded-3xl w-72 h-[400px] shadow-lg flex flex-col justify-center items-center cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-300"
     >
       <div className="bg-gradient-to-br from-hover-600 to-point-600 w-20 h-20 rounded-3xl flex justify-center items-center mb-6">

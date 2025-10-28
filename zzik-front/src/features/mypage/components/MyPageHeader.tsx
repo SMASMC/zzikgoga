@@ -14,9 +14,7 @@ const MyPageHeader = () => {
           <button className="w-10 h-10 bg-white rounded-full shadow-md flex justify-center items-center hover:bg-hover-500 transition-colors">
             <i className="text-point-600">⚙️</i>
           </button>
-          <div className="px-5 py-2 text-text-600 font-bmjua">
-            김싸피님 반갑습니다
-          </div>
+          <div className="px-5 py-2 text-text-600 font-bmjua">김싸피님 반갑습니다</div>
         </div>
       </nav>
     </header>
