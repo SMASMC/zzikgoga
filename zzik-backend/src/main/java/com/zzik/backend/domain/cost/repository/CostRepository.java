@@ -12,8 +12,6 @@ import com.zzik.backend.domain.cost.entity.Cost;
  */
 @Repository
 public interface CostRepository extends JpaRepository<Cost, Long> {
-
 	// 여행 ID로 비용 목록 조회
 	List<Cost> findByTripId(Long tripId);
-
 }

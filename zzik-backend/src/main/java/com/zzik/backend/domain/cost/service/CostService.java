@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,6 +17,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,13 +25,22 @@ import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zzik.backend.domain.cost.config.ClovaOcrProperties;
+import com.zzik.backend.domain.cost.dto.request.SaveCostMenuItem;
+import com.zzik.backend.domain.cost.dto.request.SaveCostRequest;
 import com.zzik.backend.domain.cost.dto.response.ReceiptItemDto;
 import com.zzik.backend.domain.cost.dto.response.ReceiptOcrResponse;
+import com.zzik.backend.domain.cost.entity.Cost;
+import com.zzik.backend.domain.cost.entity.CostMenu;
+import com.zzik.backend.domain.cost.entity.CostMenuMember;
+import com.zzik.backend.domain.cost.repository.CostMenuMemberRepository;
+import com.zzik.backend.domain.cost.repository.CostMenuRepository;
+import com.zzik.backend.domain.cost.repository.CostRepository;
 import com.zzik.backend.global.exception.BusinessException;
 import com.zzik.backend.global.exception.ExceptionCode;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import shaded_package.javax.validation.Valid;
 
 @Slf4j
 @Service
@@ -44,6 +55,10 @@ public class CostService {
 
 	private final ObjectMapper objectMapper = new ObjectMapper();
 	private final RestTemplate restTemplate = new RestTemplate();
+
+	private final CostRepository costRepository;
+	private final CostMenuRepository costMenuRepository;
+	private final CostMenuMemberRepository costMenuMemberRepository;
 
 	/** 업로드 유효성(용량/확장자) */
 	public void validateReceiptImage(MultipartFile file) {
@@ -284,5 +299,115 @@ public class CostService {
 		if (!StringUtils.hasText(name) || !name.contains("."))
 			return "jpg";
 		return name.substring(name.lastIndexOf('.') + 1).toLowerCase();
+	}
+
+	@Transactional
+	public Long createCost(Long tripId, @Valid SaveCostRequest req) {
+		// 1) 메뉴 금액 확정 + 합계
+		long itemsTotal = 0L;
+		List<CostMenu> menus = new ArrayList<>();
+		for (SaveCostMenuItem i : req.getItems()) {
+			long amount = resolveAmount(i);
+			itemsTotal += amount;
+
+			CostMenu m = CostMenu.builder()
+				.costId(null) // cost 저장 후 채움
+				.menuName(i.getMenuName().trim())
+				.amount(amount)
+				.nCostMenuMember((byte)0)
+				.build();
+			menus.add(m);
+		}
+
+		// 2) 최종 총액 결정(없으면 items 합계, 있으면 허용오차 검증)
+		long finalTotal = (req.getTotalAmount() == null) ? itemsTotal : req.getTotalAmount();
+		if (req.getTotalAmount() != null) {
+			long diff = Math.abs(req.getTotalAmount() - itemsTotal);
+			long tol = Math.max(100L, Math.round(itemsTotal * 0.01)); // ±100원 또는 ±1%
+			if (diff > tol) {
+				log.warn("총액 불일치: reported={}, items={}, diff={}", req.getTotalAmount(), itemsTotal, diff);
+				finalTotal = itemsTotal; // 라인아이템 합 우선
+			}
+		}
+
+		// 3) cost 저장
+		Cost cost = Cost.builder()
+			.tripId(tripId)
+			.createdBy(req.getCreatedBy())
+			.payerId(req.getPayerId())
+			.paidAt(req.getPaidAt().trim())
+			.place(req.getPlace().trim())
+			.totalAmount(finalTotal)
+			.memo(trimOrNull(req.getMemo()))
+			.receipt(trimOrNull(req.getReceiptJson()))
+			.build();
+		cost = costRepository.save(cost);
+
+		// 4) cost_menu 저장
+		final Long costId = cost.getId();
+		menus.forEach(m -> m.setCostId(costId));
+		costMenuRepository.saveAll(menus);
+
+		// 5) (옵션) 초기 배분이 온 경우 cost_menu_member 생성 + 카운터 갱신
+		for (int idx = 0; idx < menus.size(); idx++) {
+			var dto = req.getItems().get(idx);
+			var menu = menus.get(idx);
+
+			int created = 0;
+			if (dto.getMemberIds() != null && !dto.getMemberIds().isEmpty()) {
+				Set<Long> uniq = new LinkedHashSet<>(dto.getMemberIds());
+				List<CostMenuMember> links = new ArrayList<>();
+				for (Long memberId : uniq) {
+					links.add(CostMenuMember.builder()
+						.costMenuId(menu.getId())
+						.memberId(memberId)
+						.build());
+				}
+				costMenuMemberRepository.saveAll(links);
+				created = uniq.size();
+			}
+			if (created > 0) {
+				menu.setNCostMenuMember((byte)created);
+			}
+		}
+		costMenuRepository.saveAll(menus);
+
+		log.info("Created cost id={}, total={}, menus={}", costId, finalTotal, menus.size());
+		return costId;
+	}
+
+	private long resolveAmount(SaveCostMenuItem i) {
+		return Math.max(0L, i.getAmount());
+	}
+
+	private String trimOrNull(String s) {
+		return (s == null || s.isBlank()) ? null : s.trim();
+	}
+
+	/** 메뉴에 정산자 추가 */
+	@Transactional
+	public void addMember(Long costMenuId, Long memberId) {
+		if (!costMenuMemberRepository.existsByCostMenuIdAndMemberId(costMenuId, memberId)) {
+			costMenuMemberRepository.save(
+				CostMenuMember.builder().costMenuId(costMenuId).memberId(memberId).build()
+			);
+			recomputeCount(costMenuId);
+		}
+	}
+
+	/** 메뉴에서 정산자 제거 */
+	@Transactional
+	public void removeMember(Long costMenuId, Long memberId) {
+		costMenuMemberRepository.deleteByCostMenuIdAndMemberId(costMenuId, memberId);
+		recomputeCount(costMenuId);
+	}
+
+	/** n_cost_menu_member 재계산 */
+	private void recomputeCount(Long costMenuId) {
+		long c = costMenuMemberRepository.countByCostMenuId(costMenuId);
+		CostMenu menu = costMenuRepository.findById(costMenuId)
+			.orElseThrow(() -> new IllegalArgumentException("cost_menu not found: " + costMenuId));
+		menu.setNCostMenuMember((byte)Math.max(0, (int)c));
+		costMenuRepository.save(menu);
 	}
 }

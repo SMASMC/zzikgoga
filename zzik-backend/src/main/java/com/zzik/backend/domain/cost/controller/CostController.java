@@ -2,15 +2,19 @@
 package com.zzik.backend.domain.cost.controller;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.zzik.backend.domain.cost.api.CostApi;
+import com.zzik.backend.domain.cost.dto.request.SaveCostRequest;
 import com.zzik.backend.domain.cost.dto.response.ReceiptOcrResponse;
 import com.zzik.backend.domain.cost.service.CostService;
 import com.zzik.backend.global.presentation.ApiResponse;
 
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -27,5 +31,15 @@ public class CostController implements CostApi {
 	) {
 		ReceiptOcrResponse result = costService.recognizeReceipt(tripId, file);
 		return ResponseEntity.ok(ApiResponse.createSuccess(result));
+	}
+
+	/** 영수증 OCR 업로드 & 정산 등록: 최종 저장 */
+	@PostMapping("/{tripId}")
+	public ResponseEntity<Long> createCost(
+		@PathVariable Long tripId,
+		@RequestBody SaveCostRequest request
+	) {
+		Long id = costService.createCost(tripId, request);
+		return ResponseEntity.ok(id);
 	}
 }
