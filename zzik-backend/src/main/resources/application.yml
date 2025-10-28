@@ -1,3 +1,6 @@
+server:
+  servlet:
+    context-path: /api
 spring:
   datasource:
     driver-class-name: org.postgresql.Driver
@@ -9,3 +12,4 @@ jwt:
   expiration-time:
     access-token: 1_800_000
     refresh-token: 604_800_000
+
