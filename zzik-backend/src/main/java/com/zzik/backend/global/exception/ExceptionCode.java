@@ -1,8 +1,9 @@
 package com.zzik.backend.global.exception;
 
+import org.springframework.http.HttpStatus;
+
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 
 /**
  * 40000번대 예외 코드를 관리하는 열거형 클래스입니다.
@@ -36,11 +37,9 @@ public enum ExceptionCode {
 	EXPIRED_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, 40111, "만료된 Refresh Token", "auth - 토큰 갱신 시 만료된 토큰"),
 	ALREADY_LOGOUT_TOKEN(HttpStatus.NOT_FOUND, 40112, "이미 로그아웃된 토큰", "auth - 로그아웃 시 이미 무효화된 토큰"),
 
-	/* 402xx - user */
-	NO_PASSWORD_CHANGE_PERMISSION(HttpStatus.FORBIDDEN, 40201, "비밀번호 변경 권한 없음", "user - 하객은 비밀번호 변경 불가"),
-	OLD_PASSWORD_MISMATCH(HttpStatus.UNAUTHORIZED, 40202, "기존 비밀번호 불일치", "user - 비밀번호 변경 시 기존 비밀번호 확인 실패"),
-	DUPLICATE_PHONE_NUMBER(HttpStatus.CONFLICT, 40203, "중복된 전화번호", "user - 프로필 수정 시 전화번호 중복"),
-	NEW_PASSWORD_CONFIRMATION_MISMATCH(HttpStatus.CONFLICT, 40204, "새 비밀번호 확인 불일치", "user - 비밀번호 변경 시 확인 비밀번호 불일치"),
+	/* 403xx - cost */
+	RECEIPT_RECOGNIZE_FAIL(HttpStatus.CONFLICT, 40301, "영수증 OCR 분석 실패", "cost - 영수증 인식 실패"),
+	INVALID_UPLOAD_SIZE(HttpStatus.NOT_FOUND, 40302, "사진 업로드 실패", "cost - 사진 업로드 실패"),
 
 	/* 421xx - management - wedding */
 	WEDDING_ALREADY_REGISTERED(HttpStatus.CONFLICT, 42101, "이미 등록된 결혼식 정보", "management - 결혼식 정보 중복 등록"),
@@ -79,7 +78,8 @@ public enum ExceptionCode {
 	NO_STREAMING_START_PERMISSION(HttpStatus.FORBIDDEN, 44102, "스트리밍 시작 권한 없음", "wedstream - 신랑신부만 스트리밍 시작 가능"),
 	NO_STREAMING_IN_PROGRESS(HttpStatus.NOT_FOUND, 44103, "진행 중인 스트리밍이 없음", "wedstream - 스트리밍 종료/참여 시 스트리밍 없음"),
 	ETIQUETTE_NOT_AGREED(HttpStatus.CONFLICT, 44104, "에티켓에 동의하지 않음", "wedstream - 스트리밍 참여 에티켓 동의 필요"),
-	NOT_PARTICIPATING_IN_STREAMING(HttpStatus.NOT_FOUND, 44105, "스트리밍에 참여하지 않음", "wedstream - 스트리밍에 참여하지 않은 상태에서 액션 수행"),
+	NOT_PARTICIPATING_IN_STREAMING(HttpStatus.NOT_FOUND, 44105, "스트리밍에 참여하지 않음",
+		"wedstream - 스트리밍에 참여하지 않은 상태에서 액션 수행"),
 	CHAT_DISABLED(HttpStatus.FORBIDDEN, 44106, "채팅이 비활성화됨", "wedstream - 스트리밍 채팅이 비활성화된 상태"),
 	NO_RECORDED_VIDEO(HttpStatus.NOT_FOUND, 44107, "녹화된 영상이 없음", "wedstream - 녹화된 스트리밍 영상이 없음"),
 

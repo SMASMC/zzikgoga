@@ -3,6 +3,7 @@ package com.zzik.backend.global.config.security;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.AbstractRequestMatcherRegistry;
@@ -39,7 +40,8 @@ public class SecurityConfig {
 		"/v1/auth/guest/*/signup",           // 하객 회원가입
 		"/v1/auth/spouse/verify",            // 배우자 코드 검증
 		"/v1/auth/phone/check",              // 전화번호 중복검사
-		"/v1/auth/status"                    // 토큰 검증
+		"/v1/auth/status",                    // 토큰 검증
+		"/api/cost/*/receipt"
 	};
 	private static final String[] ATUATOR_ENDPOINTS = {"/actuator/**"};
 
@@ -60,6 +62,9 @@ public class SecurityConfig {
 					.requestMatchers(SWAGGER_ENDPOINTS).permitAll()
 					.requestMatchers(ATUATOR_ENDPOINTS).permitAll()
 					.requestMatchers(ANONYMOUS_ENDPOINTS).permitAll() // ANONYMOUS 엔드포인트는 인증 없이 접근 가능
+					.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+					.requestMatchers(HttpMethod.POST, "/cost/*/receipt", "/api/cost/*/receipt").permitAll()
+					.requestMatchers(HttpMethod.GET, "/cost/*/receipt", "/api/cost/*/receipt").permitAll()
 					.anyRequest().authenticated() // 나머지는 인증 필요 (메서드 레벨에서 세부 권한 검사)
 			).build();
 	}

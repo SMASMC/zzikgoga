@@ -18,6 +18,7 @@ import com.zzik.backend.global.security.jwt.JwtClaims;
 import com.zzik.backend.global.security.jwt.JwtProvider;
 import com.zzik.backend.global.security.jwt.access.AccessTokenClaimKeys;
 import com.zzik.backend.infra.redis.forbidden.ForbiddenTokenService;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -34,6 +35,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 	protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
 		@NonNull FilterChain filterChain) throws
 		ServletException, IOException {
+
+		if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+			filterChain.doFilter(request, response);
+			return;
+		}
+
 		if (isAnonymousRequest(request)) {
 			filterChain.doFilter(request, response);
 			return;

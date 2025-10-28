@@ -23,3 +23,7 @@ jwt:
 swagger:
   server-url: "http://localhost:8081/api"
   description: "Local 테스트용 서버"
+
+clova-ocr:
+  invoke-url: https://9b0f1vyfru.apigw.ntruss.com/custom/v1/47091/f279c51c3c879a1c442f2f74930c0e045ddbe27645cf55822df64e254e146a3d/document/receipt
+  secret-key: YU1tSkt5Z0RHZWZ1a3h3ek52QW5OT1hSa2xOc3VmY0I=

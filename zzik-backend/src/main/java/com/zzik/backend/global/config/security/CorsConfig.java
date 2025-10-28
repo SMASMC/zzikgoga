@@ -18,8 +18,9 @@ public class CorsConfig {
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
-		configuration.setAllowedOrigins(
-			List.of("http://localhost:8080", "https://i13a703.p.ssafy.io")
+		configuration.setAllowedOriginPatterns(
+			List.of("http://localhost:*", "http://127.0.0.1:*", "https://i13a102.p.ssafy.io",
+				"http://localhost:8081/api/*", "http://localhost:8080/api/*")
 		);
 		configuration.setAllowedMethods(List.of("GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"));
 		configuration.setAllowedHeaders(List.of("*"));
