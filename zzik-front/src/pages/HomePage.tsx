@@ -18,8 +18,13 @@ const HomePage = () => {
                 로그인
               </Button>
             </Link>
+            <Link to="/mypage">
+              <Button variant="hover" size="lg">
+                마이페이지
+              </Button>
+            </Link>
             <Link to="/plan">
-              <Button variant="main" size="lg">
+              <Button variant="point" size="lg">
                 여행 계획하기
               </Button>
             </Link>
