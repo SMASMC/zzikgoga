@@ -1,3 +1,5 @@
+// 마이페이지에서만 필요할 것 같아서 만든 헤더
+
 import { Link } from 'react-router-dom'
 
 const MyPageHeader = () => {

@@ -1,7 +1,7 @@
 import { useState, FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Input from '@components/atoms/Input'
-import Button from '@components/atoms/Button'
+import SolidButton from '@/components/atoms/SolidButton'
 import { useLogin } from '../hooks/useLogin'
 
 const LoginForm = () => {
@@ -47,9 +47,9 @@ const LoginForm = () => {
 
       {error && <p className="text-red-500 text-sm">{error}</p>}
 
-      <Button type="submit" className="w-full" disabled={isLoading}>
+      <SolidButton type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? '로그인 중...' : '로그인'}
-      </Button>
+      </SolidButton>
     </form>
   )
 }

@@ -4,7 +4,7 @@
 import { LoadScript, GoogleMap, Marker } from '@react-google-maps/api'
 import { useState } from 'react'
 import Input from '@components/atoms/Input'
-import Button from '@components/atoms/Button'
+import SolidButton from '@/components/atoms/SolidButton'
 
 const containerStyle = {
   width: '100%',
@@ -40,12 +40,13 @@ const PlaceSearchPanel = () => {
           placeholder="장소 검색"
           className="flex-1 rounded px-2 py-1"
         />
-        <Button
+        <SolidButton
           onClick={handleSearch}
           className="sm:w-auto w-full bg-blue-600 text-white px-4 py-2 rounded whitespace-nowrap"
+          variant="main"
         >
           검색
-        </Button>
+        </SolidButton>
       </div>
 
       {/* 지도 표시 영역 */}

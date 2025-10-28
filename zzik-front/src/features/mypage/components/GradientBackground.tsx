@@ -1,3 +1,5 @@
+// 그라데이션 되어있는 배경
+
 const GradientBackground = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background-500 via-background-600 to-background-500 overflow-hidden relative">

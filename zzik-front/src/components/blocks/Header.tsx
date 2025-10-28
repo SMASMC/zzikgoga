@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import Button from '@components/atoms/Button'
+import SolidButton from '@/components/atoms/SolidButton'
 
 const Header = () => {
   return (
@@ -11,9 +11,9 @@ const Header = () => {
 
         <div className="flex gap-4 items-center">
           <Link to="/auth">
-            <Button variant="point" size="sm">
+            <SolidButton variant="point" size="sm">
               로그인
-            </Button>
+            </SolidButton>
           </Link>
         </div>
       </nav>

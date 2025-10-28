@@ -1,5 +1,5 @@
 // CreateTravelModal.tsx
-// 여행 생성 모달
+// 여행 생성 버튼 눌렀을 때 정보 입력하는 모달
 
 import { useState } from 'react'
 import Calendar from '@components/atoms/Calendar'
