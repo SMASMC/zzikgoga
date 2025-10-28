@@ -19,6 +19,37 @@ function debounce(id: string, func: () => void, delay: number = 2000) {
     );
 }
 
+// dbPersist.ts 상단 유틸 근처에 추가
+function fromAnyToIntervalString(v: any): string | null {
+    if (v == null) return null;
+
+    // tiptap/프론트가 '' 줄 수도 있음
+    if (typeof v === 'string') {
+        const s = v.trim();
+        if (!s || s === '[object Object]') return null; // 오염값 방지
+        return s; // 이미 '1 hour 30 minutes' / '01:30:00' 등이라면 그대로 사용
+    }
+
+    // Y.Map 등 객체일 수 있음 (pg interval 객체 형태 or 프론트 구조체)
+    if (typeof v === 'object') {
+        // pg-interval 형태
+        const { years = 0, months = 0, days = 0, hours = 0, minutes = 0, seconds = 0 } = v as any;
+        const parts: string[] = [];
+        if (years) parts.push(`${years} years`);
+        if (months) parts.push(`${months} months`);
+        if (days) parts.push(`${days} days`);
+        if (hours) parts.push(`${hours} hours`);
+        if (minutes) parts.push(`${minutes} minutes`);
+        if (seconds) parts.push(`${seconds} seconds`);
+        return parts.length ? parts.join(' ') : '0 seconds';
+    }
+
+    // 숫자는 초로 간주하고 싶다면 여기서 처리(선택)
+    return null;
+}
+
+
+
 // 트랜잭션 origin이 "사용자 편집"인지 판별
 function isUserOrigin(tr: Y.Transaction): boolean {
     return tr.origin !== 'db_load' && tr.origin !== DB_UPDATE_ORIGIN;
@@ -60,7 +91,8 @@ async function upsertScheduleItem(
 ) {
     const id = scheduleItem.get('id') as number | undefined;
     const start_time = scheduleItem.get('start_time') as string;
-    const offset_time = scheduleItem.get('offset_time') as string;
+    const rawOffset = scheduleItem.get('offset_time');
+    const offset_time = fromAnyToIntervalString(rawOffset);
     const memoVal = scheduleItem.get('memo');
     const memo = memoVal instanceof Y.Text ? memoVal.toString() : (memoVal ?? '');
     const has_location = !!scheduleItem.get('has_location');

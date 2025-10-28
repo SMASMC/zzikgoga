@@ -39,6 +39,40 @@ function toNumber(v: any): number {
     return Number(v);
 }
 
+// dbLoad.ts 상단 유틸 근처에 추가
+function toPostgresIntervalString(v: any): string | null {
+    if (v == null) return null;
+
+    // 1) 이미 string이면 그대로 사용 (예: '1 hour 30 minutes' 또는 '01:30:00')
+    if (typeof v === 'string') {
+        const s = v.trim();
+        return s.length ? s : null;
+    }
+
+    // 2) pg가 interval을 객체로 준 경우: { years, months, days, hours, minutes, seconds }
+    if (typeof v === 'object') {
+        const {
+            years = 0, months = 0, days = 0,
+            hours = 0, minutes = 0, seconds = 0
+        } = v as any;
+
+        // 필요한 단위만 조합 (Postgres가 잘 파는 텍스트 포맷)
+        const parts: string[] = [];
+        if (years) parts.push(`${years} years`);
+        if (months) parts.push(`${months} months`);
+        if (days) parts.push(`${days} days`);
+        if (hours) parts.push(`${hours} hours`);
+        if (minutes) parts.push(`${minutes} minutes`);
+        if (seconds) parts.push(`${seconds} seconds`);
+
+        return parts.length ? parts.join(' ') : '0 seconds';
+    }
+
+    // 3) 숫자면 초로 간주해도 되지만(선택), 여기선 null 처리
+    return null;
+}
+
+
 /**
  * 유틸: string으로 변환하는 함수
  */
@@ -146,7 +180,12 @@ export async function loadYDocFromDB(tripId: number, doc: Y.Doc): Promise<Y.Doc>
                     yScheduleItem.set('id', row.schedule_id);
                     const localTime = toIsoString(row.start_time).slice(0, 16);
                     yScheduleItem.set('start_time', localTime);
-                    yScheduleItem.set('offset_time', toIsoString(row.offset_time));
+                    const offsetStr = toPostgresIntervalString(row.offset_time);
+                    if (offsetStr != null) {
+                        yScheduleItem.set('offset_time', offsetStr);
+                    } else {
+                        yScheduleItem.set('offset_time', null);
+                    }
                     yScheduleItem.set('memo', new Y.Text(row.memo || '')); // 👈 Y.Text가 Y.Map에 연결됨
                     yScheduleItem.set('has_location', !!row.has_location);
 

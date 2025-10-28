@@ -26,6 +26,25 @@ interface Room {
 
 const rooms = new Map<string, Room>()
 
+function sanitizeOffsetTimes(doc: Y.Doc) {
+  const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<any>>>;
+  schedulesMap.forEach((yDayArray) => {
+    (yDayArray as Y.Array<Y.Map<any>>).forEach((yItem) => {
+      const v = yItem.get('offset_time');
+      if (v === '[object Object]' || (typeof v === 'object' && v !== null)) {
+        let fixed = null;
+        if (typeof v === 'object') {
+          const { hours = 0, minutes = 0 } = v as any;
+          fixed = `${hours} hours ${minutes} minutes`;
+        }
+        Y.transact(doc, () => {
+          yItem.set('offset_time', fixed);
+        }, 'sanitize-offset');
+      }
+    });
+  });
+}
+
 /**
  * roomName: "trip-101" 같은 문자열이라고 가정
  * tripId 추출해서 DB에서 로딩하고 persistence 연결
@@ -61,6 +80,8 @@ async function getOrCreateRoom(roomName: string): Promise<Room> {
 
     await loadYDocFromDB(tripId, doc)
     console.log(`[room] trip ${tripId} loaded into doc.`)
+
+    sanitizeOffsetTimes(doc);
 
     // persistence 훅 (title 바뀌면 UPDATE trip 등)
     setupPersistence(doc)
