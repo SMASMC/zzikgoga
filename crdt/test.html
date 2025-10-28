@@ -1,29 +1,118 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale-1.0">
     <title>Yjs + Tiptap 테스트 (디버깅 모드)</title>
     <style>
         /* (스타일은 이전과 100% 동일) */
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 20px; background: #f4f4f9; }
-        #status { font-weight: bold; padding: 10px; border-radius: 5px; background: #eee; position: sticky; top: 0; z-index: 10; }
-        #status.connected { background: #dfffea; color: #006421; }
-        #status.disconnected { background: #fbeaea; color: #c00; }
-        h2 { border-bottom: 2px solid #ccc; padding-bottom: 5px; }
-        h3 { border-bottom: 1px solid #eee; padding-bottom: 3px; }
-        .container { background: #fff; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .item-card { border: 1px solid #ddd; border-radius: 5px; padding: 10px; margin-bottom: 10px; }
-        .item-card label { display: block; font-weight: bold; margin-top: 8px; font-size: 0.9em; color: #555; }
-        .item-card input[type="text"], .item-card input[type="number"], .item-card input[type="datetime-local"], .item-card input[type="date"] { width: 95%; padding: 6px; border: 1px solid #ccc; border-radius: 3px; }
-        .item-card input[type="checkbox"] { margin-right: 5px; }
-        .ProseMirror { border: 1px solid #ccc; border-radius: 3px; padding: 4px 8px; min-height: 2.5em; }
-        .ProseMirror:focus { outline: 2px solid #007bff; border-color: #007bff; }
-        .btn { padding: 8px 12px; border: none; border-radius: 4px; color: white; cursor: pointer; }
-        .btn-add { background: #007bff; }
-        .btn-delete { background: #dc3545; font-size: 0.8em; padding: 4px 8px; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f4f4f9;
+        }
+
+        #status {
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 5px;
+            background: #eee;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        #status.connected {
+            background: #dfffea;
+            color: #006421;
+        }
+
+        #status.disconnected {
+            background: #fbeaea;
+            color: #c00;
+        }
+
+        h2 {
+            border-bottom: 2px solid #ccc;
+            padding-bottom: 5px;
+        }
+
+        h3 {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 3px;
+        }
+
+        .container {
+            background: #fff;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .item-card {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .item-card label {
+            display: block;
+            font-weight: bold;
+            margin-top: 8px;
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        .item-card input[type="text"],
+        .item-card input[type="number"],
+        .item-card input[type="datetime-local"],
+        .item-card input[type="date"] {
+            width: 95%;
+            padding: 6px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        .item-card input[type="checkbox"] {
+            margin-right: 5px;
+        }
+
+        .ProseMirror {
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            padding: 4px 8px;
+            min-height: 2.5em;
+        }
+
+        .ProseMirror:focus {
+            outline: 2px solid #007bff;
+            border-color: #007bff;
+        }
+
+        .btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .btn-add {
+            background: #007bff;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            font-size: 0.8em;
+            padding: 4px 8px;
+        }
     </style>
 </head>
+
 <body>
 
     <div id="status" class="disconnected">Connecting...</div>
@@ -58,10 +147,10 @@
 
         // --- 2. Yjs 설정 ---
         const ydoc = new Y.Doc();
-        
+
         // --- [수정] 디버깅을 위해 ydoc을 전역(window)에 노출 ---
         window.ydoc = ydoc;
-        
+
         const provider = new WebsocketProvider(
             'ws://localhost:8081', 'trip-101', ydoc
         );
@@ -82,13 +171,13 @@
                 element.textContent = '[Tiptap 로드 실패]';
                 return;
             }
-            if (tiptapEditors.has(yText)) return tiptapEditors.get(yText); 
+            if (tiptapEditors.has(yText)) return tiptapEditors.get(yText);
             try {
-                let isRemoteUpdate = false; 
+                let isRemoteUpdate = false;
                 const editor = new Editor({
                     element: element,
                     extensions: [StarterKit.configure({ paragraph: { hardBreak: true }, heading: false, strike: false, blockquote: false, codeBlock: false, horizontalRule: false, listItem: false, orderedList: false, bulletList: false })],
-                    content: yText.toString(), 
+                    content: yText.toString(),
                 });
                 editor.on('update', ({ editor, transaction }) => {
                     if (isRemoteUpdate || !transaction.docChanged) return;
@@ -108,7 +197,7 @@
                         const newText = yText.toString();
                         if (editor.getText({ blockSeparator: '\n' }) !== newText) {
                             const { from, to } = editor.state.selection;
-                            editor.commands.setContent(newText, false); 
+                            editor.commands.setContent(newText, false);
                             const docSize = editor.state.doc.content.size;
                             editor.commands.setTextSelection({ from: Math.min(from, docSize), to: Math.min(to, docSize) });
                         }
@@ -124,12 +213,12 @@
         function bindInput(input, yMap, field) {
             const updateInput = () => {
                 let val = yMap.get(field);
-                if (val instanceof Date) { 
+                if (val instanceof Date) {
                     if (input.type === 'datetime-local') val = val.toISOString().slice(0, 16);
                     else if (input.type === 'date') val = val.toISOString().split('T')[0];
                     else val = val.toISOString();
                 }
-                val = val || ''; 
+                val = val || '';
                 if (input.value !== val) input.value = val;
             };
             yMap.observe(event => { if (event.keysChanged.has(field)) updateInput(); });
@@ -150,7 +239,7 @@
         }
 
         // --- 4. [수정] 데이터 바인딩 로직 (디버그 로그 추가) ---
-        
+
         let isTripInfoBound = false;
         let isSchedulesBound = false;
         let isBudgetsBound = false;
@@ -162,7 +251,7 @@
                 setupAddButtons();
             }
         });
-        
+
         function setupDocObserver() {
             console.log('[Debug] setupDocObserver() called.'); // [디버그 1]
 
@@ -208,7 +297,7 @@
                 renderBudgetsMap(yBudgetsMap);
             }
         }
-        
+
         function bindTripInfoUI(yTripInfo) {
             console.log('[Debug] bindTripInfoUI() called.'); // [디버그 10]
             const container = document.getElementById('tripInfo-container');
@@ -217,7 +306,7 @@
 
             bindInput(container.querySelector('[data-field="start_date"]'), yTripInfo, 'start_date');
             bindInput(container.querySelector('[data-field="end_date"]'), yTripInfo, 'end_date');
-            
+
             const yTitle = yTripInfo.get('title');
             if (yTitle instanceof Y.Text) {
                 console.log('[Debug] title is Y.Text. Binding Tiptap.'); // [디버그 11]
@@ -228,12 +317,14 @@
                 document.getElementById('tiptap-title').textContent = '[Error: title이 Y.Text가 아닙니다]';
             }
         }
-        
+
         function renderSchedulesMap(ySchedulesMap) {
             const container = document.getElementById('schedules-container');
-            ySchedulesMap.observeDeep(() => {
-                console.log('[Debug] Schedules Map changed (observeDeep), re-rendering...');
-                _renderSchedules();
+            ySchedulesMap.observe(event => {
+                if (event.keysChanged.size > 0) {
+                    console.log('[Debug] Schedules Map keys changed, re-rendering...');
+                    _renderSchedules();
+                }
             });
             function _renderSchedules() {
                 container.innerHTML = '';
@@ -254,9 +345,11 @@
 
         function renderBudgetsMap(yBudgetsMap) {
             const container = document.getElementById('budgets-container');
-            yBudgetsMap.observeDeep(() => {
-                 console.log('[Debug] Budgets Map changed (observeDeep), re-rendering...');
-                _renderBudgets();
+            yBudgetsMap.observe(event => {
+                if (event.keysChanged.size > 0) {
+                    console.log('[Debug] Budgets Map keys changed, re-rendering...');
+                    _renderBudgets();
+                }
             });
             function _renderBudgets() {
                 container.innerHTML = '';
@@ -280,7 +373,7 @@
                 container.appendChild(itemEl);
             });
         }
-        
+
         function createScheduleItemElement(yItem, yParentArray, index) {
             const el = document.createElement('div');
             el.className = 'item-card';
@@ -329,7 +422,7 @@
             });
             return el;
         }
-        
+
         function createBudgetItemElement(yItem, yParentArray, index) {
             const el = document.createElement('div');
             el.className = 'item-card';
@@ -347,7 +440,7 @@
                 bindTiptapEditor(el.querySelector('[data-tiptap-field="description"]'), yDesc, ydoc);
             }
             yItem.observe(e => {
-                 if (e.keysChanged.has('id')) {
+                if (e.keysChanged.has('id')) {
                     el.querySelector('[data-field="id"]').textContent = yItem.get('id');
                 }
             });
@@ -356,7 +449,7 @@
             });
             return el;
         }
-        
+
         function setupAddButtons() {
             const ySchedulesMap = ydoc.getMap('schedules');
             const yBudgetsMap = ydoc.getMap('budgets');
@@ -389,4 +482,5 @@
         }
     </script>
 </body>
+
 </html>
