@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import Header from '@components/blocks/Header'
-import Button from '@components/atoms/Button'
+import SolidButton from '@/components/atoms/SolidButton'
 
 const HomePage = () => {
   return (
@@ -14,9 +14,19 @@ const HomePage = () => {
 
           <div className="flex gap-4 justify-center mt-8">
             <Link to="/auth">
-              <Button variant="main" size="lg">
+              <SolidButton variant="main" size="lg">
                 로그인
-              </Button>
+              </SolidButton>
+            </Link>
+            <Link to="/mypage">
+              <SolidButton variant="hover" size="lg">
+                마이페이지
+              </SolidButton>
+            </Link>
+            <Link to="/plan">
+              <SolidButton variant="point" size="lg">
+                여행 계획하기
+              </SolidButton>
             </Link>
           </div>
         </div>
