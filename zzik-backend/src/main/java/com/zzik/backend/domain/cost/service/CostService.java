@@ -40,7 +40,6 @@ import com.zzik.backend.global.exception.ExceptionCode;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import shaded_package.javax.validation.Valid;
 
 @Slf4j
 @Service
@@ -302,7 +301,19 @@ public class CostService {
 	}
 
 	@Transactional
-	public Long createCost(Long tripId, @Valid SaveCostRequest req) {
+	public Long createCost(Long tripId, SaveCostRequest req) {
+		log.debug("CreateCost IN: tripId={}, createdBy={}, payerId={}, place={}, itemsNull={}, itemsSize={}",
+			tripId, req.getCreatedBy(), req.getPayerId(), req.getPlace(),
+			req.getItems() == null, req.getItems() == null ? null : req.getItems().size());
+
+		if (req == null)
+			throw new IllegalArgumentException("요청 본문이 비어 있습니다.");
+		if (req.getItems() == null || req.getItems().isEmpty())
+			throw new IllegalArgumentException("items가 비어 있습니다.");
+		if (!StringUtils.hasText(req.getPlace()))
+			throw new IllegalArgumentException("place는 필수입니다.");
+		if (!StringUtils.hasText(req.getPaidAt()))
+			throw new IllegalArgumentException("paidAt은 필수입니다.");
 		// 1) 메뉴 금액 확정 + 합계
 		long itemsTotal = 0L;
 		List<CostMenu> menus = new ArrayList<>();

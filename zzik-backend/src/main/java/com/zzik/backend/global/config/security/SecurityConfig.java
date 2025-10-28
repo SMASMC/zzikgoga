@@ -41,7 +41,8 @@ public class SecurityConfig {
 		"/v1/auth/spouse/verify",            // 배우자 코드 검증
 		"/v1/auth/phone/check",              // 전화번호 중복검사
 		"/v1/auth/status",                    // 토큰 검증
-		"/api/cost/*/receipt"
+		"/api/cost/*/receipt",
+		"/api/cost/*"
 	};
 	private static final String[] ATUATOR_ENDPOINTS = {"/actuator/**"};
 
@@ -65,6 +66,7 @@ public class SecurityConfig {
 					.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 					.requestMatchers(HttpMethod.POST, "/cost/*/receipt", "/api/cost/*/receipt").permitAll()
 					.requestMatchers(HttpMethod.GET, "/cost/*/receipt", "/api/cost/*/receipt").permitAll()
+					.requestMatchers("/cost/**").permitAll()
 					.anyRequest().authenticated() // 나머지는 인증 필요 (메서드 레벨에서 세부 권한 검사)
 			).build();
 	}

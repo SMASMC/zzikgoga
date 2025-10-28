@@ -1,5 +1,6 @@
 package com.zzik.backend.domain.cost.dto.request;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import lombok.AllArgsConstructor;
@@ -21,5 +22,5 @@ public class SaveCostRequest {
 	private Long totalAmount;
 	private String memo;
 	private String receiptJson;
-	private List<SaveCostMenuItem> items;
+	private List<SaveCostMenuItem> items = new ArrayList<>();
 }
