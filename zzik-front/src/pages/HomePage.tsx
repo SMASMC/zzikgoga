@@ -10,7 +10,6 @@ const HomePage = () => {
       <main className="container mx-auto px-4 py-16">
         <div className="text-center space-y-6">
           <h1 className="text-5xl font-bold text-gray-900">Zzikgoga에 오신 것을 환영합니다</h1>
-          <p className="text-lg text-gray-600">블루 그린이 되나</p>
 
           <div className="flex gap-4 justify-center mt-8">
             <Link to="/auth">
