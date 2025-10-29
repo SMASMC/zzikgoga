@@ -14,7 +14,7 @@ import { pool } from './db'
 dotenv.config()
 
 // ---------- config ----------
-const HOST = process.env.HOST || 'localhost'
+const HOST = process.env.HOST || '0.0.0.0'
 const PORT = Number(process.env.YJS_PORT)
 
 // 방(룸) 정보를 메모리에 관리
@@ -25,25 +25,6 @@ interface Room {
 }
 
 const rooms = new Map<string, Room>()
-
-function sanitizeOffsetTimes(doc: Y.Doc) {
-  const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<any>>>;
-  schedulesMap.forEach((yDayArray) => {
-    (yDayArray as Y.Array<Y.Map<any>>).forEach((yItem) => {
-      const v = yItem.get('offset_time');
-      if (v === '[object Object]' || (typeof v === 'object' && v !== null)) {
-        let fixed = null;
-        if (typeof v === 'object') {
-          const { hours = 0, minutes = 0 } = v as any;
-          fixed = `${hours} hours ${minutes} minutes`;
-        }
-        Y.transact(doc, () => {
-          yItem.set('offset_time', fixed);
-        }, 'sanitize-offset');
-      }
-    });
-  });
-}
 
 /**
  * roomName: "trip-101" 같은 문자열이라고 가정
@@ -80,8 +61,6 @@ async function getOrCreateRoom(roomName: string): Promise<Room> {
 
     await loadYDocFromDB(tripId, doc)
     console.log(`[room] trip ${tripId} loaded into doc.`)
-
-    sanitizeOffsetTimes(doc);
 
     // persistence 훅 (title 바뀌면 UPDATE trip 등)
     setupPersistence(doc)
@@ -144,13 +123,19 @@ async function handleConnection(ws: WebSocket, req: http.IncomingMessage) {
 
   awareness.on('update', awarenessUpdateHandler)
 
-  // ---- 초기 sync step1: 서버의 문서 상태 보내주기 ----
+  // ---- 초기 sync: step1 + step2 둘 다 보낸다 ----
   {
-    const enc = encoding.createEncoder()
-    encoding.writeVarUint(enc, MessageType.SYNC)
-    syncProtocol.writeSyncStep1(enc, doc)
-    const message = encoding.toUint8Array(enc)
-    ws.send(message)
+    // step1
+    const enc1 = encoding.createEncoder()
+    encoding.writeVarUint(enc1, MessageType.SYNC)
+    syncProtocol.writeSyncStep1(enc1, doc)
+    ws.send(encoding.toUint8Array(enc1))
+
+    // step2
+    const enc2 = encoding.createEncoder()
+    encoding.writeVarUint(enc2, MessageType.SYNC)
+    syncProtocol.writeSyncStep2(enc2, doc)
+    ws.send(encoding.toUint8Array(enc2))
   }
 
   // ---- 초기 awareness snapshot을 새 클라이언트에게 한 번 쏘기 ----
