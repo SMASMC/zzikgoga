@@ -1,10 +1,10 @@
 // src/main/java/com/zzik/backend/domain/cost/controller/CostController.java
 package com.zzik.backend.domain.cost.controller;
 
+import java.util.Map;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -33,13 +33,13 @@ public class CostController implements CostApi {
 		return ResponseEntity.ok(ApiResponse.createSuccess(result));
 	}
 
-	/** 영수증 OCR 업로드 & 정산 등록: 최종 저장 */
-	@PostMapping("/{tripId}")
-	public ResponseEntity<Long> createCost(
+	@Override
+	public ResponseEntity<ApiResponse<Map<String, Long>>> createCost(
 		@PathVariable Long tripId,
-		@RequestBody SaveCostRequest request
+		SaveCostRequest request
 	) {
 		Long id = costService.createCost(tripId, request);
-		return ResponseEntity.ok(id);
+		Map<String, Long> content = Map.of("costId", id);
+		return ResponseEntity.ok(ApiResponse.createSuccess(content));
 	}
 }

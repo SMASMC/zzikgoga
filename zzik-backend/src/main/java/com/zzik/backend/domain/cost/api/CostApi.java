@@ -1,13 +1,16 @@
-// src/main/java/com/zzik/backend/domain/cost/api/CostApi.java
 package com.zzik.backend.domain.cost.api;
+
+import java.util.Map;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.zzik.backend.domain.cost.dto.request.SaveCostRequest;
 import com.zzik.backend.domain.cost.dto.response.ReceiptOcrResponse;
 import com.zzik.backend.global.annotation.swagger.ApiErrorResponseExplanation;
 import com.zzik.backend.global.annotation.swagger.ApiResponseExplanations;
@@ -31,7 +34,9 @@ public interface CostApi {
 			responseClass = ReceiptOcrResponse.class
 		),
 		errors = {
-			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.RECEIPT_RECOGNIZE_FAIL)
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.OCR_PROCESS_FAIL),
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.UNSUPPORTED_IMAGE_TYPE),
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.UPLOAD_SIZE_EXCEEDED)
 		}
 	)
 	@PostMapping(
@@ -41,5 +46,27 @@ public interface CostApi {
 	ResponseEntity<ApiResponse<ReceiptOcrResponse>> uploadReceipt(
 		@PathVariable Long tripId,
 		@RequestPart("file") MultipartFile file
+	);
+
+	@Operation(
+		summary = "정산 등록 (최종 저장)",
+		description = "OCR 결과 및 사용자가 입력한 항목을 기반으로 정산 내역을 저장합니다."
+	)
+	@ApiResponseExplanations(
+		success = @ApiSuccessResponseExplanation(
+			description = "정산 등록 성공 (생성된 비용 ID 반환)",
+			responseClass = Long.class
+		),
+		errors = {
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.INVALID_TRIP)
+		}
+	)
+	@PostMapping(
+		value = "/{tripId}",
+		consumes = MediaType.APPLICATION_JSON_VALUE
+	)
+	ResponseEntity<ApiResponse<Map<String, Long>>> createCost(
+		@PathVariable Long tripId,
+		@RequestBody SaveCostRequest request
 	);
 }

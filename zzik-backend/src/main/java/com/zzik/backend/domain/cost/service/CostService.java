@@ -48,7 +48,6 @@ public class CostService {
 
 	private final ClovaOcrProperties props;
 
-	/** CLOVA 명세: 50MB 이하, 확장자 jpg/png/pdf/tiff (여기서는 확장자만 검증) */
 	private static final long MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 	private static final Set<String> ALLOWED_EXT = Set.of("jpg", "jpeg", "png", "pdf", "tif", "tiff");
 
@@ -59,17 +58,16 @@ public class CostService {
 	private final CostMenuRepository costMenuRepository;
 	private final CostMenuMemberRepository costMenuMemberRepository;
 
-	/** 업로드 유효성(용량/확장자) */
 	public void validateReceiptImage(MultipartFile file) {
 		if (file == null || file.isEmpty()) {
-			throw BusinessException.from(ExceptionCode.INVALID_UPLOAD_SIZE);
+			throw BusinessException.from(ExceptionCode.UNSUPPORTED_IMAGE_TYPE);
 		}
 		if (file.getSize() > MAX_FILE_SIZE) {
-			throw BusinessException.from(ExceptionCode.INVALID_UPLOAD_SIZE);
+			throw BusinessException.from(ExceptionCode.UPLOAD_SIZE_EXCEEDED);
 		}
 		String ext = getExt(file.getOriginalFilename());
 		if (!ALLOWED_EXT.contains(ext)) {
-			throw BusinessException.from(ExceptionCode.INVALID_UPLOAD_SIZE);
+			throw BusinessException.from(ExceptionCode.UNSUPPORTED_IMAGE_TYPE);
 		}
 	}
 
@@ -106,7 +104,7 @@ public class CostService {
 			);
 
 			if (!resp.getStatusCode().is2xxSuccessful() || resp.getBody() == null) {
-				throw BusinessException.from(ExceptionCode.RECEIPT_RECOGNIZE_FAIL);
+				throw BusinessException.from(ExceptionCode.OCR_PROCESS_FAIL);
 			}
 
 			JsonNode root = objectMapper.readTree(resp.getBody());
@@ -116,12 +114,11 @@ public class CostService {
 			throw e;
 		} catch (Exception e) {
 			log.warn("OCR 호출 실패: {}", e.toString());
-			throw BusinessException.from(ExceptionCode.RECEIPT_RECOGNIZE_FAIL);
+			throw BusinessException.from(ExceptionCode.OCR_PROCESS_FAIL);
 		}
 	}
 
 	private ReceiptOcrResponse toResponse(Long tripId, JsonNode root) {
-		// 원본 응답 로그
 		try {
 			String pretty = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(root);
 			log.info("\n✅ OCR Response:\n{}", pretty);
@@ -253,7 +250,6 @@ public class CostService {
 				}
 			}
 		}
-		// DFS children
 		for (JsonNode child : node) {
 			String got = findPriceByKeyText(child);
 			if (StringUtils.hasText(got))
