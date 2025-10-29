@@ -9,7 +9,6 @@ const MyPageHeader = () => {
           <img src="zzikgoga_logo.png" alt="logo" className="w-32" />
         </Link>
         <div className="flex items-center gap-4">
-
           <div className="px-5 py-2 text-text-600 font-bmjua">김싸피님 반갑습니다</div>
         </div>
       </nav>
