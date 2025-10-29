@@ -3,7 +3,7 @@ import { useState, useRef } from 'react'
 import Input from '@components/atoms/Input'
 import SolidButton from '@/components/atoms/SolidButton'
 
-const libraries: ('places')[] = ['places']
+const libraries: 'places'[] = ['places']
 
 interface NewPlace {
   id: string
@@ -105,7 +105,7 @@ const PlaceSearchPanel = () => {
           type="text"
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSearch()} 
+          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           placeholder="숙소, 관광지를 입력해주세요."
           className="placeholder-gray-400 flex-1 rounded px-2 py-1"
         />
