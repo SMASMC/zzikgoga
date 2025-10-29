@@ -2,6 +2,7 @@ import { useJsApiLoader, GoogleMap, Marker } from '@react-google-maps/api'
 import { useState, useRef } from 'react'
 import Input from '@components/atoms/Input'
 import SolidButton from '@/components/atoms/SolidButton'
+import PlaceModal from './PlaceModal'
 
 const libraries: 'places'[] = ['places']
 
@@ -18,13 +19,14 @@ const PlaceSearchPanel = () => {
   const [selectedPlace, setSelectedPlace] = useState<NewPlace | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
   const mapRef = useRef<google.maps.Map | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAP_KEY,
     libraries,
   })
 
-  /** 🔍 최신 Places API (New) 호출 */
+  /** 최신 Places API (New) 호출 */
   const handleSearch = async () => {
     if (!keyword.trim()) return
     setHasSearched(true)
@@ -88,10 +90,13 @@ const PlaceSearchPanel = () => {
       alert('먼저 장소를 선택해주세요.')
       return
     }
+    setIsModalOpen(true)
 
-    // TODO: 장소 추가 API 요청
-    // ex) await postPlace(selectedPlace)
+    
   }
+  
+
+  const handleClosePlaceModal = () => setIsModalOpen(false)
 
   if (!isLoaded) return <div>지도를 불러오는 중...</div>
 
@@ -179,6 +184,11 @@ const PlaceSearchPanel = () => {
           )}
         </GoogleMap>
       </div>
+      {isModalOpen && selectedPlace && <PlaceModal 
+      onClose={handleClosePlaceModal} 
+      placeName={selectedPlace.displayName.text}
+      address={selectedPlace.formattedAddress || ''}
+      />}
     </div>
   )
 }

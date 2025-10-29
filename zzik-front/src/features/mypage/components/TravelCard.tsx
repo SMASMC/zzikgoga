@@ -41,9 +41,9 @@ const TravelCard = ({ title, date, img }: { title: string; date: string; img: st
         !isButtonHovered ? 'hover:shadow-xl hover:scale-105' : ''
       }`}
     >
-      <img 
-        src={imageSrc} 
-        alt={title} 
+      <img
+        src={imageSrc}
+        alt={title}
         className="rounded-2xl h-48 object-cover mb-4"
         onError={handleImageError}
       />
@@ -71,7 +71,7 @@ const TravelCard = ({ title, date, img }: { title: string; date: string; img: st
   )
 }
 
-// TravelAddCard.tsx
+// TravelAddCard (여행 추가하는 카드)
 const TravelAddCard = ({ onCreateTravel }: TravelAddCardProps) => {
   return (
     <div
