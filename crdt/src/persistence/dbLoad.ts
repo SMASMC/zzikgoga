@@ -77,13 +77,13 @@ function toPostgresIntervalString(v: any): string | null {
  * 유틸: string으로 변환하는 함수
  */
 function toIsoString(v: any): string {
-    // v가 Date면 ISO로
-    if (v instanceof Date) {
-        return v.toISOString(); // '2025-10-20T09:13:00.000Z' 이런 식
-    }
-    // null/undefined는 빈 문자열이나 null 취급 - 선택
     if (v === null || v === undefined) return '';
-    // 이미 string이면 그대로
+    // v가 문자열이면 그대로
+    if (typeof v === 'string') return v;
+    // 혹시 Date 객체면 한국시간 문자열로 변환
+    if (v instanceof Date) {
+        return v.toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }).replace(' ', 'T');
+    }
     return String(v);
 }
 
