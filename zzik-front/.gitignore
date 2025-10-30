@@ -31,3 +31,6 @@ workbox-*.js
 workbox-*.js.map
 
 .env*
+
+.editorconfig
+.gitattributes

@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+# 커밋 전에 한글/이모지 인코딩 및 주석 규칙을 점검합니다.
+node scripts/precommit-checks.mjs
+status=$?
+exit $status
+
