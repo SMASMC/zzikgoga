@@ -91,10 +91,7 @@ const PlaceSearchPanel = () => {
       return
     }
     setIsModalOpen(true)
-
-    
   }
-  
 
   const handleClosePlaceModal = () => setIsModalOpen(false)
 
@@ -184,11 +181,9 @@ const PlaceSearchPanel = () => {
           )}
         </GoogleMap>
       </div>
-      {isModalOpen && selectedPlace && <PlaceModal 
-      onClose={handleClosePlaceModal} 
-      placeName={selectedPlace.displayName.text}
-      address={selectedPlace.formattedAddress || ''}
-      />}
+      {isModalOpen && selectedPlace && (
+        <PlaceModal onClose={handleClosePlaceModal} placeName={selectedPlace.displayName.text} />
+      )}
     </div>
   )
 }

@@ -1,5 +1,14 @@
 // PlaceModal.tsx
 // 장소 추가 버튼 눌렀을 때 정보 입력하는 모달
+// 해야 할 일
+// 1. 각 Input에 대해 디자인 바꾸기(이건 Input 컴포넌트에서 처리할 것)
+// 2. 시작 시간 끝 시간 모두 시스템 날짜 기준 이전 날짜 선택 금지
+// 2-1. 끝 시간이 시작 시간 이전이면 끝 시간을 시작 시간으로 설정
+// 2-2. 시작 시간이 끝 시간 이후이면 시작 시간을 끝 시간으로 설정
+// 3. 저장 버튼 눌렀을 때 API 연결
+// 4. 저장 버튼 눌렀을 때 모달이 닫히도록 설정
+
+
 
 import SolidButton from '@/components/atoms/SolidButton'
 import { useState } from 'react'
@@ -7,16 +16,13 @@ import { useState } from 'react'
 interface PlaceModalProps {
   onClose: () => void
   placeName: string
-  address: string
 }
 
-
-const PlaceModal = ({ onClose, placeName, address }: PlaceModalProps) => {
-  const [startDateTime, setStartDateTime] = useState<string>('') 
-  const [endDateTime, setEndDateTime] = useState<string>('') 
-  const [activity, setActivity] = useState<string>('') 
+const PlaceModal = ({ onClose, placeName }: PlaceModalProps) => {
+  const [startDateTime, setStartDateTime] = useState<string>('')
+  const [endDateTime, setEndDateTime] = useState<string>('')
+  const [activity, setActivity] = useState<string>('')
   const [detailAddress, setDetailAddress] = useState<string>('')
-
 
   const handleSubmit = () => {
     if (!startDateTime || !endDateTime) {
@@ -25,17 +31,15 @@ const PlaceModal = ({ onClose, placeName, address }: PlaceModalProps) => {
     }
     const placeData = {
       name: placeName,
-      start_time:startDateTime,
-      end_time:endDateTime,
+      start_time: startDateTime,
+      end_time: endDateTime,
       activity,
-      detail:detailAddress
+      detail: detailAddress,
     }
     // TODO: plan.ts에서 api 연결하기
     console.log('전송할 데이터:', placeData)
     onClose()
-  } 
-
-
+  }
 
   return (
     <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4">
