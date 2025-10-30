@@ -8,8 +8,6 @@
 // 3. 저장 버튼 눌렀을 때 API 연결
 // 4. 저장 버튼 눌렀을 때 모달이 닫히도록 설정
 
-
-
 import SolidButton from '@/components/atoms/SolidButton'
 import { useState } from 'react'
 

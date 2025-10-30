@@ -1,7 +1,7 @@
 import Header from '@components/blocks/Header'
 import LoginForm from '@features/auth/components/LoginForm'
 
-const AuthPage = () => {
+const LoginPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -13,4 +13,4 @@ const AuthPage = () => {
   )
 }
 
-export default AuthPage
+export default LoginPage
