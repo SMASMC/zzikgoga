@@ -22,6 +22,8 @@ import com.zzik.backend.domain.plan.repository.ThemaRepository;
 import com.zzik.backend.domain.plan.repository.TripCompanionRepository;
 import com.zzik.backend.domain.plan.repository.TripRepository;
 import com.zzik.backend.domain.plan.repository.TripThemaRepository;
+import com.zzik.backend.global.exception.BusinessException;
+import com.zzik.backend.global.exception.ExceptionCode;
 
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
@@ -78,7 +80,7 @@ public class PlanService {
 			for (Long cid : req.getCompanionId()) {
 				// 필요하면 가벼운 존재 검증
 				if (!companionRepository.existsById(cid)) {
-					throw new IllegalArgumentException("invalid companion_id: " + cid);
+					throw BusinessException.from(ExceptionCode.INVALID_COMPANION);
 				}
 				Companion compRef = em.getReference(Companion.class, cid);
 				links.add(TripCompanion.builder()
@@ -94,7 +96,7 @@ public class PlanService {
 			List<TripThema> links = new ArrayList<>();
 			for (Long tid : req.getThemaId()) {
 				if (!themaRepository.existsById(tid)) {
-					throw new IllegalArgumentException("invalid thema_id: " + tid);
+					throw BusinessException.from(ExceptionCode.INVALID_THEMA);
 				}
 				Thema themaRef = em.getReference(Thema.class, tid);
 				links.add(TripThema.builder()
@@ -110,15 +112,12 @@ public class PlanService {
 
 	private void validate(CreateTripRequest req) {
 		if (req.getTitle() == null || req.getTitle().isBlank()) {
-			throw new IllegalArgumentException("title은 필수입니다.");
+			throw BusinessException.from(ExceptionCode.PLAN_INVALID_TITLE);
 		}
 		LocalDate s = req.getStartDate();
 		LocalDate e = req.getEndDate();
-		if (s == null || e == null) {
-			throw new IllegalArgumentException("start_date / end_date는 필수입니다.");
-		}
-		if (e.isBefore(s)) {
-			throw new IllegalArgumentException("end_date는 start_date 이후여야 합니다.");
+		if (s == null || e == null || e.isBefore(s)) {
+			throw BusinessException.from(ExceptionCode.PLAN_INVALID_DATE_RANGE);
 		}
 	}
 }
