@@ -10,10 +10,9 @@ import lombok.RequiredArgsConstructor;
 public class RefreshTokenClaim implements JwtClaims {
 	private final Map<String, ?> claims;
 
-	public static RefreshTokenClaim of(Long userId, String role) {
+	public static RefreshTokenClaim of(Long userId) {
 		Map<String, Object> claims = Map.of(
-			RefreshTokenClaimKeys.USER_ID.getValue(), userId.toString(),
-			RefreshTokenClaimKeys.ROLE.getValue(), role
+			RefreshTokenClaimKeys.USER_ID.getValue(), userId.toString()
 		);
 		return new RefreshTokenClaim(claims);
 	}

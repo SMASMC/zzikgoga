@@ -10,10 +10,9 @@ import lombok.RequiredArgsConstructor;
 public class AccessTokenClaim implements JwtClaims {
 	private final Map<String, ?> claims;
 
-	public static AccessTokenClaim of(Long userId, String role) {
+	public static AccessTokenClaim of(Long userId) {
 		Map<String, Object> claims = Map.of(
-			AccessTokenClaimKeys.USER_ID.getValue(), userId.toString(),
-			AccessTokenClaimKeys.ROLE.getValue(), role
+			AccessTokenClaimKeys.USER_ID.getValue(), userId.toString()
 		);
 		return new AccessTokenClaim(claims);
 	}

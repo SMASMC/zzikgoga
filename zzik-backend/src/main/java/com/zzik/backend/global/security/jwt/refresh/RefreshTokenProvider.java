@@ -52,8 +52,7 @@ public class RefreshTokenProvider implements JwtProvider {
 	@Override
 	public JwtClaims getJwtClaimsFromToken(String token) {
 		Claims claims = getClaimsFromToken(token);
-		return AccessTokenClaim.of(Long.parseLong(claims.get(USER_ID.getValue(), String.class)),
-			claims.get(ROLE.getValue(), String.class));
+		return AccessTokenClaim.of(Long.parseLong(claims.get(USER_ID.getValue(), String.class)));
 	}
 
 	@Override
