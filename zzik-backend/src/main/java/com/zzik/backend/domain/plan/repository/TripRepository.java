@@ -1,10 +1,11 @@
 package com.zzik.backend.domain.plan.repository;
 
-import com.zzik.backend.domain.plan.entity.Trip;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import com.zzik.backend.domain.plan.entity.Trip;
 
 /**
  * 여행 Repository
@@ -12,6 +13,5 @@ import java.util.List;
 @Repository
 public interface TripRepository extends JpaRepository<Trip, Long> {
 
-	// 소유자 ID로 여행 목록 조회
-	List<Trip> findByOwnerId(Long ownerId);
+	List<Trip> findAllByOwnerIdOrderByCreatedAtDesc(Long ownerId);
 }

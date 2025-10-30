@@ -47,7 +47,10 @@ dependencies {
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:3.3.1'
     testImplementation 'org.springframework.boot:spring-boot-starter-test:3.3.1'
     implementation 'org.springframework.boot:spring-boot-starter-aop'
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
+
+    /* OpenAPI */
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
+
     /* Lombok */
     compileOnly 'org.projectlombok:lombok:1.18.32'
     annotationProcessor 'org.projectlombok:lombok:1.18.32'
@@ -81,11 +84,15 @@ dependencies {
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
 
     /* AWS S3 */
-    implementation 'io.awspring.cloud:spring-cloud-starter-aws:2.4.4'
-    implementation 'io.awspring.cloud:spring-cloud-starter-aws-secrets-manager-config:2.4.4'
+    implementation 'io.awspring.cloud:spring-cloud-aws-starter:3.1.0'
+    implementation 'io.awspring.cloud:spring-cloud-aws-starter-secrets-manager:3.1.0'
 
     /* Firebase */
     implementation "com.google.firebase:firebase-admin:9.4.0"
+
+    /* Flyway */
+    implementation 'org.flywaydb:flyway-core:11.15.0'
+    implementation 'org.flywaydb:flyway-database-postgresql:11.15.0'
 }
 
 // QueryDSL 설정

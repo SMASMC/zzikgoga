@@ -48,7 +48,12 @@ public enum ExceptionCode {
 	UPLOAD_SIZE_EXCEEDED(HttpStatus.PAYLOAD_TOO_LARGE, 40305, "이미지 용량이 제한을 초과했습니다. (최대 50MB)", "cost - 이미지 사이즈 초과"),
 
 	/* 404xx - plan */
-
+	INVALID_COMPANION(HttpStatus.NOT_FOUND, 40401, "존재하지 않는 동반자 ID입니다.", "plan - companion not found"),
+	INVALID_THEMA(HttpStatus.NOT_FOUND, 40402, "존재하지 않는 테마 ID입니다.", "plan - thema not found"),
+	INVALID_PLAN_TRIP(HttpStatus.NOT_FOUND, 40403, "존재하지 않는 여행입니다.", "plan - 여행 조회 실패"),
+	TRIP_NOT_FOUND(HttpStatus.NOT_FOUND, 40404, "조회할 여행이 존재하지 않습니다.", "plan - trip not found"),
+	PLAN_INVALID_TITLE(HttpStatus.FORBIDDEN, 40405, "여행 제목은 필수입니다.", "plan - 제목 입력 필수"),
+	PLAN_INVALID_DATE_RANGE(HttpStatus.FORBIDDEN, 40406, "유효하지 않은 날짜 형식입니다.", "plan - 유효하지 않은 날짜 형식"),
 	/* 405xx - memory */
 
 	/* 406xx - media */
