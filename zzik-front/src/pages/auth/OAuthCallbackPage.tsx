@@ -1,9 +1,8 @@
 // src/pages/auth/OAuthCallbackPage.tsx
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { KakaoOAuthService } from '../../features/auth/services/kakaoOAuth'
+import axios from 'axios'
 import { useAuthStore } from '../../shared/stores/useAuthStore'
-import { isJWTExpired } from '../../shared/utils/jwt'
 
 export function OAuthCallbackPage() {
   const navigate = useNavigate()
@@ -12,55 +11,55 @@ export function OAuthCallbackPage() {
   useEffect(() => {
     const handleOAuthCallback = async () => {
       try {
-        // 1. 에러 파라미터 검사
-        const error = KakaoOAuthService.getErrorFromUrl()
-        if (error) {
-          console.error('OAuth 에러:', error)
-          navigate('/login?error=oauth_failed', { replace: true })
+        const params = new URLSearchParams(window.location.search)
+        const code = params.get('code')
+        if (!code) {
+          navigate('/auth?error=no_code', { replace: true })
           return
         }
 
-        // 2. 토큰 URL 파싱 (hash or query)
-        const urlParams = new URLSearchParams(window.location.search)
-        const signupToken = urlParams.get('token')
+        // 1. 인가 코드로 id_token 받기
+        const tokenResponse = await axios.post(
+          'https://kauth.kakao.com/oauth/token',
+          new URLSearchParams({
+            grant_type: 'authorization_code',
+            client_id: import.meta.env.VITE_KAKAO_REST_API_KEY,
+            redirect_uri: import.meta.env.VITE_KAKAO_REDIRECT_URI,
+            code,
+          }),
+          { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+        )
 
-        if (signupToken) {
-          if (isJWTExpired(signupToken)) {
-            navigate('/login?error=token_expired', { replace: true })
-            return
-          }
-          navigate(`/signup?token=${encodeURIComponent(signupToken)}`, { replace: true })
+        const idToken = tokenResponse.data.id_token
+        if (!idToken) {
+          navigate('/auth?error=no_id_token', { replace: true })
           return
         }
 
-        const accessToken =
-          KakaoOAuthService.getAccessTokenFromUrl() ||
-          new URLSearchParams(window.location.hash.replace(/^#/, '')).get('access_token')
+        // 2. 백엔드로 idToken 전달 → JWT 발급 or signupToken 반환
+        const { data } = await axios.post(
+          `${import.meta.env.VITE_BACKEND_URL}/auth/callback`,
+          { idToken },
+          { withCredentials: true }
+        )
 
-        // 3. 토큰이 있을 때
-        if (accessToken) {
-          // TODO: 백엔드 API로 토큰을 보내고 user 정보를 받아와야 함
-          // 예시: const userInfo = await fetchUserInfo(accessToken)
-          // setAuth(userInfo, accessToken)
-
-          // 임시: 기본 user 정보로 설정 (API 연동 전)
-          setAuth(
-            {
-              id: 'temp-id',
-              email: 'kakao-user@example.com',
-              name: '카카오 사용자',
-            },
-            accessToken
-          )
+        // 3. 로그인 완료
+        if (data.accessToken) {
+          setAuth(data.user, data.accessToken)
           navigate('/', { replace: true })
           return
         }
 
-        // 4️. 토큰이 없을 때
-        navigate('/login?error=no_token', { replace: true })
+        // 4. 신규 회원 (회원가입 페이지 이동)
+        if (data.signupToken) {
+          navigate(`/signup?token=${encodeURIComponent(data.signupToken)}`, { replace: true })
+          return
+        }
+
+        navigate('/auth?error=unknown', { replace: true })
       } catch (err) {
         console.error('OAuth 콜백 처리 중 오류:', err)
-        navigate('/login?error=oauth_callback_error', { replace: true })
+        navigate('/auth?error=oauth_callback_error', { replace: true })
       }
     }
 

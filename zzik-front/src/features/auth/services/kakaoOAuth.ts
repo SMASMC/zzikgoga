@@ -3,14 +3,12 @@
  * 백엔드 서버로 리다이렉트하여 OAuth 인증 처리
  */
 export class KakaoOAuthService {
-  private static readonly BACK_URL = import.meta.env.VITE_KAKAO_BACK_URL
-
   /**
    * 카카오 로그인
    * 백엔드 OAuth 엔드포인트로 리다이렉트
    */
   public static login(): void {
-    const authUrl = `${this.BACK_URL}`
+    const authUrl = `https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=${import.meta.env.VITE_KAKAO_REST_API_KEY}&redirect_uri=${import.meta.env.VITE_KAKAO_REDIRECT_URI}`
     window.location.href = authUrl
   }
 
