@@ -4,12 +4,7 @@ import PlaceSearchPanel from '@features/plan/components/PlaceSearchPanel'
 
 const PlanPage = () => {
   return (
-    <div
-      className="
-        flex flex-col md:flex-row 
-        h-auto md:h-screen
-        "
-    >
+    <div className="flex flex-col md:flex-row h-auto md:h-screen">
       <PlaceSearchPanel />
       <PlaceBoard />
       <BudgetPanel />

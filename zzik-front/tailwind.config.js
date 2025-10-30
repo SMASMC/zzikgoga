@@ -49,6 +49,14 @@ module.exports = {
           900: '#1A2771',
           950: '#192168',
         },
+        kakao: {
+          500: '#FEE500',
+          600: '#FDD800',
+          700: '#FCCC00',
+          800: '#F4C400',
+          900: '#F2B800',
+          950: '#F0AC00',
+        },
       },
       fontFamily: {
         bmjua: ['BMJUA', 'Apple SD Gothic Neo', 'Noto Sans KR', 'system-ui', 'sans-serif'],
