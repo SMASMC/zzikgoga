@@ -9,6 +9,12 @@ spring:
     open-in-view: false
     properties:
       dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+    locations: classpath:sql
+    baseline-on-migrate: true
+    baseline-version: 0
+    validate-on-migrate: false
 jwt:
   expiration-time:
     access-token: 1_800_000
