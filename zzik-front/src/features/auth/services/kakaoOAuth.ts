@@ -10,7 +10,7 @@ export class KakaoOAuthService {
    * 백엔드 OAuth 엔드포인트로 리다이렉트
    */
   public static login(): void {
-    const authUrl = `${this.BACK_URL}/auth/kakao`
+    const authUrl = `${this.BACK_URL}`
     window.location.href = authUrl
   }
 
@@ -32,4 +32,3 @@ export class KakaoOAuthService {
     return hashParams.get('access_token')
   }
 }
-

@@ -21,7 +21,8 @@ const SolidButton = ({
     main: 'bg-gradient-to-br from-hover-600 to-point-600 hover:from-hover-800 hover:to-point-700',
     point: 'bg-gradient-to-br from-point-500 to-main-700 hover:from-point-600 hover:to-main-600',
     hover: 'bg-gradient-to-br from-hover-500 to-point-500 hover:from-hover-600 hover:to-point-600',
-    kakao: 'bg-gradient-to-br from-kakao-500 to-kakao-600 hover:from-kakao-700 hover:to-kakao-800 !text-gray-800',
+    kakao:
+      'bg-gradient-to-br from-kakao-500 to-kakao-600 hover:from-kakao-700 hover:to-kakao-800 !text-gray-800',
   }
 
   const sizeStyles = {
