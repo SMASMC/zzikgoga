@@ -12,6 +12,7 @@ import java.util.Map;
 
 import javax.crypto.SecretKey;
 
+import io.jsonwebtoken.SignatureAlgorithm;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -51,8 +52,7 @@ public class AccessTokenProvider implements JwtProvider {
 	@Override
 	public JwtClaims getJwtClaimsFromToken(String token) {
 		Claims claims = getClaimsFromToken(token);
-		return AccessTokenClaim.of(Long.parseLong(claims.get(USER_ID.getValue(), String.class)),
-			claims.get(ROLE.getValue(), String.class));
+		return AccessTokenClaim.of(Long.parseLong(claims.get(USER_ID.getValue(), String.class)));
 	}
 
 	@Override
@@ -83,4 +83,16 @@ public class AccessTokenProvider implements JwtProvider {
 	private static LocalDateTime toLocalDateTime(Date date) {
 		return Instant.ofEpochMilli(date.getTime()).atZone(ZoneId.systemDefault()).toLocalDateTime();
 	}
+
+	public String issueTempToken(Map<String, Object> extraClaims, Duration ttl) {
+		Date now = new Date();
+		Date exp = new Date(now.getTime() + ttl.toMillis());
+		return Jwts.builder()
+			.setClaims(extraClaims)
+			.setIssuedAt(now)
+			.setExpiration(exp)
+			.signWith(secretKey, SignatureAlgorithm.HS256)
+			.compact();
+	}
+
 }

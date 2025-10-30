@@ -31,7 +31,7 @@ public class Schedule extends BaseEntity {
 	@Column(name = "start_time", nullable = false)
 	private LocalDateTime startTime; // 일정 시작 시간
 
-	@Column(name = "offset_time", nullable = false)
+	@Column(name = "offset_time", nullable = false, columnDefinition = "interval")
 	private Duration offsetTime; // 일정 소요 시간 (PostgreSQL INTERVAL 타입 매핑)
 
 	@Column(name = "memo", length = 1000)

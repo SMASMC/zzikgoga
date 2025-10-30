@@ -43,6 +43,7 @@ public class SecurityConfig {
 		"/v1/auth/status",                    // 토큰 검증
 		"/api/cost/*/receipt",
 		"/api/cost/*",
+		"/api/auth/*",
 		"/api/plan/*",
 	};
 	private static final String[] ATUATOR_ENDPOINTS = {"/actuator/**"};
@@ -68,6 +69,7 @@ public class SecurityConfig {
 					.requestMatchers(HttpMethod.POST, "/cost/*/receipt", "/api/cost/*/receipt").permitAll()
 					.requestMatchers(HttpMethod.GET, "/cost/*/receipt", "/api/cost/*/receipt").permitAll()
 					.requestMatchers("/cost/**").permitAll()
+					.requestMatchers("/auth/**").permitAll()
 					.requestMatchers("/plan/**").permitAll()
 					.anyRequest().authenticated() // 나머지는 인증 필요 (메서드 레벨에서 세부 권한 검사)
 			).build();
