@@ -1,26 +1,26 @@
 package com.zzik.backend.domain.cost.entity;
 
-import java.time.LocalDateTime;
-
+import com.zzik.backend.domain.auth.entity.Member;
+import com.zzik.backend.domain.plan.entity.Trip;
 import com.zzik.backend.global.base.entity.BaseEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
+import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Getter
-@Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "cost")
 public class Cost extends BaseEntity {
@@ -28,12 +28,25 @@ public class Cost extends BaseEntity {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
-	@Column(name = "trip_id", nullable = false)
-	private Long tripId;
-	@Column(name = "created_by", nullable = false)
-	private Long createdBy;
-	@Column(name = "payer_id", nullable = false)
-	private Long payerId;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "trip_id", nullable = false)
+	private Trip trip;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(
+		name = "created_by",
+		nullable = false,
+		foreignKey = @ForeignKey(foreignKeyDefinition = "FOREIGN KEY (created_by) REFERENCES member(id) ON DELETE RESTRICT")
+	)
+	private Member createdBy;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(
+		name = "payer_id",
+		nullable = false,
+		foreignKey = @ForeignKey(foreignKeyDefinition = "FOREIGN KEY (payer_id) REFERENCES member(id) ON DELETE RESTRICT")
+	)
+	private Member payer;
 
 	@Column(name = "paid_at", columnDefinition = "TEXT", nullable = false)
 	private String paidAt;
@@ -50,9 +63,20 @@ public class Cost extends BaseEntity {
 	@Column(name = "receipt", columnDefinition = "TEXT")
 	private String receipt;
 
-	@Column(name = "created_at", nullable = false)
-	private LocalDateTime createdAt;
+	@Column(name = "receipt_url", length = 1024)
+	private String receiptUrl;
 
-	@Column(name = "updated_at", nullable = false)
-	private LocalDateTime updatedAt;
+	@Builder
+	public Cost(Trip trip, Member createdBy, Member payer, String paidAt,
+				String place, Long totalAmount, String memo, String receipt, String receiptUrl) {
+		this.trip = trip;
+		this.createdBy = createdBy;
+		this.payer = payer;
+		this.paidAt = paidAt;
+		this.place = place;
+		this.totalAmount = totalAmount;
+		this.memo = memo;
+		this.receipt = receipt;
+		this.receiptUrl = receiptUrl;
+	}
 }

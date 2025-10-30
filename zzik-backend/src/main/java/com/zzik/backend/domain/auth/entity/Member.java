@@ -36,7 +36,7 @@ public class Member extends BaseEntity {
 	@Column(name = "provider", nullable = false)
 	private Provider provider; // OAuth 제공자 (KAKAO, GOOGLE, NAVER)
 
-	@Column(name = "provider_id", nullable = false, length = 128)
+	@Column(name = "provider_id", nullable = false, unique = true, length = 128)
 	private String providerId; // OAuth 제공자의 고유 ID
 
 	@Column(name = "name", nullable = false, length = 50)
@@ -52,7 +52,7 @@ public class Member extends BaseEntity {
 	@Column(name = "bank_code", nullable = false, length = 50)
 	private String bankCode; // 은행 코드 (노션의 mapping 페이지 참고)
 
-	@Column(name = "account_num", nullable = false, length = 100)
+	@Column(name = "account_num", nullable = false, length = 50)
 	private String accountNum; // 계좌번호
 
 	@Column(name = "thumbnail_url", length = 1024)
@@ -61,14 +61,17 @@ public class Member extends BaseEntity {
 	@Column(name = "wallet_address", nullable = false, length = 255, columnDefinition = "VARCHAR(255) DEFAULT ''")
 	private String walletAddress = ""; // 블록체인 지갑 주소
 
-	@Column(name = "wallet_private_key", nullable = false, length = 1024, columnDefinition = "VARCHAR(1024) DEFAULT ''")
+	@Column(name = "wallet_private_key", nullable = false, columnDefinition = "TEXT DEFAULT ''")
 	private String walletPrivateKey = ""; // 블록체인 지갑 개인키 (Spring Security로 암호화 필수!)
+
+	@Column(name = "remaining_arweave_uses", nullable = false, columnDefinition = "SMALLINT DEFAULT 1")
+	private Short remainingArweaveUses = 1; // 남은 Arweave 사용 횟수
 
 	@Builder
 	public Member(String email, String phone, String password, Provider provider, String providerId,
 				  String name, Gender gender, Short birthYear, String bankCode,
 				  String accountNum, String thumbnailUrl, String walletAddress,
-				  String walletPrivateKey) {
+				  String walletPrivateKey, Short remainingArweaveUses) {
 		this.email = email;
 		this.phone = phone;
 		this.password = password;
@@ -82,6 +85,7 @@ public class Member extends BaseEntity {
 		this.thumbnailUrl = thumbnailUrl;
 		this.walletAddress = walletAddress != null ? walletAddress : "";
 		this.walletPrivateKey = walletPrivateKey != null ? walletPrivateKey : "";
+		this.remainingArweaveUses = remainingArweaveUses != null ? remainingArweaveUses : 1;
 	}
 
 	/**
@@ -104,6 +108,7 @@ public class Member extends BaseEntity {
 			.thumbnailUrl(null)
 			.walletAddress("")
 			.walletPrivateKey("")
+			.remainingArweaveUses((short) 1)
 			.build();
 	}
 
@@ -126,6 +131,7 @@ public class Member extends BaseEntity {
 			.thumbnailUrl(null)
 			.walletAddress("")
 			.walletPrivateKey("")
+			.remainingArweaveUses((short) 1)
 			.build();
 	}
 }

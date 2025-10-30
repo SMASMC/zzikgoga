@@ -13,7 +13,10 @@ import lombok.NoArgsConstructor;
  * 여행과 회원의 다대다 관계를 관리합니다.
  */
 @Entity
-@Table(name = "trip_member")
+@Table(
+	name = "trip_member",
+	uniqueConstraints = @UniqueConstraint(columnNames = {"trip_id", "member_id"})
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class TripMember extends BaseEntity {

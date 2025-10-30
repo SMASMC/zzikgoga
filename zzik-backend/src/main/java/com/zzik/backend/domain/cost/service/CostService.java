@@ -318,10 +318,10 @@ public class CostService {
 			itemsTotal += amount;
 
 			CostMenu m = CostMenu.builder()
-				.costId(null) // cost 저장 후 채움
+				//.costId(null) // cost 저장 후 채움
 				.menuName(i.getMenuName().trim())
 				.amount(amount)
-				.nCostMenuMember((byte)0)
+				//.nCostMenuMember((byte)0)
 				.build();
 			menus.add(m);
 		}
@@ -339,9 +339,9 @@ public class CostService {
 
 		// 3) cost 저장
 		Cost cost = Cost.builder()
-			.tripId(tripId)
-			.createdBy(req.getCreatedBy())
-			.payerId(req.getPayerId())
+			//.tripId(tripId)
+			//.createdBy(req.getCreatedBy())
+			//.payerId(req.getPayerId())
 			.paidAt(req.getPaidAt().trim())
 			.place(req.getPlace().trim())
 			.totalAmount(finalTotal)
@@ -352,7 +352,7 @@ public class CostService {
 
 		// 4) cost_menu 저장
 		final Long costId = cost.getId();
-		menus.forEach(m -> m.setCostId(costId));
+		//menus.forEach(m -> m.setCostId(costId));
 		costMenuRepository.saveAll(menus);
 
 		// 5) (옵션) 초기 배분이 온 경우 cost_menu_member 생성 + 카운터 갱신
@@ -374,7 +374,7 @@ public class CostService {
 				created = uniq.size();
 			}
 			if (created > 0) {
-				menu.setNCostMenuMember((byte)created);
+				//menu.setNCostMenuMember((byte)created);
 			}
 		}
 		costMenuRepository.saveAll(menus);
@@ -414,7 +414,7 @@ public class CostService {
 		long c = costMenuMemberRepository.countByCostMenuId(costMenuId);
 		CostMenu menu = costMenuRepository.findById(costMenuId)
 			.orElseThrow(() -> new IllegalArgumentException("cost_menu not found: " + costMenuId));
-		menu.setNCostMenuMember((byte)Math.max(0, (int)c));
+		//menu.setNCostMenuMember((byte)Math.max(0, (int)c));
 		costMenuRepository.save(menu);
 	}
 }

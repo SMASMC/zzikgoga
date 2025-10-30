@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,7 +21,10 @@ import lombok.NoArgsConstructor;
  * 여행과 동반자의 다대다 관계를 관리합니다.
  */
 @Entity
-@Table(name = "trip_companion")
+@Table(
+	name = "trip_companion",
+	uniqueConstraints = @UniqueConstraint(columnNames = {"trip_id", "companion_id"})
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class TripCompanion extends BaseEntity {

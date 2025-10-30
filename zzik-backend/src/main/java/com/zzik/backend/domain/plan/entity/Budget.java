@@ -16,7 +16,10 @@ import java.time.LocalDate;
  * 여행의 예산 정보를 관리합니다.
  */
 @Entity
-@Table(name = "budget")
+@Table(
+	name = "budget",
+	uniqueConstraints = @UniqueConstraint(columnNames = {"trip_id", "date", "category"})
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Budget extends BaseEntity {

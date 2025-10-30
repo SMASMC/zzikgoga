@@ -4,21 +4,20 @@ import com.zzik.backend.global.base.entity.BaseEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
+import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Getter
-@Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "cost_menu")
 public class CostMenu extends BaseEntity {
@@ -26,8 +25,9 @@ public class CostMenu extends BaseEntity {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
-	@Column(name = "cost_id", nullable = false)
-	private Long costId;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "cost_id", nullable = false)
+	private Cost cost;
 
 	@Column(name = "menu_name", length = 200, nullable = false)
 	private String menuName;
@@ -35,6 +35,14 @@ public class CostMenu extends BaseEntity {
 	@Column(name = "amount", nullable = false)
 	private Long amount;
 
-	@Column(name = "n_cost_menu_member", nullable = false)
-	private Byte nCostMenuMember;
+	@Column(name = "must_payer_ids", columnDefinition = "JSONB")
+	private String mustPayerIds;
+
+	@Builder
+	public CostMenu(Cost cost, String menuName, Long amount, String mustPayerIds) {
+		this.cost = cost;
+		this.menuName = menuName;
+		this.amount = amount;
+		this.mustPayerIds = mustPayerIds;
+	}
 }

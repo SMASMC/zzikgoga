@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * 사진 엔티티
- * 여행 중 촬영한 사진 및 영수증 이미지를 관리합니다.
+ * 여행 중 촬영한 사진 및 이미지를 관리합니다.
  */
 @Entity
 @Table(name = "photo")
@@ -31,17 +31,13 @@ public class Photo extends BaseEntity {
 	@JoinColumn(name = "trip_id", nullable = false)
 	private Trip trip; // 사진이 속한 여행 (FK to trip.id)
 
-	@Column(name = "s3_url", length = 1024)
+	@Column(name = "s3_url", length = 1024, nullable = false)
 	private String s3Url; // S3에 저장된 사진 URL
 
-	@Column(name = "is_cost", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
-	private Boolean isCost = false; // 영수증 사진 여부
-
 	@Builder
-	public Photo(Member member, Trip trip, String s3Url, Boolean isCost) {
+	public Photo(Member member, Trip trip, String s3Url) {
 		this.member = member;
 		this.trip = trip;
 		this.s3Url = s3Url;
-		this.isCost = isCost != null ? isCost : false;
 	}
 }

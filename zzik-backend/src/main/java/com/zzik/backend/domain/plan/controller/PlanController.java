@@ -21,14 +21,14 @@ public class PlanController implements PlanApi {
 
 	@Override
 	public ResponseEntity<ApiResponse<TripListResponse>> getTripList() {
-		Long ownerId = 1L; // JWT 연결되면 수정
+		Long ownerId = 3L; // JWT 연결되면 수정
 		TripListResponse list = planService.getTripList(ownerId);
 		return ResponseEntity.ok(ApiResponse.createSuccess(list));
 	}
 
 	@Override
 	public ResponseEntity<ApiResponse<Map<String, Long>>> createTrip(CreateTripRequest request) {
-		Long ownerId = 1L; // JWT 되면 수정
+		Long ownerId = 3L; // JWT 되면 수정
 		Long tripId = planService.createTrip(request, ownerId);
 		return ResponseEntity.ok(ApiResponse.createSuccess(Map.of("tripId", tripId)));
 	}
