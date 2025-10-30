@@ -37,13 +37,22 @@ public enum ExceptionCode {
 	EXPIRED_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, 40111, "만료된 Refresh Token", "auth - 토큰 갱신 시 만료된 토큰"),
 	ALREADY_LOGOUT_TOKEN(HttpStatus.NOT_FOUND, 40112, "이미 로그아웃된 토큰", "auth - 로그아웃 시 이미 무효화된 토큰"),
 
+	/* 402xx - user */
+	FORBIDDEN_TRIP(HttpStatus.FORBIDDEN, 40201, "해당 여행에 속해 있지 않습니다.", "user - 요청한 여행에 대해서 접근권한없음"),
+
 	/* 403xx - cost */
 	INVALID_TRIP(HttpStatus.NOT_FOUND, 40301, "존재하지 않는 여행입니다.", "cost - 존재하지 않는 여행"),
 	NOT_TRIP_MEMBER(HttpStatus.FORBIDDEN, 40302, "여행 멤버가 아닙니다.", "cost - 권한 없음"),
 	OCR_PROCESS_FAIL(HttpStatus.CONFLICT, 40303, "영수증 OCR 처리에 실패했습니다.", "cost - 인식 실패"),
 	UNSUPPORTED_IMAGE_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, 40304, "지원하지 않는 이미지 형식입니다.", "cost - 이미지 형식 오류"),
 	UPLOAD_SIZE_EXCEEDED(HttpStatus.PAYLOAD_TOO_LARGE, 40305, "이미지 용량이 제한을 초과했습니다. (최대 50MB)", "cost - 이미지 사이즈 초과"),
-	
+
+	/* 404xx - plan */
+
+	/* 405xx - memory */
+
+	/* 406xx - media */
+
 	/* JWT/보안 관련 에러코드 */
 	FORBIDDEN_ACCESS_TOKEN(HttpStatus.FORBIDDEN, 49801, "토큰 접근 권한 없음"),
 	EMPTY_ACCESS_TOKEN(HttpStatus.UNAUTHORIZED, 49802, "토큰 포함되지 않음"),

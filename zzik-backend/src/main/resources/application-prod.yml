@@ -21,5 +21,5 @@ jwt:
     refresh-token: ${JWT_REFRESH_SECRET}
 
 swagger:
-  server-url: "${PROD_BASE_URL}/api"
+  server-url: "https://api.zzik.kr/api"
   description: "프로덕션 서버"
