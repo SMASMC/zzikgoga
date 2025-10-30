@@ -7,6 +7,7 @@ import SolidButton from '@/components/atoms/SolidButton'
 
 const TravelCard = ({ title, date, img }: { title: string; date: string; img: string }) => {
   const [isButtonHovered, setIsButtonHovered] = useState(false)
+  const [imageSrc, setImageSrc] = useState(img || '/pwa-512x512.png')
 
   // TODO: 카드 클릭 시 실행할 함수 (여행 상세 페이지로 이동)
   const handleCardClick = () => {
@@ -28,6 +29,11 @@ const TravelCard = ({ title, date, img }: { title: string; date: string; img: st
     // 여기에 사진 갤러리 이동 함수 추가 (예: navigate(`/gallery/${id}`))
   }
 
+  // 이미지 로드 실패 시 기본 이미지로 대체
+  const handleImageError = () => {
+    setImageSrc('/pwa-512x512.png')
+  }
+
   return (
     <div
       onClick={handleCardClick}
@@ -35,7 +41,12 @@ const TravelCard = ({ title, date, img }: { title: string; date: string; img: st
         !isButtonHovered ? 'hover:shadow-xl hover:scale-105' : ''
       }`}
     >
-      <img src={img} alt={title} className="rounded-2xl h-48 object-cover mb-4" />
+      <img
+        src={imageSrc}
+        alt={title}
+        className="rounded-2xl h-48 object-cover mb-4"
+        onError={handleImageError}
+      />
       <h3 className="font-bmjua text-text-500">{title}</h3>
       <p className="text-gray-500 text-sm mb-3">{date}</p>
       <div className="flex gap-2">
@@ -60,7 +71,7 @@ const TravelCard = ({ title, date, img }: { title: string; date: string; img: st
   )
 }
 
-// TravelAddCard.tsx
+// TravelAddCard (여행 추가하는 카드)
 const TravelAddCard = ({ onCreateTravel }: TravelAddCardProps) => {
   return (
     <div
