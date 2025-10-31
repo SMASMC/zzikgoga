@@ -10,6 +10,7 @@ const HomePage = () => {
       <main className="container mx-auto px-4 py-16">
         <div className="text-center space-y-6">
           <h1 className="text-5xl font-bold text-gray-900">Zzikgoga에 오신 것을 환영합니다</h1>
+          log 입니다. {import.meta.env.VITE_API_BASE_URL}
 
           <div className="flex gap-4 justify-center mt-8">
             <Link to="/auth">
@@ -21,6 +22,7 @@ const HomePage = () => {
               <SolidButton variant="hover" size="lg">
                 마이페이지
               </SolidButton>
+
             </Link>
             <Link to="/plan">
               <SolidButton variant="point" size="lg">
