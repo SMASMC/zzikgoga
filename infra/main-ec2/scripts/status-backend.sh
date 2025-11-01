@@ -18,8 +18,8 @@ docker images zzikgoga:latest || true
 
 echo "[status] health checks (8081,8082)"
 for p in 8081 8082; do
-  code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:$p/health-check || echo 000)
-  [ "$code" = 000 ] && code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:$p/ || echo 000)
+  code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:$p/health-check || echo 000)
+  [ "$code" = 000 ] && code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:$p/ || echo 000)
   echo "  :$p -> $code"
 done
 
