@@ -1,0 +1,24 @@
+services:
+  backend:
+    image: zzikgoga:latest
+    container_name: zzikgoga-blue
+    ports:
+      - "8081:8080"
+    env_file:
+      - .env
+    environment:
+      SERVER_PORT: "8080"
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://db:5432/${POSTGRES_DB:-postgres}"
+      SPRING_DATASOURCE_USERNAME: "${POSTGRES_USER}"
+      SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD}"
+      SPRING_DATA_REDIS_HOST: "${REDIS_HOST}"
+      SPRING_DATA_REDIS_PORT: "${REDIS_PORT:-6379}"
+      SPRING_DATA_REDIS_PASSWORD: "${REDIS_PASSWORD}"
+      SPRING_DATA_REDIS_DATABASE: "${REDIS_DATABASE:-0}"
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "for p in /health-check /api/health-check /; do code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080$${p} || echo 000); case \"$${code}\" in 2*|3*|4*) exit 0;; esac; done; exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 120s

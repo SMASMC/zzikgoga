@@ -1,0 +1,20 @@
+# Certbot SSL Certificate Management
+# Nginx와 함께 Let's Encrypt SSL 인증서 발급 및 자동 갱신
+
+services:
+  certbot:
+    image: certbot/certbot:latest
+    container_name: certbot
+    volumes:
+      # Let's Encrypt 인증서 저장 경로
+      - /etc/letsencrypt:/etc/letsencrypt
+      - /var/lib/letsencrypt:/var/lib/letsencrypt
+      # Webroot 방식을 위한 챌린지 경로
+      - /var/www/certbot:/var/www/certbot
+    # 기본은 갱신 명령 (최초 발급은 setup-ssl.sh 사용)
+    command: renew --quiet --deploy-hook "nginx -s reload"
+    network_mode: host
+    restart: "no"
+
+  # Nginx는 이미 호스트에서 실행 중이므로 여기서는 정의하지 않음
+  # /var/www/certbot 경로만 Nginx 설정에 추가 필요
