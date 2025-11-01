@@ -187,7 +187,7 @@ const CreateTravelModal = ({ onClose }: { onClose: () => void }) => {
           <button
             type="button"
             onClick={() => setShowCalendar(!showCalendar)}
-            className="w-full bg-white rounded-2xl py-2.5 sm:py-3 px-4 sm:px-5 text-center text-text-500 text-sm sm:text-base shadow-sm hover:shadow-md hover:scale-[1.02] transition-all text-left"
+            className="w-full bg-white rounded-2xl py-2.5 sm:py-3 px-4 sm:px-5 text-left text-text-500 text-sm sm:text-base shadow-sm hover:shadow-md hover:scale-[1.02] transition-all"
           >
             {startDate && endDate
               ? `${formatDate(startDate)} ~ ${formatDate(endDate)}`

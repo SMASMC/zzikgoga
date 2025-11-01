@@ -1,11 +1,35 @@
 import { Link } from 'react-router-dom'
 import SolidButton from '@/components/atoms/SolidButton'
+import { useEffect, useState } from 'react'
 
-const Header = () => {
+interface HeaderProps {
+  transparentUntilScroll?: boolean
+  scrollOffset?: number // px
+}
+
+const Header = ({ transparentUntilScroll = false, scrollOffset = 10 }: HeaderProps) => {
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    if (!transparentUntilScroll) return
+
+    const onScroll = () => {
+      setScrolled(window.scrollY > scrollOffset)
+    }
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [transparentUntilScroll, scrollOffset])
+
+  const wrapperBase = 'w-full'
+  const wrapperMode = transparentUntilScroll
+    ? `fixed top-0 left-0 right-0 z-50 ${scrolled ? 'bg-white shadow-md' : 'bg-transparent'}`
+    : 'bg-white shadow-md'
+
   return (
-    <header className="w-full bg-white shadow-md">
+    <header className={`${wrapperBase} ${wrapperMode}`}>
       <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
-        <Link to="/" className="text-2xl font-bold text-main-600">
+        <Link to="/" className="text-2xl font-bold">
           <img src="zzikgoga_logo.png" alt="logo" className="w-32" />
         </Link>
 
@@ -22,3 +46,4 @@ const Header = () => {
 }
 
 export default Header
+

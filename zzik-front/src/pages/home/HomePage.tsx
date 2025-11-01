@@ -1,35 +1,252 @@
-import { Link } from 'react-router-dom'
 import Header from '@components/blocks/Header'
-import SolidButton from '@/components/atoms/SolidButton'
+import { Button } from '@components/atoms/Button'
+import { useState, useEffect, cloneElement, isValidElement } from 'react'
+import { ChevronLeft, ChevronRight, Wallet, MessageSquare, BookOpen } from 'lucide-react'
+import { ImageWithFallback } from '@/components/atoms/ImageWithFallback'
+import { Link } from 'react-router-dom'
+
+interface OnboardingSlide {
+  id: number
+  title: string
+  description: string
+  image: string
+  icon: React.ReactNode
+  color: string
+}
+
+const slides: OnboardingSlide[] = [
+  {
+    id: 1,
+    title: '실시간 협업 계획',
+    description:
+      '커서챗으로 여행 계획을 함께 세우세요. 실시간으로 대화하며 모두의 의견을 모아 완벽한 여행을 만들어보세요.',
+    image:
+      'https://images.unsplash.com/photo-1500995617113-cf789362a3e1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmcmllbmRzJTIwY29sbGFib3JhdGlvbiUyMHBsYW5uaW5nfGVufDF8fHx8MTc2MTI2OTYzNnww&ixlib=rb-4.1.0&q=80&w=1080',
+    icon: <MessageSquare />,
+    color: '#7DD3FC',
+  },
+  {
+    id: 2,
+    title: '간편한 여행 정산',
+    description:
+      '친구들과 함께한 여행 경비를 쉽고 빠르게 정산하세요. 누가 얼마를 냈는지 한눈에 확인하고 공정하게 나눌 수 있습니다.',
+    image:
+      'https://images.unsplash.com/photo-1593168098026-10d982cb9055?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0cmF2ZWwlMjBhZHZlbnR1cmUlMjBtb3VudGFpbnN8ZW58MXx8fHwxNzYxMjA5Nzk5fDA&ixlib=rb-4.1.0&q=80&w=1080',
+    icon: <Wallet />,
+    color: '#3B82F6',
+  },
+  {
+    id: 3,
+    title: '소중한 여행 기록',
+    description:
+      '여행의 모든 순간을 기록하고 추억을 되새기세요. 사진, 메모, 경로까지 하나의 여행 다이어리로 완성됩니다.',
+    image:
+      'https://images.unsplash.com/photo-1759823420597-2b2c0fbe522b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0cmF2ZWwlMjBqb3VybmFsJTIwbWVtb3JpZXN8ZW58MXx8fHwxNzYxMjY5NjM2fDA&ixlib=rb-4.1.0&q=80&w=1080',
+    icon: <BookOpen />,
+    color: '#1E40AF',
+  },
+  // {
+  //   id: 4,
+  //   title: '블록체인 영구 보관',
+  //   description:
+  //     '소중한 여행 사진을 블록체인에 안전하게 저장하세요. 언제까지나 변하지 않는 추억을 영원히 간직할 수 있습니다.',
+  //   image:
+  //     'https://images.unsplash.com/photo-1736944288238-27348f74c1d0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0cmF2ZWwlMjBwaG90b3MlMjBjYW1lcmF8ZW58MXx8fHwxNzYxMjY5NjM3fDA&ixlib=rb-4.1.0&q=80&w=1080',
+  //   icon: <Shield />,
+  //   color: '#CFF3FF',
+  // },
+]
 
 const HomePage = () => {
+  const [currentSlide, setCurrentSlide] = useState(0)
+  const [isPaused, setIsPaused] = useState(false)
+
+  useEffect(() => {
+    if (!isPaused) {
+      const interval = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % slides.length)
+      }, 4000)
+
+      return () => clearInterval(interval)
+    }
+  }, [isPaused])
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % slides.length)
+  }
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)
+  }
+
+  const goToSlide = (index: number) => {
+    setCurrentSlide(index)
+  }
+
+  const current = slides[currentSlide]
+  const gradientMap: Record<number, string> = {
+    1: 'from-blue-500 to-blue-700',
+    2: 'from-sky-300 to-cyan-400',
+    3: 'from-indigo-800 to-blue-700',
+  }
+  // const Icon = current.icon
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
+      <Header transparentUntilScroll />
+      <div
+        className="relative h-screen w-full overflow-hidden"
+        style={{ backgroundColor: '#0A0F1A' }}
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+      >
+        {/* Background Image with Overlay */}
+        <div className="absolute inset-0 transition-opacity duration-1000">
+          <ImageWithFallback
+            src={current.image}
+            alt={current.title}
+            className="w-full h-full object-cover"
+          />
+          <div
+            className="absolute inset-0 transition-colors duration-1000"
+            style={{
+              background: `linear-gradient(135deg, rgba(10, 15, 26, 0.85) 0%, rgba(10, 15, 26, 0.7) 50%, transparent 100%)`,
+            }}
+          />
+        </div>
 
-      <main className="container mx-auto px-4 py-16">
-        <div className="text-center space-y-6">
-          <h1 className="text-5xl font-bold text-gray-900">Zzikgoga에 오신 것을 환영합니다</h1>
-          log 입니다. {import.meta.env.VITE_API_BASE_URL}
-          <div className="flex gap-4 justify-center mt-8">
-            <Link to="/auth">
-              <SolidButton variant="main" size="lg">
-                로그인
-              </SolidButton>
-            </Link>
-            <Link to="/mypage">
-              <SolidButton variant="hover" size="lg">
-                마이페이지
-              </SolidButton>
-            </Link>
-            <Link to="/plan">
-              <SolidButton variant="point" size="lg">
-                여행 계획하기
-              </SolidButton>
-            </Link>
+        {/* Content Container */}
+        <div className="relative z-10 h-full flex flex-col">
+          {/* Main Content */}
+          <div className="flex-1 flex items-center">
+            <div className="w-full max-w-7xl mx-auto px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              {/* Left Side - Text Content */}
+              <div className="space-y-8">
+                <div
+                  className="inline-flex items-center gap-3 px-6 py-3 rounded-full backdrop-blur-md transition-all duration-500"
+                  style={{
+                    backgroundColor: `${current.color}20`,
+                    border: `2px solid ${current.color}`,
+                  }}
+                >
+                  {/* <Icon className="w-6 h-6" style={{ color: current.color }} /> */}
+                  <span className="tracking-wide" style={{ color: current.color }}>
+                    {`0${currentSlide + 1}`}
+                  </span>
+                </div>
+
+                <div className="space-y-4 transition-all duration-500">
+                  <h1 className="text-white text-5xl lg:text-6xl leading-tight font-extrabold drop-shadow-lg tracking-tight">
+                    {current.title}
+                  </h1>
+                  <p className="text-gray-200 text-lg lg:text-xl leading-relaxed max-w-xl drop-shadow">
+                    {current.description}
+                  </p>
+                </div>
+
+                <div className="flex gap-4">
+                  {(() => {
+                    const primary =
+                      current.id === 1
+                        ? { label: '계획 하기', to: '/plan' }
+                        : current.id === 2
+                          ? { label: '정산 하기', to: '/settle' }
+                          : current.id === 3
+                            ? { label: '기록 하기', to: '/mypage' }
+                            : { label: '시작하기', to: '/' }
+                    return (
+                      <Link to={primary.to}>
+                        <Button
+                          className={`px-8 py-6 rounded-full transition-all duration-300 hover:scale-105 shadow-xl ring-2 ring-white/20 bg-gradient-to-br ${gradientMap[current.id] ?? 'from-blue-500 to-blue-700'}`}
+                          style={{ color: '#FFFFFF' }}
+                        >
+                          {primary.label}
+                        </Button>
+                      </Link>
+                    )
+                  })()}
+                </div>
+              </div>
+
+              {/* Right Side - Feature Icon */}
+              <div className="hidden lg:flex items-center justify-center">
+                <div
+                  className="relative w-80 h-80 rounded-full flex items-center justify-center backdrop-blur-xl transition-all duration-500 animate-pulse-slow"
+                  style={{
+                    backgroundColor: `${current.color}15`,
+                    border: `3px solid ${current.color}40`,
+                  }}
+                >
+                  <div
+                    className="absolute inset-0 rounded-full animate-ping opacity-20"
+                    style={{ backgroundColor: current.color }}
+                  />
+                  {isValidElement(current.icon)
+                    ? cloneElement(current.icon as React.ReactElement, {
+                        className:
+                          'w-32 h-32 z-10 transition-transform duration-500 hover:scale-110',
+                        style: { color: current.color },
+                      })
+                    : null}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Controls */}
+          <div className="px-8 py-8">
+            <div className="max-w-7xl mx-auto flex items-center justify-between">
+              {/* Navigation Arrows */}
+              <div className="flex gap-3">
+                <button
+                  onClick={prevSlide}
+                  className="w-12 h-12 rounded-full backdrop-blur-md border border-white/20 text-white hover:bg-white/10 flex items-center justify-center transition-all duration-200"
+                  aria-label="Previous slide"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={nextSlide}
+                  className="w-12 h-12 rounded-full backdrop-blur-md border border-white/20 text-white hover:bg-white/10 flex items-center justify-center transition-all duration-200"
+                  aria-label="Next slide"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Progress Dots */}
+              <div className="flex gap-3">
+                {slides.map((slide, index) => (
+                  <button
+                    key={slide.id}
+                    onClick={() => goToSlide(index)}
+                    className="relative group"
+                    aria-label={`Go to slide ${index + 1}`}
+                  >
+                    <div
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        currentSlide === index ? 'w-12' : 'w-2 group-hover:w-8'
+                      }`}
+                      style={{
+                        backgroundColor: currentSlide === index ? slide.color : '#ffffff40',
+                      }}
+                    />
+                    {currentSlide === index && (
+                      <div
+                        className="absolute top-0 left-0 h-2 rounded-full animate-progress"
+                        style={{ backgroundColor: slide.color }}
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* Skip Button */}
+              <div className="text-white/60 hover:text-white transition-colors duration-200 px-4 py-2"></div>
+            </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   )
 }
