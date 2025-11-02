@@ -80,7 +80,9 @@ pipeline {
                         else
                           echo "[monitoring] env already up to date"
                         fi
-                        docker compose -p main-ec2-monitoring -f docker-compose.monitoring.yml up -d --no-recreate grafana prometheus loki promtail
+                        # deploy-backend.sh already handles grafana/prometheus
+                        # Only deploy loki/promtail here
+                        docker compose -p main-ec2-monitoring -f docker-compose.monitoring.yml up -d loki promtail
                     '''
                 }
             }
