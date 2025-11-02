@@ -129,15 +129,22 @@ if [ -f "$MON_COMPOSE" ]; then
     echo "[monitoring] checking existing containers"
     HAVE_GRAFANA=$(docker ps -a --format '{{.Names}}' | grep -x 'grafana' || true)
     HAVE_PROM=$(docker ps -a --format '{{.Names}}' | grep -x 'prometheus' || true)
-    MISSING=""
-    [ -z "$HAVE_GRAFANA" ] && MISSING="$MISSING grafana"
-    [ -z "$HAVE_PROM" ] && MISSING="$MISSING prometheus"
-    if [ -n "$MISSING" ]; then
-      echo "[monitoring] creating:$MISSING"
-      ( cd "$MON_DIR" && docker compose -p main-ec2-monitoring -f "$MON_COMPOSE" up -d $MISSING )
+
+    # Grafana 강제 재생성 (환경 변수 업데이트 보장)
+    if [ -n "$HAVE_GRAFANA" ]; then
+      echo "[monitoring] recreating grafana to apply latest configuration"
+      ( cd "$MON_DIR" && docker compose -p main-ec2-monitoring -f "$MON_COMPOSE" up -d --force-recreate grafana )
     else
-      echo "[monitoring] containers exist; ensuring running state"
-      docker start grafana 2>/dev/null || true
+      echo "[monitoring] creating grafana"
+      ( cd "$MON_DIR" && docker compose -p main-ec2-monitoring -f "$MON_COMPOSE" up -d grafana )
+    fi
+
+    # Prometheus는 존재 여부만 확인하여 생성
+    if [ -z "$HAVE_PROM" ]; then
+      echo "[monitoring] creating prometheus"
+      ( cd "$MON_DIR" && docker compose -p main-ec2-monitoring -f "$MON_COMPOSE" up -d prometheus )
+    else
+      echo "[monitoring] prometheus exists; ensuring running state"
       docker start prometheus 2>/dev/null || true
     fi
   else
