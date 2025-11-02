@@ -5,8 +5,10 @@ import java.time.Duration;
 import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -39,8 +41,8 @@ public class AuthService {
 	private final MemberRepository memberRepository; // 네가 이미 쓰는 JPA Repository
 	private final AccessTokenProvider accessTokenProvider;
 	private final RefreshTokenProvider refreshTokenProvider;
-
 	private final RestTemplate restTemplate = new RestTemplate();
+	private final StringRedisTemplate redis;
 
 	@Value("${kakao.client-id}")
 	private String kakaoClientId;
@@ -183,5 +185,77 @@ public class AuthService {
 		}
 
 		return body.getId_token();
+	}
+
+	public Map<String, Object> reissueToken(String refreshToken) {
+		String blKey = "BL_RT:" + refreshToken;
+		if (redis.opsForValue().get(blKey) != null) {
+			throw new RuntimeException("Refresh token is revoked");
+		}
+
+		Claims claims = refreshTokenProvider.getClaimsFromToken(refreshToken);
+		validateNotExpired(claims);
+
+		Long memberId = extractMemberId(claims);
+
+		Member member = memberRepository.findById(memberId)
+			.orElseThrow(() -> new RuntimeException("Member not found"));
+
+		String newAccess = accessTokenProvider.generateToken(AccessTokenClaim.of(member.getId()));
+
+		boolean rotate = shouldRotateRefresh(claims, Duration.ofDays(7));
+		String newRefresh = refreshToken;
+
+		if (rotate) {
+			// 새 토큰 발급
+			newRefresh = refreshTokenProvider.generateToken(RefreshTokenClaim.of(member.getId()));
+			// 이전 토큰 즉시 폐기
+			var exp = claims.getExpiration();
+			long ttlMs = Math.max(0, exp.getTime() - System.currentTimeMillis());
+			redis.opsForValue().set("BL_RT:" + refreshToken, "1", ttlMs, TimeUnit.MILLISECONDS);
+		}
+
+		return Map.of(
+			"loggedIn", true,
+			"accessToken", newAccess,
+			"refreshToken", newRefresh,
+			"user", Map.of("id", member.getId())
+		);
+	}
+
+	private void validateNotExpired(Claims claims) {
+		Date exp = claims.getExpiration();
+		if (exp == null || exp.before(new Date())) {
+			throw new RuntimeException("Refresh token expired");
+		}
+	}
+
+	private Long extractMemberId(Claims claims) {
+		String sub = claims.getSubject();
+		if (sub != null) {
+			try {
+				return Long.valueOf(sub);
+			} catch (NumberFormatException ignore) {
+			}
+		}
+
+		throw new RuntimeException("Invalid refresh token: member id missing");
+	}
+
+	private boolean shouldRotateRefresh(Claims claims, Duration threshold) {
+		Date exp = claims.getExpiration();
+		long remainingMs = exp.getTime() - System.currentTimeMillis();
+		return remainingMs <= threshold.toMillis();
+	}
+
+	public Map<String, Object> logout(String refreshToken) {
+		var claims = refreshTokenProvider.getClaimsFromToken(refreshToken);
+		var exp = claims.getExpiration();
+		long ttlMs = Math.max(0, exp.getTime() - System.currentTimeMillis());
+
+		String key = "BL_RT:" + refreshToken;
+		redis.opsForValue().set(key, "1", ttlMs, TimeUnit.MILLISECONDS);
+
+		return Map.of("loggedIn", false, "message", "Logged out");
 	}
 }

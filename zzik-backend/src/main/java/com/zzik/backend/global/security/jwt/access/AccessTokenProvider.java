@@ -12,14 +12,15 @@ import java.util.Map;
 
 import javax.crypto.SecretKey;
 
-import io.jsonwebtoken.SignatureAlgorithm;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.zzik.backend.global.security.jwt.JwtClaims;
 import com.zzik.backend.global.security.jwt.JwtProvider;
+
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 
 @Component
@@ -39,10 +40,12 @@ public class AccessTokenProvider implements JwtProvider {
 	@Override
 	public String generateToken(JwtClaims claims) {
 		Date now = new Date();
+		String userId = String.valueOf(claims.getClaims().get(USER_ID.getValue()));
 
 		return Jwts.builder()
 			.header().add(createHeader())
 			.and()
+			.subject(userId)
 			.claims(claims.getClaims())
 			.signWith(secretKey)
 			.expiration(createExpireDate(now, tokenExpiration.toMillis()))

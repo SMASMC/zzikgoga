@@ -10,9 +10,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.zzik.backend.domain.auth.dto.request.LogoutRequest;
+import com.zzik.backend.domain.auth.dto.request.ReissueRequest;
 import com.zzik.backend.domain.auth.dto.request.SignupRequest;
 import com.zzik.backend.domain.auth.service.AuthService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -30,6 +33,16 @@ public class AuthController {
 	@PostMapping("/signup")
 	public ResponseEntity<?> signup(@RequestBody SignupRequest req) {
 		return ResponseEntity.ok(authService.signup(req));
+	}
+
+	@PostMapping("/reissue")
+	public ResponseEntity<?> reissue(@Valid @RequestBody ReissueRequest req) {
+		return ResponseEntity.ok(authService.reissueToken(req.refreshToken()));
+	}
+
+	@PostMapping("/logout")
+	public ResponseEntity<?> logout(@Valid @RequestBody LogoutRequest req) {
+		return ResponseEntity.ok(authService.logout(req.refreshToken()));
 	}
 }
 
