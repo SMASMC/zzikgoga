@@ -36,9 +36,15 @@ pipeline {
                         exit 1
                     fi
 
-                    if [ ! -f "${SHARED_DIR}/server.js" ]; then
-                        echo "❌ No server.js found in shared workspace"
-                        exit 1
+                    if [ ! -f "${SHARED_DIR}/dist/server.js" ]; then
+                        if [ -f "${SHARED_DIR}/dist/index.js" ]; then
+                            echo "[INFO] dist/server.js missing; copying dist/index.js for compatibility"
+                            cp "${SHARED_DIR}/dist/index.js" "${SHARED_DIR}/dist/server.js"
+                        else
+                            echo "❌ dist/server.js not found in shared workspace"
+                            find "${SHARED_DIR}" -maxdepth 2 -type f -name '*.js' 2>/dev/null || true
+                            exit 1
+                        fi
                     fi
 
                     cp -r ${SHARED_DIR}/* .
@@ -68,7 +74,7 @@ pipeline {
 
                     # 필수 파일 확인
                     test -f package.json || { echo "❌ package.json missing"; exit 1; }
-                    test -f server.js || { echo "❌ server.js missing"; exit 1; }
+                    test -f dist/server.js || { echo "❌ dist/server.js missing"; exit 1; }
                     test -f ecosystem.config.js || { echo "❌ ecosystem.config.js missing"; exit 1; }
                     test -f build-info.txt || { echo "⚠️ build-info.txt missing"; }
 

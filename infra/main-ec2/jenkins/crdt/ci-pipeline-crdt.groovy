@@ -137,6 +137,16 @@ pipeline {
                 exit 1
               fi
 
+              if [ ! -f "dist/server.js" ]; then
+                if [ -f "dist/index.js" ]; then
+                  echo "[INFO] dist/server.js not found; copying dist/index.js as server.js"
+                  cp dist/index.js dist/server.js
+                else
+                  echo "[ERROR] dist/server.js not generated. Check TypeScript build output."
+                  exit 1
+                fi
+              fi
+
               echo "✅ TypeScript build completed"
               echo "📋 Build output:"
               ls -la dist/
@@ -197,19 +207,6 @@ pipeline {
             cp -r .* ${SHARED_DIR}/ 2>/dev/null || true
 
             # node_modules는 제외
-            # Docker 빌드를 위해 server.js 준비
-            if [ ! -f "server.js" ]; then
-              if [ -f "dist/server.js" ]; then
-                echo "[INFO] Copying dist/server.js to project root"
-                cp dist/server.js server.js
-              elif [ -f "dist/index.js" ]; then
-                echo "[INFO] Using dist/index.js as server.js"
-                cp dist/index.js server.js
-              else
-                echo "[WARN] dist/server.js not found; existing server.js will be used if present"
-              fi
-            fi
-
             rm -rf ${SHARED_DIR}/node_modules
 
             # Dockerfile 복사
