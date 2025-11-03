@@ -1,5 +1,7 @@
 package com.zzik.backend.domain.auth.entity;
 
+import org.hibernate.annotations.JdbcType;
+
 import com.zzik.backend.domain.auth.enums.Gender;
 import com.zzik.backend.domain.auth.enums.Provider;
 import com.zzik.backend.global.base.entity.BaseEntity;
@@ -38,7 +40,8 @@ public class Member extends BaseEntity {
 	private String password; // Argon2로 단방향 암호화, 추후 자체 로그인 확장성을 고려하여 nullable
 
 	@Enumerated(EnumType.STRING) // ENUM을 문자열로 저장 (PostgreSQL의 provider_type과 매핑)
-	@Column(name = "provider", nullable = false)
+	@Column(name = "provider", nullable = false, columnDefinition = "member_provider")
+	@JdbcType(org.hibernate.dialect.PostgreSQLEnumJdbcType.class)
 	private Provider provider; // OAuth 제공자 (KAKAO, GOOGLE, NAVER)
 
 	@Column(name = "provider_id", nullable = false, unique = true, length = 128)
@@ -48,7 +51,8 @@ public class Member extends BaseEntity {
 	private String name; // 회원 이름
 
 	@Enumerated(EnumType.STRING) // ENUM을 문자열로 저장 (PostgreSQL의 gender_type과 매핑)
-	@Column(name = "gender", nullable = false)
+	@Column(name = "gender", nullable = false, columnDefinition = "member_gender")
+	@JdbcType(org.hibernate.dialect.PostgreSQLEnumJdbcType.class)
 	private Gender gender; // 성별 (MALE, FEMALE)
 
 	@Column(name = "birth_year", nullable = false)
