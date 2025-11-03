@@ -162,14 +162,14 @@ pipeline {
                     set -e
 
                     # 임시 컨테이너로 5초 실행 후 종료
-                    CONTAINER_ID=$(docker run -d -p 13000:3000 -e ENV_COLOR=test -e PORT=3000 ${IMAGE_NAME})
+                    CONTAINER_ID=$(docker run -d -p 13100:3100 -e ENV_COLOR=test -e PORT=3100 -e YJS_PORT=3100 ${IMAGE_NAME})
 
                     echo "⏳ Waiting for server to start..."
                     ATTEMPTS=10
                     HTTP_CODE=000
                     until [ $ATTEMPTS -eq 0 ]; do
                         sleep 3
-                        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:13000/health || echo "000")
+                        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:13100/health || echo "000")
                         if [ "$HTTP_CODE" = "200" ]; then
                             break
                         fi

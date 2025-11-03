@@ -122,7 +122,7 @@ pipeline {
                     fi
 
                     # 활성 포트 확인
-                    ACTIVE_PORT=$(docker port $CONTAINER_NAME | grep "3000/tcp" | cut -d: -f2)
+        ACTIVE_PORT=$(docker port $CONTAINER_NAME | grep "3100/tcp" | cut -d: -f2)
                     echo "✅ 활성 컨테이너: $CONTAINER_NAME, 포트: $ACTIVE_PORT"
 
                     # nginx 설정 확인
@@ -183,7 +183,7 @@ pipeline {
                 sh '''
                     # 실행 중인 컨테이너 포트 확인
                     CONTAINER_NAME=$(docker ps --filter "name=zzikgoga-node-" --format "{{.Names}}" | head -1)
-                    ACTIVE_PORT=$(docker port $CONTAINER_NAME | grep "3000/tcp" | cut -d: -f2)
+        ACTIVE_PORT=$(docker port $CONTAINER_NAME | grep "3100/tcp" | cut -d: -f2)
 
                     # WebSocket 테스트 (websocat이 설치되어 있다면)
                     if command -v websocat &> /dev/null; then

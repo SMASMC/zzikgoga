@@ -8,6 +8,7 @@ RUN apk add --no-cache tzdata && \
 
 # 작업 디렉토리 설정
 WORKDIR /app
+ENV PORT=3100
 
 # 보안을 위한 non-root 사용자 생성
 RUN addgroup -S nodeapp || true
@@ -34,11 +35,11 @@ RUN chown -R nodeapp:nodeapp /app
 USER nodeapp
 
 # 포트 노출
-EXPOSE 3000
+EXPOSE 3100
 
 # Health check (빌드된 JS 파일 실행)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3100/health || exit 1
 
 # 빌드된 서버 실행
 CMD ["node", "dist/server.js"]

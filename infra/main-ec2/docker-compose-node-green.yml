@@ -3,16 +3,16 @@ services:
     image: zzikgoga-node:latest
     container_name: zzikgoga-node-green
     ports:
-      - "4002:3000"
+      - "4002:3100"
     env_file:
       - .env.crdt
     environment:
       # 서버 설정
       HOST: "0.0.0.0"
-      YJS_PORT: "3000"
+      YJS_PORT: "3100"
       NODE_ENV: "production"
       ENV_COLOR: "green"
-      PORT: "3000"
+      PORT: "3100"
       # DB 환경변수는 .env.crdt에서 로드
       # DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
     restart: unless-stopped
@@ -20,7 +20,7 @@ services:
       - default
       - main-ec2_default
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3100/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
