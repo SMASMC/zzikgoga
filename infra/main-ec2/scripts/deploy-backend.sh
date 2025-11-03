@@ -40,16 +40,34 @@ echo "✅ PostgreSQL container 'my-postgres-db' is running"
 echo "🛠️ 대상 데이터베이스 존재 보장(create-if-missing)"
 bash "${ROOT_DIR}/scripts/ensure-db-exists.sh" "${ROOT_DIR}/.env"
 
-echo "🔎 DB/Redis 헬스 대기"
-for i in $(seq 1 40); do
-  db_h=$(docker inspect -f '{{.State.Health.Status}}' my-postgres-db 2>/dev/null || echo 'unknown')
+echo "🔎 DB/Redis 준비 상태 확인"
+
+# PostgreSQL 준비 확인 (healthcheck가 없으므로 pg_isready 사용)
+echo "  📊 PostgreSQL 준비 대기 (my-postgres-db)"
+DB_READY=0
+for i in $(seq 1 30); do
+  if docker exec my-postgres-db pg_isready -U "${POSTGRES_USER:-postgres}" >/dev/null 2>&1; then
+    echo "  ✅ PostgreSQL is ready (attempt $i)"
+    DB_READY=1
+    break
+  fi
+  echo "  ⏳ PostgreSQL not ready yet (attempt $i)"
+  sleep 2
+done
+[ $DB_READY -eq 1 ] || { echo "❌ PostgreSQL is not ready after 60 seconds"; docker logs my-postgres-db --tail=50 || true; exit 1; }
+
+# Redis 헬스 확인
+echo "  📊 Redis 헬스 대기 (${REDIS_NAME})"
+for i in $(seq 1 20); do
   rd_h=$(docker inspect -f '{{.State.Health.Status}}' "${REDIS_NAME}" 2>/dev/null || echo 'unknown')
-  echo "  - db=${db_h} redis=${rd_h} (attempt $i)"
-  [ "${db_h}" = healthy ] && [ "${rd_h}" = healthy ] && break
+  if [ "${rd_h}" = "healthy" ]; then
+    echo "  ✅ Redis is healthy (attempt $i)"
+    break
+  fi
+  echo "  ⏳ Redis status: ${rd_h} (attempt $i)"
   sleep 3
 done
-[ "${db_h}" = healthy ] || { echo "❌ database not healthy"; docker logs my-postgres-db --tail=100 || true; exit 1; }
-[ "${rd_h}" = healthy ] || { echo "❌ redis not healthy (${REDIS_NAME})"; docker logs "${REDIS_NAME}" --tail=100 || true; exit 1; }
+[ "${rd_h}" = healthy ] || { echo "❌ redis not healthy (${REDIS_NAME})"; docker logs "${REDIS_NAME}" --tail=50 || true; exit 1; }
 
 # 3) 현재 실행 중인 색 파악 후 새 색 결정
 BLUE_UP=$(docker ps --format '{{.Names}}' | grep -c '^zzikgoga-blue$' || true)
