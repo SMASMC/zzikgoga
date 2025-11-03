@@ -96,9 +96,9 @@ rollback_deployment() {
     fi
 
     # Nginx 설정도 이전 버전으로 복구
-    if [ -f "$(pwd)/nginx/node-${OLD_ENV}.conf" ]; then
+    if [ -f "$(pwd)/nginx/crdt-${OLD_ENV}.conf" ]; then
       echo "  🔧 Nginx 설정 복구 중..."
-      sudo cp "$(pwd)/nginx/node-${OLD_ENV}.conf" "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}"
+      sudo cp "$(pwd)/nginx/crdt-${OLD_ENV}.conf" "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}"
       sudo ln -sf "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}" "${NGINX_SITES_ENABLED}/${NGINX_SITE_NAME}"
       if sudo nginx -t 2>/dev/null; then
         sudo systemctl reload nginx
@@ -239,11 +239,11 @@ if [ "$SUCCESS" = false ]; then
 fi
 
 echo "🔧 nginx 설정 업데이트 중..."
-if [ -f "$(pwd)/nginx/node-${NEW_ENV}.conf" ]; then
-    echo "✅ nginx 설정 파일 존재: $(pwd)/nginx/node-${NEW_ENV}.conf"
+if [ -f "$(pwd)/nginx/crdt-${NEW_ENV}.conf" ]; then
+    echo "✅ nginx 설정 파일 존재: $(pwd)/nginx/crdt-${NEW_ENV}.conf"
 
     # sudo 권한으로 nginx 설정 업데이트
-    sudo cp "$(pwd)/nginx/node-${NEW_ENV}.conf" "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}"
+    sudo cp "$(pwd)/nginx/crdt-${NEW_ENV}.conf" "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}"
     sudo ln -sf "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}" "${NGINX_SITES_ENABLED}/${NGINX_SITE_NAME}"
 
     if sudo nginx -t; then
@@ -255,7 +255,7 @@ if [ -f "$(pwd)/nginx/node-${NEW_ENV}.conf" ]; then
         rollback_deployment
     fi
 else
-    echo "⚠️ nginx 설정 파일이 없습니다: $(pwd)/nginx/node-${NEW_ENV}.conf"
+    echo "⚠️ nginx 설정 파일이 없습니다: $(pwd)/nginx/crdt-${NEW_ENV}.conf"
     NEED_ROLLBACK=1
     rollback_deployment
 fi
