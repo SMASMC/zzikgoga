@@ -4,9 +4,14 @@ export interface LoginRequest {
 }
 
 export interface RegisterRequest {
-  email: string
-  password: string
+  gender: string
+  birthYear: number
+  bankCode: string
+  accountNum: string
+  signupSessionToken: string
+  picture: string
   name: string
+  email: string
 }
 
 export interface LoginResponse {
