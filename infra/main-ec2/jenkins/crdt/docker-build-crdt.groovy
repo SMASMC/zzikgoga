@@ -162,7 +162,7 @@ pipeline {
                     set -e
 
                     # 임시 컨테이너로 5초 실행 후 종료
-                    CONTAINER_ID=$(docker run -d -p 13000:3000 -e ENV_COLOR=test ${IMAGE_NAME})
+                    CONTAINER_ID=$(docker run -d -p 13000:3000 -e ENV_COLOR=test -e PORT=3000 ${IMAGE_NAME})
 
                     echo "⏳ Waiting for server to start..."
                     ATTEMPTS=10
