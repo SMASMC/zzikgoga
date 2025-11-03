@@ -19,12 +19,6 @@ services:
     networks:
       - default
       - main-ec2_default
-    healthcheck:
-      test: [ "CMD-SHELL", "for p in /health-check /api/health-check /; do code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080$${p} || echo 000); case \"$${code}\" in 2*|3*|4*) exit 0;; esac; done; exit 1" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 120s
 
 networks:
   default:
