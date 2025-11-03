@@ -22,7 +22,7 @@ RUN npm ci --only=production --quiet && \
 COPY dist/ ./dist/
 
 # 환경 설정 파일 복사 (선택적)
-COPY build-info.txt ./build-info.txt 2>/dev/null || echo "No build-info.txt" > build-info.txt
+COPY build-info.txt ./build-info.txt
 
 # 로그 디렉토리 생성
 RUN mkdir -p logs
