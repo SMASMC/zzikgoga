@@ -165,19 +165,30 @@ pipeline {
                     CONTAINER_ID=$(docker run -d -p 13000:3000 -e ENV_COLOR=test ${IMAGE_NAME})
 
                     echo "⏳ Waiting for server to start..."
-                    sleep 5
+                    ATTEMPTS=10
+                    HTTP_CODE=000
+                    until [ $ATTEMPTS -eq 0 ]; do
+                        sleep 3
+                        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:13000/health || echo "000")
+                        if [ "$HTTP_CODE" = "200" ]; then
+                            break
+                        fi
+                        ATTEMPTS=$((ATTEMPTS-1))
+                        echo "[INFO] Health check attempt failed (HTTP $HTTP_CODE). Remaining attempts: $ATTEMPTS"
+                    done
 
-                    # Health check
-                    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:13000/health || echo "000")
+                    if [ "$HTTP_CODE" != "200" ]; then
+                        echo "❌ Smoke test failed (HTTP $HTTP_CODE)"
+                        echo "[INFO] Recent container logs:"
+                        docker logs --tail 50 $CONTAINER_ID || true
+                    fi
 
-                    # 컨테이너 정리
-                    docker stop $CONTAINER_ID
-                    docker rm $CONTAINER_ID
+                    docker stop $CONTAINER_ID >/dev/null 2>&1 || true
+                    docker rm $CONTAINER_ID >/dev/null 2>&1 || true
 
                     if [ "$HTTP_CODE" = "200" ]; then
                         echo "✅ Smoke test passed (HTTP $HTTP_CODE)"
                     else
-                        echo "❌ Smoke test failed (HTTP $HTTP_CODE)"
                         exit 1
                     fi
                 '''
