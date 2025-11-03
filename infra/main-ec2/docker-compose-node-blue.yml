@@ -1,0 +1,26 @@
+services:
+  node-server:
+    image: zzikgoga-node:latest
+    container_name: zzikgoga-node-blue
+    ports:
+      - "4001:3000"
+    env_file:
+      - .env.crdt
+    environment:
+      PORT: "3000"
+      ENV_COLOR: "blue"
+      NODE_ENV: "production"
+    restart: unless-stopped
+    networks:
+      - default
+      - main-ec2_default
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+networks:
+  main-ec2_default:
+    external: true
