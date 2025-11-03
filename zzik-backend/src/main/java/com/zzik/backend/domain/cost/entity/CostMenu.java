@@ -41,6 +41,14 @@ public class CostMenu extends BaseEntity {
 	@Column(name = "must_payer_ids", columnDefinition = "JSONB")
 	private String mustPayerIds;
 
+	public void setCost(Cost cost) {
+		this.cost = cost;
+	}
+
+	public void setMustPayerIds(String mustPayerIds) {
+		this.mustPayerIds = mustPayerIds;
+	}
+
 	@Builder
 	public CostMenu(Cost cost, String menuName, Short count, Long amount, String mustPayerIds) {
 		this.cost = cost;

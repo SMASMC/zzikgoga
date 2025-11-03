@@ -25,15 +25,16 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public interface CostApi {
 
 	@Operation(
-		summary = "영수증 OCR 업로드",
-		description = "영수증 이미지 업로드 시 자동으로 항목/금액/카드정보를 추출합니다."
+		summary = "영수증 OCR 업로드 후 즉시 저장",
+		description = "영수증 이미지를 업로드하면 OCR로 항목/금액을 추출하고, 전달된 저장요청(request)과 병합하여 비용을 바로 저장합니다."
 	)
 	@ApiResponseExplanations(
 		success = @ApiSuccessResponseExplanation(
-			description = "영수증 OCR 분석 성공",
-			responseClass = ReceiptOcrResponse.class
+			description = "OCR 분석 및 저장 성공 (생성된 비용 ID 반환)",
+			responseClass = Long.class
 		),
 		errors = {
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.INVALID_TRIP),
 			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.OCR_PROCESS_FAIL),
 			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.UNSUPPORTED_IMAGE_TYPE),
 			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.UPLOAD_SIZE_EXCEEDED)
@@ -43,14 +44,15 @@ public interface CostApi {
 		value = "/{tripId}/receipt",
 		consumes = MediaType.MULTIPART_FORM_DATA_VALUE
 	)
-	ResponseEntity<ApiResponse<ReceiptOcrResponse>> uploadReceipt(
+	ResponseEntity<ApiResponse<ReceiptOcrResponse>> uploadReceiptAndSave(
 		@PathVariable Long tripId,
-		@RequestPart("file") MultipartFile file
+		@RequestPart("file") MultipartFile file,
+		@RequestPart("request") SaveCostRequest request
 	);
 
 	@Operation(
-		summary = "정산 등록 (최종 저장)",
-		description = "OCR 결과 및 사용자가 입력한 항목을 기반으로 정산 내역을 저장합니다."
+		summary = "정산 입력 후 저장",
+		description = "사용자가 입력한 항목을 기반으로 정산 내역을 저장합니다."
 	)
 	@ApiResponseExplanations(
 		success = @ApiSuccessResponseExplanation(
