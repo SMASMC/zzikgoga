@@ -14,7 +14,7 @@ export function OAuthCallbackPage() {
         const params = new URLSearchParams(window.location.search)
         const code = params.get('code')
         if (!code) {
-          navigate('/auth?error=no_code', { replace: true })
+          navigate('/?error=no_code', { replace: true })
           return
         }
         console.log(import.meta.env.VITE_KAKAO_REST_API_KEY)
@@ -35,7 +35,7 @@ export function OAuthCallbackPage() {
 
         const idToken = tokenResponse.data.id_token
         if (!idToken) {
-          navigate('/auth?error=no_id_token', { replace: true })
+          navigate('/?error=no_id_token', { replace: true })
           return
         }
 
@@ -53,22 +53,22 @@ export function OAuthCallbackPage() {
         // 3. 로그인 완료
         if (data.accessToken) {
           setAuth(data.user, data.accessToken)
-          navigate('/', { replace: true })
+          navigate('/mypage', { replace: true })
           return
         }
 
         // 4. 신규 회원 (회원가입 페이지 이동)
         else if (data.signupRequired) {
-          navigate(`/signup?token=${encodeURIComponent(data.signupSessionToken)}`, {
+          navigate(`/auth/signup?token=${encodeURIComponent(data.signupSessionToken)}`, {
             replace: true,
           })
           return
         }
 
-        navigate('/auth?error=unknown', { replace: true })
+        navigate('/?error=unknown', { replace: true })
       } catch (err) {
         console.error('OAuth 콜백 처리 중 오류:', err)
-        navigate('/auth?error=oauth_callback_error', { replace: true })
+        navigate('/?error=oauth_callback_error', { replace: true })
       }
     }
 

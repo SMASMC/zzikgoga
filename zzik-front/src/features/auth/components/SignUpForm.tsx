@@ -5,17 +5,17 @@ import SolidButton from '@components/atoms/SolidButton'
 import { RegisterRequest } from '../types/auth'
 
 interface SignupFormProps {
-  signupSessionToken: string
+  signupSessionToken: string | null
   initialEmail?: string
   initialName?: string
   initialPicture?: string
 }
 
-const SignUpForm = ({ 
-  signupSessionToken, 
+const SignUpForm = ({
+  signupSessionToken,
   initialEmail = '',
   initialName = '',
-  initialPicture = ''
+  initialPicture = '',
 }: SignupFormProps) => {
   const navigate = useNavigate()
   const [formData, setFormData] = useState<Omit<RegisterRequest, 'signupSessionToken'>>({
@@ -31,17 +31,19 @@ const SignUpForm = ({
   const [errors, setErrors] = useState<Partial<Record<keyof typeof formData, string>>>({})
   const [profilePreview, setProfilePreview] = useState<string>(initialPicture)
   const [isUploading, setIsUploading] = useState(false)
-  
+
   console.log(formData)
-  
-  const handleChange = (field: keyof typeof formData) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const value = e.target.value
-    setFormData(prev => ({ ...prev, [field]: value }))
-    // 에러 클리어
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }))
+
+  const handleChange =
+    (field: keyof typeof formData) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      const value = e.target.value
+      setFormData((prev) => ({ ...prev, [field]: value }))
+      // 에러 클리어
+      if (errors[field]) {
+        setErrors((prev) => ({ ...prev, [field]: undefined }))
+      }
     }
-  }
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -70,7 +72,7 @@ const SignUpForm = ({
         }
         reader.readAsDataURL(file)
       })
-      
+
       setProfilePreview(previewUrl)
 
       // TODO: 실제 파일 업로드 API 호출
@@ -86,8 +88,8 @@ const SignUpForm = ({
       // 임시: 로컬 미리보기 URL을 저장 (실제로는 서버에서 받은 URL 사용)
       // 실제 배포 시에는 위의 API 호출 결과로 받은 uploadedUrl을 사용
       const uploadedUrl = previewUrl
-      
-      setFormData(prev => ({ ...prev, picture: uploadedUrl }))
+
+      setFormData((prev) => ({ ...prev, picture: uploadedUrl }))
     } catch (error) {
       console.error('파일 업로드 실패:', error)
       alert('파일 업로드에 실패했습니다')
@@ -164,85 +166,84 @@ const SignUpForm = ({
 
   // 한국 주요 은행 목록
   const banks = [
-        {
-            "code": "001",
-            "name": "한국은행"
-        },
-        {
-            "code": "002",
-            "name": "산업은행"
-        },
-        {
-            "code": "003",
-            "name": "기업은행"
-        },
-        {
-            "code": "004",
-            "name": "국민은행"
-        },
-        {
-            "code": "011",
-            "name": "농협은행"
-        },
-        {
-            "code": "020",
-            "name": "우리은행"
-        },
-        {
-            "code": "023",
-            "name": "SC제일은행"
-        },
-        {
-            "code": "027",
-            "name": "시티은행"
-        },
-        {
-            "code": "032",
-            "name": "대구은행"
-        },
-        {
-            "code": "034",
-            "name": "광주은행"
-        },
-        {
-            "code": "035",
-            "name": "제주은행"
-        },
-        {
-            "code": "037",
-            "name": "전북은행"
-        },
-        {
-            "code": "039",
-            "name": "경남은행"
-        },
-        {
-            "code": "045",
-            "name": "새마을금고"
-        },
-        {
-            "code": "081",
-            "name": "KEB하나은행"
-        },
-        {
-            "code": "088",
-            "name": "신한은행"
-        },
-        {
-            "code": "090",
-            "name": "카카오뱅크"
-        },
-        {
-            "code": "999",
-            "name": "싸피은행"
-        }
-    
+    {
+      code: '001',
+      name: '한국은행',
+    },
+    {
+      code: '002',
+      name: '산업은행',
+    },
+    {
+      code: '003',
+      name: '기업은행',
+    },
+    {
+      code: '004',
+      name: '국민은행',
+    },
+    {
+      code: '011',
+      name: '농협은행',
+    },
+    {
+      code: '020',
+      name: '우리은행',
+    },
+    {
+      code: '023',
+      name: 'SC제일은행',
+    },
+    {
+      code: '027',
+      name: '시티은행',
+    },
+    {
+      code: '032',
+      name: '대구은행',
+    },
+    {
+      code: '034',
+      name: '광주은행',
+    },
+    {
+      code: '035',
+      name: '제주은행',
+    },
+    {
+      code: '037',
+      name: '전북은행',
+    },
+    {
+      code: '039',
+      name: '경남은행',
+    },
+    {
+      code: '045',
+      name: '새마을금고',
+    },
+    {
+      code: '081',
+      name: 'KEB하나은행',
+    },
+    {
+      code: '088',
+      name: '신한은행',
+    },
+    {
+      code: '090',
+      name: '카카오뱅크',
+    },
+    {
+      code: '999',
+      name: '싸피은행',
+    },
   ]
 
   return (
     <div className="w-full max-w-md space-y-4">
       <h1 className="text-3xl font-bmjua font-bold text-center mb-6">추가 정보 입력</h1>
-      
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
           label="이름"
@@ -267,7 +268,6 @@ const SignUpForm = ({
           <label className="block text-sm font-medium text-gray-700 mb-1">성별</label>
           <select
             value={formData.gender}
-            
             onChange={handleChange('gender')}
             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               errors.gender ? 'border-red-500' : 'border-gray-300'
@@ -301,7 +301,7 @@ const SignUpForm = ({
             }`}
           >
             <option value="">은행을 선택하세요</option>
-            {banks.map(bank => (
+            {banks.map((bank) => (
               <option key={bank.code} value={bank.code}>
                 {bank.name}
               </option>
@@ -348,23 +348,21 @@ const SignUpForm = ({
                 }`}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
                 </svg>
                 파일 업로드
               </label>
-              {isUploading && (
-                <p className="mt-2 text-sm text-blue-600">업로드 중...</p>
-              )}
+              {isUploading && <p className="mt-2 text-sm text-blue-600">업로드 중...</p>}
             </div>
           </div>
         </div>
 
-        <SolidButton
-          type="submit"
-          variant="main"
-          size="lg"
-          className="w-full mt-6"
-        >
+        <SolidButton type="submit" variant="main" size="lg" className="w-full mt-6">
           회원가입 완료
         </SolidButton>
       </form>

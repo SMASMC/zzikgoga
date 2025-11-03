@@ -3,7 +3,8 @@ import { Button } from '@components/atoms/Button'
 import { useState, useEffect, cloneElement, isValidElement } from 'react'
 import { ChevronLeft, ChevronRight, Wallet, MessageSquare, BookOpen } from 'lucide-react'
 import { ImageWithFallback } from '@/components/atoms/ImageWithFallback'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
+import ErrorModal from '@/components/atoms/ErrorModal'
 
 interface OnboardingSlide {
   id: number
@@ -60,6 +61,14 @@ const slides: OnboardingSlide[] = [
 const HomePage = () => {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const errorType = searchParams.get('error')
+
+  const handleCloseErrorModal = () => {
+    // URL에서 error 파라미터 제거
+    searchParams.delete('error')
+    setSearchParams(searchParams)
+  }
 
   useEffect(() => {
     if (!isPaused) {
@@ -94,6 +103,9 @@ const HomePage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header transparentUntilScroll />
+      
+      {/* 에러 모달 */}
+      {errorType && <ErrorModal errorType={errorType} onClose={handleCloseErrorModal} />}
       <div
         className="relative h-screen w-full overflow-hidden"
         style={{ backgroundColor: '#0A0F1A' }}

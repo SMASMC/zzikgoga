@@ -1,6 +1,6 @@
 // src/pages/auth/SignupPage.tsx
 import { useSearchParams } from 'react-router-dom'
-import SignUpForm from '@/features/auth/components/signupForm'
+import SignUpForm from '@/features/auth/components/SignUpForm'
 
 export function SignupPage() {
   const [params] = useSearchParams()
