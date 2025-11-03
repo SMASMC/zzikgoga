@@ -6,10 +6,10 @@
 *~
 
 # Node.js
-infra/main-ec2/node-server/node_modules/
-infra/main-ec2/node-server/package-lock.json
-infra/main-ec2/node-server/.npm/
-infra/main-ec2/node-server/logs/
+node_modules/
+package-lock.json
+.npm/
+logs/
 
 # Environment variables
 *.env
@@ -18,3 +18,5 @@ infra/main-ec2/node-server/logs/
 
 # Build artifacts
 build-info.txt
+dist/
+build/

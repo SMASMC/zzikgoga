@@ -15,15 +15,16 @@ RUN addgroup -g 1000 nodeapp && \
 
 # package.json 복사 및 dependencies 설치
 COPY package*.json ./
-RUN npm ci --omit=dev --quiet && \
+RUN npm ci --only=production --quiet && \
     npm cache clean --force
 
-# PM2 ecosystem 설정 및 server.js 복사
-COPY ecosystem.config.js ./
-COPY server.js ./
-COPY build-info.txt ./build-info.txt
+# 빌드된 소스 코드 복사 (dist/)
+COPY dist/ ./dist/
 
-# PM2 로그 디렉토리 생성
+# 환경 설정 파일 복사 (선택적)
+COPY build-info.txt ./build-info.txt 2>/dev/null || echo "No build-info.txt" > build-info.txt
+
+# 로그 디렉토리 생성
 RUN mkdir -p logs
 
 # 소유권 변경
@@ -35,9 +36,9 @@ USER nodeapp
 # 포트 노출
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"
+# Health check (빌드된 JS 파일 실행)
+HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
 
-# PM2로 서버 실행 (pm2-runtime은 foreground 모드로 실행되어 Docker 컨테이너가 종료되지 않음)
-CMD ["npm", "start"]
+# 빌드된 서버 실행
+CMD ["node", "dist/server.js"]
