@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import SolidButton from '@/components/atoms/SolidButton'
 import { useEffect, useState } from 'react'
+import LoginModal from '@/features/auth/components/LoginModal'
 
 interface HeaderProps {
   transparentUntilScroll?: boolean
@@ -9,6 +10,7 @@ interface HeaderProps {
 
 const Header = ({ transparentUntilScroll = false, scrollOffset = 10 }: HeaderProps) => {
   const [scrolled, setScrolled] = useState(false)
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
 
   useEffect(() => {
     if (!transparentUntilScroll) return
@@ -26,6 +28,14 @@ const Header = ({ transparentUntilScroll = false, scrollOffset = 10 }: HeaderPro
     ? `fixed top-0 left-0 right-0 z-50 ${scrolled ? 'bg-white shadow-md' : 'bg-transparent'}`
     : 'bg-white shadow-md'
 
+  const handleLoginForm = () => {
+    setIsLoginModalOpen(true)
+  }
+
+  const handleCloseLoginModal = () => {
+    setIsLoginModalOpen(false)
+  }
+
   return (
     <header className={`${wrapperBase} ${wrapperMode}`}>
       <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -34,13 +44,13 @@ const Header = ({ transparentUntilScroll = false, scrollOffset = 10 }: HeaderPro
         </Link>
 
         <div className="flex gap-4 items-center">
-          <Link to="/auth">
-            <SolidButton variant="point" size="sm">
-              로그인
-            </SolidButton>
-          </Link>
+          <SolidButton onClick={handleLoginForm} variant="point" size="sm">
+            로그인
+          </SolidButton>
         </div>
       </nav>
+
+      {isLoginModalOpen && <LoginModal onClose={handleCloseLoginModal} />}
     </header>
   )
 }

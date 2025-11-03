@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuthStore } from '../../shared/stores/useAuthStore'
+import { OAuthCallbackResponse } from '@/features/auth/types/auth'
 
 export function OAuthCallbackPage() {
   const navigate = useNavigate()
@@ -14,7 +15,7 @@ export function OAuthCallbackPage() {
         const params = new URLSearchParams(window.location.search)
         const code = params.get('code')
         if (!code) {
-          navigate('/auth?error=no_code', { replace: true })
+          navigate('/?error=no_code', { replace: true })
           return
         }
         console.log(import.meta.env.VITE_KAKAO_REST_API_KEY)
@@ -35,40 +36,44 @@ export function OAuthCallbackPage() {
 
         const idToken = tokenResponse.data.id_token
         if (!idToken) {
-          navigate('/auth?error=no_id_token', { replace: true })
+          navigate('/?error=no_id_token', { replace: true })
           return
         }
 
         // 2. 백엔드로 idToken 전달 → JWT 발급 or signupToken 반환
-        console.log(idToken)
-        console.log(import.meta.env.VITE_API_BASE_URL)
-        const { data } = await axios.post(
+        console.log('idToken:', idToken)
+        console.log('API Base URL:', import.meta.env.VITE_API_BASE_URL)
+        const { data } = await axios.post<OAuthCallbackResponse>(
           `${import.meta.env.VITE_API_BASE_URL}/auth/kakao`,
           { idToken },
           { withCredentials: true }
         )
 
-        console.log(data)
+        console.log('OAuth Callback Response:', data)
 
         // 3. 로그인 완료
-        if (data.accessToken) {
-          setAuth(data.user, data.accessToken)
-          navigate('/', { replace: true })
+        if ('accessToken' in data && data.accessToken) {
+          console.log('로그인 성공 - 토큰 저장 및 mypage로 이동')
+          setAuth(data.user, data.accessToken, data.refreshToken)
+          console.log('✅ accessToken 및 refreshToken 로컬 스토리지에 저장 완료')
+          navigate('/mypage', { replace: true })
           return
         }
 
         // 4. 신규 회원 (회원가입 페이지 이동)
-        else if (data.signupRequired) {
-          navigate(`/signup?token=${encodeURIComponent(data.signupSessionToken)}`, {
+        if ('signupRequired' in data && data.signupRequired) {
+          console.log('회원가입 필요 - signup 페이지로 이동')
+          navigate(`/auth/signup?token=${encodeURIComponent(data.signupSessionToken)}`, {
             replace: true,
           })
           return
         }
 
-        navigate('/auth?error=unknown', { replace: true })
+        console.error('알 수 없는 응답 형식:', data)
+        navigate('/?error=unknown', { replace: true })
       } catch (err) {
         console.error('OAuth 콜백 처리 중 오류:', err)
-        navigate('/auth?error=oauth_callback_error', { replace: true })
+        navigate('/?error=oauth_callback_error', { replace: true })
       }
     }
 
