@@ -8,7 +8,7 @@ services:
       - .env
     environment:
       SERVER_PORT: "8080"
-      SPRING_DATASOURCE_URL: "jdbc:postgresql://my-postgres-db:5432/${POSTGRES_DB:-postgres}"
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://zzik.kr:5432/${POSTGRES_DB:-zzik}"
       SPRING_DATASOURCE_USERNAME: "${POSTGRES_USER}"
       SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD}"
       SPRING_DATA_REDIS_HOST: "${REDIS_HOST}"
