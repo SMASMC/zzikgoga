@@ -79,45 +79,10 @@ pipeline {
           echo "📦 Installing dependencies"
           nodejs(nodeJSInstallationName: "NodeJS-22") {
             sh '''
-              # package-lock.json이 있으면 npm ci, 없으면 npm install
-              if [ -f package-lock.json ]; then
-                echo "ℹ️ Using npm ci (package-lock.json found)"
-                npm ci --cache ${WORKSPACE}/.npm --prefer-offline
-              else
-                echo "ℹ️ Using npm install (no package-lock.json)"
-                npm install --cache ${WORKSPACE}/.npm
-              fi
-              echo "✅ Dependencies installed"
-            '''
-          }
-        }
-      }
-    }
-
-    stage('Commit lockfile (if updated)') {
-      steps {
-        withCredentials([usernamePassword(credentialsId: 'gitlab_username_with_pw', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
-          dir('crdt') {
-            sh '''
-              set -e
-              # Generate lockfile only if still missing
-              if [ ! -f package-lock.json ]; then
-                npm install --package-lock-only --cache ${WORKSPACE}/.npm || true
-              fi
-
-              # Check if lockfile changed
-              if ! git status --porcelain=1 -- package-lock.json | grep -q .; then
-                echo "[lockfile] no changes to package-lock.json"
-                exit 0
-              fi
-
-              echo "[lockfile] committing updated package-lock.json"
-              git config user.name "Jenkins"
-              git config user.email "jenkins@local"
-              git remote set-url --push origin "https://${GIT_USER}:${GIT_PASS}@lab.ssafy.com/s13-final/S13P31A102.git"
-              git add package-lock.json
-              git commit -m "chore(INF): add/update package-lock.json for CRDT Node server [ci skip]"
-              git push origin HEAD:${BRANCH_NAME}
+              # Always run npm install during CI (per CRDT requirements)
+              echo "[INFO] Running npm install for CI pipeline"
+              npm install --cache ${WORKSPACE}/.npm --prefer-offline
+              echo "[INFO] Dependencies installed via npm install"
             '''
           }
         }
