@@ -74,4 +74,3 @@ const ErrorModal = ({ errorType, onClose }: ErrorModalProps) => {
 }
 
 export default ErrorModal
-

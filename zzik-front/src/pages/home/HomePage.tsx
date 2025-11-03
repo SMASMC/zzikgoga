@@ -103,7 +103,7 @@ const HomePage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header transparentUntilScroll />
-      
+
       {/* 에러 모달 */}
       {errorType && <ErrorModal errorType={errorType} onClose={handleCloseErrorModal} />}
       <div
