@@ -13,6 +13,69 @@ NGINX_SITE_NAME="zzik.kr"
 # 디버그 모드 설정
 DEBUG_MODE="${DEBUG_MODE:-false}"
 
+# 롤백 플래그
+DEPLOYMENT_FAILED=0
+NEED_ROLLBACK=0
+
+# 롤백 함수
+rollback_deployment() {
+  echo ""
+  echo "🔄 배포 실패! 롤백을 시작합니다..."
+
+  # 새로 배포한 컨테이너 중지 및 제거
+  if [ -n "${NEW_ENV:-}" ] && docker ps -a --format '{{.Names}}' | grep -qx "zzikgoga-frontend-${NEW_ENV}"; then
+    echo "  🛑 새 컨테이너 중지 중: zzikgoga-frontend-${NEW_ENV}"
+    docker compose -p frontend-${NEW_ENV} -f docker-compose-frontend-${NEW_ENV}.yml down 2>/dev/null || true
+  fi
+
+  # 이전 환경이 있었다면 복구
+  if [ -n "${CURRENT_ENV:-}" ] && [ -n "${OLD_ENV:-}" ]; then
+    echo "  ♻️ 이전 환경 복구 중: zzikgoga-frontend-${OLD_ENV}"
+
+    # 이전 컨테이너가 중지되어 있다면 다시 시작
+    if docker ps -a --format '{{.Names}}' | grep -qx "zzikgoga-frontend-${OLD_ENV}"; then
+      if ! docker ps --format '{{.Names}}' | grep -qx "zzikgoga-frontend-${OLD_ENV}"; then
+        echo "  🔄 이전 컨테이너 재시작 중..."
+        docker start "zzikgoga-frontend-${OLD_ENV}" 2>/dev/null || true
+        sleep 5
+
+        # 이전 컨테이너 헬스 체크
+        for i in $(seq 1 30); do
+          if curl -s -o /dev/null -w "%{http_code}" "http://localhost:${OLD_PORT}/" | grep -q "^[234]"; then
+            echo "  ✅ 이전 환경이 정상적으로 복구되었습니다"
+            break
+          fi
+          sleep 2
+        done
+      else
+        echo "  ✅ 이전 환경이 이미 실행 중입니다"
+      fi
+    else
+      # 이전 컨테이너가 없다면 다시 생성
+      echo "  🔄 이전 환경 재생성 중..."
+      docker compose -p frontend-${OLD_ENV} -f docker-compose-frontend-${OLD_ENV}.yml up -d
+      sleep 10
+    fi
+
+    # Nginx 설정도 이전 버전으로 복구
+    if [ -f "$(pwd)/nginx/frontend-${OLD_ENV}.conf" ]; then
+      echo "  🔧 Nginx 설정 복구 중..."
+      sudo cp "$(pwd)/nginx/frontend-${OLD_ENV}.conf" "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}"
+      sudo ln -sf "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}" "${NGINX_SITES_ENABLED}/${NGINX_SITE_NAME}"
+      if sudo nginx -t 2>/dev/null; then
+        sudo systemctl reload nginx
+        echo "  ✅ Nginx 설정 복구 완료"
+      fi
+    fi
+  else
+    echo "  ⚠️ 이전 환경이 없었습니다. 새 환경만 제거합니다."
+  fi
+
+  echo "❌ 배포 실패: 이전 환경으로 롤백되었습니다"
+  echo "⏰ 실패 시간: $(date '+%Y-%m-%d %H:%M:%S')"
+  exit 1
+}
+
 # 현재 활성 환경 확인
 CURRENT_ENV=""
 BLUE_RUNNING=false
@@ -127,14 +190,8 @@ if [ "$SUCCESS" = false ]; then
     echo "📋 전체 컨테이너 로그:"
     docker logs "$CONTAINER_NAME" 2>&1
 
-    if [ "$DEBUG_MODE" = "true" ]; then
-        echo "⚠️ 디버그 모드: 컨테이너를 유지합니다."
-    else
-        echo "🔄 컨테이너를 제거합니다..."
-        docker compose -p frontend-${NEW_ENV} -f docker-compose-frontend-${NEW_ENV}.yml down
-    fi
-
-    exit 1
+    NEED_ROLLBACK=1
+    rollback_deployment
 fi
 
 echo "🔧 nginx 설정 업데이트 중..."
@@ -150,18 +207,8 @@ if [ -f "$(pwd)/nginx/frontend-${NEW_ENV}.conf" ]; then
         echo "✅ nginx 재로드 완료"
     else
         echo "❌ nginx 설정 테스트 실패"
-        # 롤백 로직
-        if [ "$CURRENT_ENV" != "" ]; then
-            sudo cp "$(pwd)/nginx/frontend-${OLD_ENV}.conf" "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}"
-            sudo ln -sf "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}" "${NGINX_SITES_ENABLED}/${NGINX_SITE_NAME}"
-            sudo systemctl reload nginx
-        fi
-
-        # 디버그 모드에서는 컨테이너를 유지
-        if [ "$DEBUG_MODE" != "true" ]; then
-            docker compose -p frontend-${NEW_ENV} -f docker-compose-frontend-${NEW_ENV}.yml down
-        fi
-        exit 1
+        NEED_ROLLBACK=1
+        rollback_deployment
     fi
 else
     echo "⚠️ nginx 설정 파일이 없습니다: $(pwd)/nginx/frontend-${NEW_ENV}.conf"
@@ -178,11 +225,15 @@ case "$FINAL_CHECK" in
   2*|3*) : ;; # ok
   *)
     echo "❌ 최종 확인 실패!"
-    exit 1
+    NEED_ROLLBACK=1
+    rollback_deployment
     ;;
 esac
 
-# 기존 환경 종료
+# 배포 성공 확인
+echo "✅ 배포 성공 확인 완료"
+
+# 기존 환경 종료 (성공 시에만)
 if [ "$CURRENT_ENV" != "" ]; then
     echo "🛑 기존 $OLD_ENV 환경 중지 중..."
     sleep 10  # 트래픽 전환을 위한 대기

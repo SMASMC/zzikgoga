@@ -8,6 +8,75 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DB_DIR="${ROOT_DIR}/db"
 PROJECT="main-ec2"
 
+# 롤백 플래그
+DEPLOYMENT_FAILED=0
+NEED_ROLLBACK=0
+
+# 롤백 함수
+rollback_deployment() {
+  echo ""
+  echo "🔄 배포 실패! 롤백을 시작합니다..."
+
+  # 새로 배포한 컨테이너 중지 및 제거
+  if [ -n "${NEW:-}" ] && docker ps -a --format '{{.Names}}' | grep -qx "zzikgoga-${NEW}"; then
+    echo "  🛑 새 컨테이너 중지 중: zzikgoga-${NEW}"
+    docker stop "zzikgoga-${NEW}" 2>/dev/null || true
+    docker rm -f "zzikgoga-${NEW}" 2>/dev/null || true
+
+    # docker-compose로 완전히 정리
+    if [ -f "${ROOT_DIR}/docker-compose-backend-${NEW}.yml" ]; then
+      ( cd "${ROOT_DIR}" && docker compose -p "${PROJECT}" -f "docker-compose-backend-${NEW}.yml" down 2>/dev/null || true )
+    fi
+  fi
+
+  # 이전 환경이 있었다면 복구
+  if [ -n "${CURRENT:-}" ] && [ -n "${OLD:-}" ]; then
+    echo "  ♻️ 이전 환경 복구 중: zzikgoga-${OLD}"
+
+    # 이전 컨테이너가 중지되어 있다면 다시 시작
+    if docker ps -a --format '{{.Names}}' | grep -qx "zzikgoga-${OLD}"; then
+      if ! docker ps --format '{{.Names}}' | grep -qx "zzikgoga-${OLD}"; then
+        echo "  🔄 이전 컨테이너 재시작 중..."
+        docker start "zzikgoga-${OLD}" 2>/dev/null || true
+        sleep 5
+
+        # 이전 컨테이너 헬스 체크
+        for i in $(seq 1 30); do
+          if curl -s -o /dev/null -w "%{http_code}" "http://localhost:${OLD_PORT}/health-check" | grep -q "^[234]"; then
+            echo "  ✅ 이전 환경이 정상적으로 복구되었습니다"
+            break
+          fi
+          sleep 2
+        done
+      else
+        echo "  ✅ 이전 환경이 이미 실행 중입니다"
+      fi
+    else
+      # 이전 컨테이너가 없다면 다시 생성
+      echo "  🔄 이전 환경 재생성 중..."
+      ( cd "${ROOT_DIR}" && docker compose -p "${PROJECT}" -f "docker-compose-backend-${OLD}.yml" up -d )
+      sleep 10
+    fi
+
+    # Nginx 설정도 이전 버전으로 복구
+    if [ -f "${ROOT_DIR}/nginx/backend-${OLD}.conf" ]; then
+      echo "  🔧 Nginx 설정 복구 중..."
+      sudo cp "${ROOT_DIR}/nginx/backend-${OLD}.conf" /etc/nginx/sites-available/api.zzik.kr
+      sudo ln -sf /etc/nginx/sites-available/api.zzik.kr /etc/nginx/sites-enabled/api.zzik.kr
+      if sudo nginx -t 2>/dev/null; then
+        sudo systemctl reload nginx
+        echo "  ✅ Nginx 설정 복구 완료"
+      fi
+    fi
+  else
+    echo "  ⚠️ 이전 환경이 없었습니다. 새 환경만 제거합니다."
+  fi
+
+  echo "❌ 배포 실패: 이전 환경으로 롤백되었습니다"
+  echo "⏰ 실패 시간: $(date '+%Y-%m-%d %H:%M:%S')"
+  exit 1
+}
+
 # 1) Env 파일 준비(Jenkins가 준비한 .env 필요)
 if [ ! -f "${ROOT_DIR}/.env" ]; then
   echo "❌ ${ROOT_DIR}/.env 가 없습니다 (Jenkins에서 준비되어야 함)" >&2
@@ -85,10 +154,15 @@ echo "⏳ 컨테이너 헬스 대기: ${CONTAINER_NAME}"
 for i in $(seq 1 120); do
   hs=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "${CONTAINER_NAME}" 2>/dev/null || echo 'unknown')
   echo "  health attempt $i: ${hs}"
-  case "$hs" in healthy) break;; none) echo "  no healthcheck configured; proceeding"; hs=healthy; break;; start*|unknown) ;; unhealthy) echo "❌ container unhealthy"; docker logs "${CONTAINER_NAME}" --tail=200 || true; exit 1;; esac
+  case "$hs" in healthy) break;; none) echo "  no healthcheck configured; proceeding"; hs=healthy; break;; start*|unknown) ;; unhealthy) echo "❌ container unhealthy"; docker logs "${CONTAINER_NAME}" --tail=200 || true; NEED_ROLLBACK=1; rollback_deployment;; esac
   sleep 3
 done
-[ "$hs" = healthy ] || [ "$hs" = none ] || { echo "❌ container did not become healthy in time"; docker logs "${CONTAINER_NAME}" --tail=200 || true; exit 1; }
+if [ "$hs" != "healthy" ] && [ "$hs" != "none" ]; then
+  echo "❌ container did not become healthy in time"
+  docker logs "${CONTAINER_NAME}" --tail=200 || true
+  NEED_ROLLBACK=1
+  rollback_deployment
+fi
 
 echo "🌐 Backend HTTP 준비 확인 :${NEW_PORT}"
 for i in $(seq 1 40); do
@@ -100,7 +174,15 @@ for i in $(seq 1 40); do
   case "$code" in 2*|3*|4*) break;; esac
   sleep 3
 done
-case "$code" in 2*|3*|4*) : ;; *) echo "❌ backend HTTP check failed on :${NEW_PORT}"; docker logs "${CONTAINER_NAME}" --tail=200 || true; exit 1;; esac
+case "$code" in
+  2*|3*|4*) : ;;
+  *)
+    echo "❌ backend HTTP check failed on :${NEW_PORT}"
+    docker logs "${CONTAINER_NAME}" --tail=200 || true
+    NEED_ROLLBACK=1
+    rollback_deployment
+    ;;
+esac
 
 # 6) Nginx 설정 적용(backend-<color>.conf → api.zzik.kr) 후 reload
 echo "🧩 Nginx 설정 적용"
@@ -133,12 +215,17 @@ if sudo -n nginx -t; then
   echo "✅ nginx reloaded"
 else
   echo "❌ nginx config test failed" >&2
-  exit 1
+  NEED_ROLLBACK=1
+  rollback_deployment
 fi
+
+# 최종 배포 성공 확인 후에만 이전 환경 정리
+echo "✅ 배포 성공 확인 완료"
 
 # 7) 이전 색(OLD) 백엔드만 안전 정리(DB/Redis/네트워크는 유지)
 if [ -n "$CURRENT" ]; then
   echo "🛑 stopping old=$OLD"
+  sleep 10  # 트래픽 전환을 위한 대기
   docker stop "zzikgoga-${OLD}" 2>/dev/null || true
   docker rm -f "zzikgoga-${OLD}" 2>/dev/null || true
 fi
