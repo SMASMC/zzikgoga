@@ -10,8 +10,8 @@ RUN apk add --no-cache tzdata && \
 WORKDIR /app
 
 # 보안을 위한 non-root 사용자 생성
-RUN addgroup -g 1000 nodeapp && \
-    adduser -D -u 1000 -G nodeapp nodeapp
+RUN addgroup -S nodeapp || true
+RUN adduser -S -G nodeapp nodeapp || true
 
 # package.json 복사 및 dependencies 설치
 COPY package*.json ./
