@@ -184,4 +184,53 @@ public class AuthService {
 
 		return body.getId_token();
 	}
+
+	public Map<String, Object> handleKakaoLoginFromIdToken(String idToken) {
+		try {
+			var jwt = SignedJWT.parse(idToken);
+			var claims = jwt.getJWTClaimsSet();
+
+			String iss = claims.getIssuer();
+			String aud = claims.getAudience().get(0);
+			String sub = claims.getSubject();
+			Date exp = claims.getExpirationTime();
+			String nickName = claims.getStringClaim("nickname");
+			String email = claims.getStringClaim("email");
+			String picture = claims.getStringClaim("picture");
+
+			if (!"https://kauth.kakao.com".equals(iss)) throw new RuntimeException("Invalid issuer");
+			if (!kakaoClientId.equals(aud)) throw new RuntimeException("Invalid audience");
+			if (exp.before(new Date())) throw new RuntimeException("Token expired");
+
+			var found = memberRepository.findByProviderAndProviderId(Provider.KAKAO, sub);
+			if (found.isPresent()) {
+				Member m = found.get();
+				String accessToken = accessTokenProvider.generateToken(AccessTokenClaim.of(m.getId()));
+				String refreshToken = refreshTokenProvider.generateToken(RefreshTokenClaim.of(m.getId()));
+
+				return Map.of(
+					"loggedIn", true,
+					"accessToken", accessToken,
+					"refreshToken", refreshToken,
+					"user", Map.of("id", m.getId())
+				);
+			}
+
+			String signupSessionToken = accessTokenProvider.issueTempToken(
+				Map.of("provider", "KAKAO", "providerId", sub),
+				Duration.ofMinutes(15)
+			);
+
+			return Map.of(
+				"loggedIn", false,
+				"signupRequired", true,
+				"signupSessionToken", signupSessionToken,
+				"name", nickName,
+				"email", email,
+				"picture", picture
+			);
+		} catch (Exception e) {
+			throw new RuntimeException("Invalid id_token", e);
+		}
+	}
 }

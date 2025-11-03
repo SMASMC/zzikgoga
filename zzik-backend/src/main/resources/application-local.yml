@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/zzik
+    url: jdbc:postgresql://localhost:5432/postgres
     username: postgres
     password: postgres
   data.redis:
@@ -30,4 +30,4 @@ clova-ocr:
 
 kakao:
   client-id: d681737d278913da69c79651d2267263
-  redirect-uri: "http://localhost:8081/api/auth/callback"
+  redirect-uri: "http://localhost:5173/auth/callback"
