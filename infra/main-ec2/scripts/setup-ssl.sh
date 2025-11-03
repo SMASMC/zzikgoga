@@ -11,6 +11,7 @@ echo ""
 DOMAINS_FRONTEND="zzik.kr www.zzik.kr"
 DOMAINS_BACKEND="api.zzik.kr"
 DOMAINS_JENKINS="jenkins.zzik.kr"
+DOMAINS_CRDT="crdt.zzik.kr"
 DOMAINS_GRAFANA="${DOMAINS_GRAFANA:-monitoring.zzik.kr}"
 EMAIL="${EMAIL:-trip325325@gmail.com}"
 
@@ -247,6 +248,39 @@ else
 fi
 
 #############################################
+# 5.5. CRDT SSL 인증서 발급
+#############################################
+echo -e "${BLUE}=========================================${NC}"
+echo -e "${BLUE}🌐 Step 5.5: CRDT SSL 인증서 발급${NC}"
+echo -e "${BLUE}   도메인: $DOMAINS_CRDT${NC}"
+echo -e "${BLUE}=========================================${NC}"
+echo ""
+
+if [ -d "$CERTBOT_PATH/live/crdt.zzik.kr" ]; then
+    echo -e "${YELLOW}⚠️ crdt.zzik.kr 인증서가 이미 존재합니다. 갱신을 원하면 renew-ssl.sh를 사용하세요.${NC}"
+else
+    docker run --rm \
+        -v $CERTBOT_PATH:/etc/letsencrypt \
+        -v /var/lib/letsencrypt:/var/lib/letsencrypt \
+        -v $WEBROOT_PATH:/var/www/certbot \
+        certbot/certbot:latest \
+        certonly --webroot \
+        -w /var/www/certbot \
+        --email $EMAIL \
+        --agree-tos \
+        --no-eff-email \
+        -d $DOMAINS_CRDT \
+        --non-interactive
+
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}✅ CRDT SSL 인증서 발급 완료!${NC}"
+    else
+        echo -e "${RED}❌ CRDT SSL 인증서 발급 실패!${NC}"
+        exit 1
+    fi
+fi
+
+#############################################
 # 6. 인증서 발급 확인
 #############################################
 echo -e "${BLUE}=========================================${NC}"
@@ -257,6 +291,7 @@ echo ""
 CERT_FRONTEND="$CERTBOT_PATH/live/zzik.kr/fullchain.pem"
 CERT_BACKEND="$CERTBOT_PATH/live/api.zzik.kr/fullchain.pem"
 CERT_JENKINS="$CERTBOT_PATH/live/jenkins.zzik.kr/fullchain.pem"
+CERT_CRDT="$CERTBOT_PATH/live/crdt.zzik.kr/fullchain.pem"
 
 if [ -f "$CERT_FRONTEND" ]; then
     echo -e "${GREEN}✅ Frontend 인증서 존재: zzik.kr${NC}"
@@ -274,6 +309,12 @@ if [ -f "$CERT_JENKINS" ]; then
     echo -e "${GREEN}✅ Jenkins 인증서 존재: jenkins.zzik.kr${NC}"
 else
     echo -e "${RED}❌ Jenkins 인증서 없음${NC}"
+fi
+
+if [ -f "$CERT_CRDT" ]; then
+    echo -e "${GREEN}✅ CRDT 인증서 존재: crdt.zzik.kr${NC}"
+else
+    echo -e "${RED}❌ CRDT 인증서 없음${NC}"
 fi
 echo ""
 

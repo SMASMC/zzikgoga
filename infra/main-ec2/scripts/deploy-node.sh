@@ -8,7 +8,7 @@ echo "⏰ 시작 시간: $(date '+%Y-%m-%d %H:%M:%S')"
 # nginx 설정 파일 경로
 NGINX_SITES_AVAILABLE="/etc/nginx/sites-available"
 NGINX_SITES_ENABLED="/etc/nginx/sites-enabled"
-NGINX_SITE_NAME="api.zzik.kr"
+NGINX_SITE_NAME="crdt.zzik.kr"
 
 # 디버그 모드 설정
 DEBUG_MODE="${DEBUG_MODE:-false}"
@@ -144,11 +144,11 @@ if [ "$SUCCESS" = false ]; then
 fi
 
 echo "🔧 nginx 설정 업데이트 중..."
-if [ -f "$(pwd)/nginx/backend-${NEW_ENV}.conf" ]; then
-    echo "✅ nginx 설정 파일 존재: $(pwd)/nginx/backend-${NEW_ENV}.conf"
+if [ -f "$(pwd)/nginx/node-${NEW_ENV}.conf" ]; then
+    echo "✅ nginx 설정 파일 존재: $(pwd)/nginx/node-${NEW_ENV}.conf"
 
     # sudo 권한으로 nginx 설정 업데이트
-    sudo cp "$(pwd)/nginx/backend-${NEW_ENV}.conf" "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}"
+    sudo cp "$(pwd)/nginx/node-${NEW_ENV}.conf" "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}"
     sudo ln -sf "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}" "${NGINX_SITES_ENABLED}/${NGINX_SITE_NAME}"
 
     if sudo nginx -t; then
@@ -158,7 +158,7 @@ if [ -f "$(pwd)/nginx/backend-${NEW_ENV}.conf" ]; then
         echo "❌ nginx 설정 테스트 실패"
         # 롤백 로직
         if [ "$CURRENT_ENV" != "" ]; then
-            sudo cp "$(pwd)/nginx/backend-${OLD_ENV}.conf" "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}"
+            sudo cp "$(pwd)/nginx/node-${OLD_ENV}.conf" "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}"
             sudo ln -sf "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}" "${NGINX_SITES_ENABLED}/${NGINX_SITE_NAME}"
             sudo systemctl reload nginx
         fi
@@ -170,7 +170,7 @@ if [ -f "$(pwd)/nginx/backend-${NEW_ENV}.conf" ]; then
         exit 1
     fi
 else
-    echo "⚠️ nginx 설정 파일이 없습니다: $(pwd)/nginx/backend-${NEW_ENV}.conf"
+    echo "⚠️ nginx 설정 파일이 없습니다: $(pwd)/nginx/node-${NEW_ENV}.conf"
 fi
 
 # 최종 확인
