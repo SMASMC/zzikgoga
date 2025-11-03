@@ -328,7 +328,8 @@ echo ""
 
 # 현재 실행 중인 컨테이너 확인
 FRONTEND_CONTAINER=$(docker ps --format '{{.Names}}' | grep 'zzikgoga-frontend' || echo "")
-BACKEND_CONTAINER=$(docker ps --format '{{.Names}}' | grep '^zzikgoga-' | grep -v frontend || echo "")
+BACKEND_CONTAINER=$(docker ps --format '{{.Names}}' | grep '^zzikgoga-' | grep -v frontend | grep -v node || echo "")
+NODE_CONTAINER=$(docker ps --format '{{.Names}}' | grep 'zzikgoga-node' || echo "")
 
 echo "📌 현재 실행 중인 컨테이너:"
 if [ -n "$FRONTEND_CONTAINER" ]; then
@@ -341,6 +342,12 @@ if [ -n "$BACKEND_CONTAINER" ]; then
     echo "   - Backend: $BACKEND_CONTAINER"
 else
     echo "   - Backend: 없음"
+fi
+
+if [ -n "$NODE_CONTAINER" ]; then
+    echo "   - CRDT Node: $NODE_CONTAINER"
+else
+    echo "   - CRDT Node: 없음"
 fi
 echo ""
 
@@ -372,8 +379,38 @@ if [ -n "$BACKEND_CONTAINER" ] && [ -f "$CERT_BACKEND" ]; then
     echo -e "${GREEN}✅ Backend HTTPS 설정 적용 완료${NC}"
 fi
 
+# CRDT Node HTTPS 설정 적용 (SSL 인증서가 실제로 발급된 경우에만)
+if [ -n "$NODE_CONTAINER" ] && [ -f "$CERT_CRDT" ]; then
+    if [[ "$NODE_CONTAINER" == *"-blue" ]]; then
+        NODE_ENV="blue"
+    else
+        NODE_ENV="green"
+    fi
+
+    echo "📌 CRDT Node HTTPS 설정 적용 중 (${NODE_ENV})..."
+    echo -e "${YELLOW}⚠️ 주의: 현재 node-${NODE_ENV}.conf는 HTTP-only 설정입니다.${NC}"
+    echo -e "${YELLOW}   HTTPS를 사용하려면 node-${NODE_ENV}.conf를 수동으로 HTTPS 블록을 추가해야 합니다.${NC}"
+
+    # HTTP-only 설정 적용 (SSL 인증서는 있지만 nginx 설정은 HTTP만 지원)
+    cp "${MAIN_EC2_DIR}/nginx/node-${NODE_ENV}.conf" /etc/nginx/sites-available/crdt.zzik.kr
+    ln -sf /etc/nginx/sites-available/crdt.zzik.kr /etc/nginx/sites-enabled/crdt.zzik.kr
+    echo -e "${GREEN}✅ CRDT Node HTTP 설정 적용 완료${NC}"
+elif [ -n "$NODE_CONTAINER" ]; then
+    # SSL 인증서가 없으면 HTTP-only 설정 적용
+    if [[ "$NODE_CONTAINER" == *"-blue" ]]; then
+        NODE_ENV="blue"
+    else
+        NODE_ENV="green"
+    fi
+
+    echo "📌 CRDT Node HTTP 설정 적용 중 (${NODE_ENV})..."
+    cp "${MAIN_EC2_DIR}/nginx/node-${NODE_ENV}.conf" /etc/nginx/sites-available/crdt.zzik.kr
+    ln -sf /etc/nginx/sites-available/crdt.zzik.kr /etc/nginx/sites-enabled/crdt.zzik.kr
+    echo -e "${GREEN}✅ CRDT Node HTTP 설정 적용 완료${NC}"
+fi
+
 # HTTP 전용 설정 제거 (HTTPS로 전환)
-if [ -f "$CERT_FRONTEND" ] || [ -f "$CERT_BACKEND" ]; then
+if [ -f "$CERT_FRONTEND" ] || [ -f "$CERT_BACKEND" ] || [ -f "$CERT_CRDT" ]; then
     echo "📌 HTTP 전용 설정 제거 중..."
     rm -f /etc/nginx/sites-enabled/default
 fi
