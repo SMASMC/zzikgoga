@@ -32,7 +32,7 @@ export function SignupPage() {
         email: 'ljntiger325@naver.com',
       }
 
-      const { data } = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/auth/signup`, payload)
+      const { data } = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/auth/signup`, payload)
 
       if (data.accessToken) {
         setAuth(data.user, data.accessToken)

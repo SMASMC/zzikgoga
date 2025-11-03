@@ -46,4 +46,3 @@ const Header = ({ transparentUntilScroll = false, scrollOffset = 10 }: HeaderPro
 }
 
 export default Header
-

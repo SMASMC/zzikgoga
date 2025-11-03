@@ -17,6 +17,9 @@ export function OAuthCallbackPage() {
           navigate('/auth?error=no_code', { replace: true })
           return
         }
+        console.log(import.meta.env.VITE_KAKAO_REST_API_KEY)
+        console.log(import.meta.env.VITE_KAKAO_REDIRECT_URI)
+        console.log('카카오 code:', code)
 
         // 1. 인가 코드로 id_token 받기
         const tokenResponse = await axios.post(
@@ -25,7 +28,7 @@ export function OAuthCallbackPage() {
             grant_type: 'authorization_code',
             client_id: import.meta.env.VITE_KAKAO_REST_API_KEY,
             redirect_uri: import.meta.env.VITE_KAKAO_REDIRECT_URI,
-            code,
+            code: code,
           }),
           { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
         )
@@ -37,11 +40,15 @@ export function OAuthCallbackPage() {
         }
 
         // 2. 백엔드로 idToken 전달 → JWT 발급 or signupToken 반환
+        console.log(idToken);
+        console.log(import.meta.env.VITE_API_BASE_URL);
         const { data } = await axios.post(
-          `${import.meta.env.VITE_BACKEND_URL}/auth/callback`,
+          `${import.meta.env.VITE_API_BASE_URL}/auth/kakao`,
           { idToken },
           { withCredentials: true }
         )
+
+        console.log(data)
 
         // 3. 로그인 완료
         if (data.accessToken) {
@@ -51,8 +58,8 @@ export function OAuthCallbackPage() {
         }
 
         // 4. 신규 회원 (회원가입 페이지 이동)
-        if (data.signupToken) {
-          navigate(`/signup?token=${encodeURIComponent(data.signupToken)}`, { replace: true })
+        else if (data.signupRequired) {
+          navigate(`/signup?token=${encodeURIComponent(data.signupSessionToken)}`, { replace: true })
           return
         }
 
@@ -64,7 +71,7 @@ export function OAuthCallbackPage() {
     }
 
     handleOAuthCallback()
-  }, [navigate, setAuth])
+  }, [])
 
   return (
     <div className="flex min-h-screen items-center justify-center">
