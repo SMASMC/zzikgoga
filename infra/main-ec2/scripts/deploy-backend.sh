@@ -83,12 +83,12 @@ echo "📋 current=${CURRENT:-none} → new=$NEW ($NEW_PORT)"
 CONTAINER_NAME="zzikgoga-${NEW}"
 echo "⏳ 컨테이너 헬스 대기: ${CONTAINER_NAME}"
 for i in $(seq 1 120); do
-  hs=$(docker inspect -f '{{.State.Health.Status}}' "${CONTAINER_NAME}" 2>/dev/null || echo 'unknown')
+  hs=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "${CONTAINER_NAME}" 2>/dev/null || echo 'unknown')
   echo "  health attempt $i: ${hs}"
-  case "$hs" in healthy) break;; start*|unknown) ;; unhealthy) echo "❌ container unhealthy"; docker logs "${CONTAINER_NAME}" --tail=200 || true; exit 1;; esac
+  case "$hs" in healthy) break;; none) echo "  no healthcheck configured; proceeding"; hs=healthy; break;; start*|unknown) ;; unhealthy) echo "❌ container unhealthy"; docker logs "${CONTAINER_NAME}" --tail=200 || true; exit 1;; esac
   sleep 3
 done
-[ "$hs" = healthy ] || { echo "❌ container did not become healthy in time"; docker logs "${CONTAINER_NAME}" --tail=200 || true; exit 1; }
+[ "$hs" = healthy ] || [ "$hs" = none ] || { echo "❌ container did not become healthy in time"; docker logs "${CONTAINER_NAME}" --tail=200 || true; exit 1; }
 
 echo "🌐 Backend HTTP 준비 확인 :${NEW_PORT}"
 for i in $(seq 1 40); do
