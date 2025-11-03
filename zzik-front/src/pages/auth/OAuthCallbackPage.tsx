@@ -40,8 +40,8 @@ export function OAuthCallbackPage() {
         }
 
         // 2. 백엔드로 idToken 전달 → JWT 발급 or signupToken 반환
-        console.log(idToken);
-        console.log(import.meta.env.VITE_API_BASE_URL);
+        console.log(idToken)
+        console.log(import.meta.env.VITE_API_BASE_URL)
         const { data } = await axios.post(
           `${import.meta.env.VITE_API_BASE_URL}/auth/kakao`,
           { idToken },
@@ -59,7 +59,9 @@ export function OAuthCallbackPage() {
 
         // 4. 신규 회원 (회원가입 페이지 이동)
         else if (data.signupRequired) {
-          navigate(`/signup?token=${encodeURIComponent(data.signupSessionToken)}`, { replace: true })
+          navigate(`/signup?token=${encodeURIComponent(data.signupSessionToken)}`, {
+            replace: true,
+          })
           return
         }
 
