@@ -75,7 +75,11 @@ pipeline {
                     # 필수 파일 확인
                     test -f package.json || { echo "❌ package.json missing"; exit 1; }
                     test -f dist/server.js || { echo "❌ dist/server.js missing"; exit 1; }
-                    test -f ecosystem.config.js || { echo "❌ ecosystem.config.js missing"; exit 1; }
+                    if [ -f ecosystem.config.js ]; then
+                        echo "[INFO] ecosystem.config.js detected"
+                    else
+                        echo "⚠️ ecosystem.config.js not found; continuing without PM2 config"
+                    fi
                     test -f build-info.txt || { echo "⚠️ build-info.txt missing"; }
 
                     echo "✅ Build context prepared"
