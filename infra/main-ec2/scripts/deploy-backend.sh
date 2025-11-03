@@ -24,7 +24,7 @@ REDIS_NAME=$(sed -n 's/^REDIS_DB=\s*//p' "${DB_DIR}/.env" 2>/dev/null | tr -d '\
 
 # 2) DB/Redis 존재 시 유지, 없을 때만 생성(up -d)
 echo "🗄️ Postgres/Redis 존재 여부 확인 후 필요 시만 기동"
-if ! docker ps -a --format '{{.Names}}' | grep -qx db; then
+if ! docker ps -a --format '{{.Names}}' | grep -qx zzik-db; then
   ( cd "${DB_DIR}" && docker compose -p "${PROJECT}" -f docker-compose.psql.yml up -d )
 fi
 if ! docker ps -a --format '{{.Names}}' | grep -qx "${REDIS_NAME}"; then
@@ -37,13 +37,13 @@ bash "${ROOT_DIR}/scripts/ensure-db-exists.sh" "${ROOT_DIR}/.env"
 
 echo "🔎 DB/Redis 헬스 대기"
 for i in $(seq 1 40); do
-  db_h=$(docker inspect -f '{{.State.Health.Status}}' db 2>/dev/null || echo 'unknown')
+  db_h=$(docker inspect -f '{{.State.Health.Status}}' zzik-db 2>/dev/null || echo 'unknown')
   rd_h=$(docker inspect -f '{{.State.Health.Status}}' "${REDIS_NAME}" 2>/dev/null || echo 'unknown')
   echo "  - db=${db_h} redis=${rd_h} (attempt $i)"
   [ "${db_h}" = healthy ] && [ "${rd_h}" = healthy ] && break
   sleep 3
 done
-[ "${db_h}" = healthy ] || { echo "❌ database not healthy"; docker logs db --tail=100 || true; exit 1; }
+[ "${db_h}" = healthy ] || { echo "❌ database not healthy"; docker logs zzik-db --tail=100 || true; exit 1; }
 [ "${rd_h}" = healthy ] || { echo "❌ redis not healthy (${REDIS_NAME})"; docker logs "${REDIS_NAME}" --tail=100 || true; exit 1; }
 
 # 3) 현재 실행 중인 색 파악 후 새 색 결정
