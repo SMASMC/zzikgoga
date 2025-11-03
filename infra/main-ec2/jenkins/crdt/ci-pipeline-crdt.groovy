@@ -3,6 +3,7 @@ pipeline {
 
   parameters {
     string(name: 'BRANCH_NAME', defaultValue: 'crdt/master', description: '빌드할 브랜치')
+    string(name: 'INFRA_BRANCH', defaultValue: 'infra/master', description: '인프라 리소스를 가져올 브랜치')
     string(name: 'SHARED_WORKSPACE', defaultValue: '/tmp/shared-workspace', description: '공유 작업 공간 디렉토리')
     string(name: 'SERVICE_NAME', defaultValue: 'zzikgoga-node', description: '서비스 이름 (공유 디렉터리명과 일치)')
   }
@@ -11,6 +12,7 @@ pipeline {
     SHARED_DIR = "${params.SHARED_WORKSPACE}/${params.SERVICE_NAME}"
     NPM_CONFIG_CACHE = "${WORKSPACE}/.npm"
     CRDT_DIR = 'crdt'
+    INFRA_BRANCH = "${params.INFRA_BRANCH}"
   }
 
   tools {
@@ -39,11 +41,22 @@ pipeline {
             [$class: 'RelativeTargetDirectory', relativeTargetDir: '.'],
             [$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [
               [path: 'crdt/**'],
-              [path: 'infra/main-ec2/dockerfiles/**']
+              [path: 'infra/main-ec2/dockerfiles/**'],
+              [path: 'infra/main-ec2/jenkins/**'],
+              [path: 'infra/main-ec2/nginx/**']
             ]]
           ]
         ])
         sh '''
+          set -e
+          echo "[INFO] Syncing infra branch artifacts from ${INFRA_BRANCH}"
+          git config --global --add safe.directory "$(pwd)"
+          git fetch origin "${INFRA_BRANCH}"
+          INFRA_BRANCH_REF="origin/${INFRA_BRANCH}"
+          git checkout "${INFRA_BRANCH_REF}" -- infra/main-ec2/dockerfiles
+          git checkout "${INFRA_BRANCH_REF}" -- infra/main-ec2/jenkins
+          git checkout "${INFRA_BRANCH_REF}" -- infra/main-ec2/nginx
+          echo "[INFO] Infra artifacts synced from ${INFRA_BRANCH}"
           echo "== workspace tree (top) =="
           ls -al
           echo ""
