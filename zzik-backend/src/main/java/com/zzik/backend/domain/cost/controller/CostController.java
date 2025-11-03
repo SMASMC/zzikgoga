@@ -25,12 +25,11 @@ public class CostController implements CostApi {
 	private final CostService costService;
 
 	@Override
-	public ResponseEntity<ApiResponse<ReceiptOcrResponse>> uploadReceipt(
-		Long tripId,
-		MultipartFile file
-	) {
-		ReceiptOcrResponse result = costService.recognizeReceipt(tripId, file);
-		return ResponseEntity.ok(ApiResponse.createSuccess(result));
+	public ResponseEntity<ApiResponse<ReceiptOcrResponse>> uploadReceiptAndSave(Long tripId, MultipartFile file,
+		SaveCostRequest request) {
+		//ReceiptOcrResponse result = costService.ocrAndCreate(tripId, file, request);
+		//return ResponseEntity.ok(ApiResponse.createSuccess(result));
+		return ResponseEntity.ok(ApiResponse.createSuccess(null));
 	}
 
 	@Override

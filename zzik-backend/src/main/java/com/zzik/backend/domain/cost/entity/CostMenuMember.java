@@ -26,9 +26,10 @@ public class CostMenuMember extends BaseEntity {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
-	@Column(name = "member_id", nullable = false)
-	private Long memberId;
+	// 레거시 테이블: 현재 사용 안 함 - cost_menu.must_payer_ids로 대체
+	// @Column(name = "member_id", nullable = false)
+	// private Long memberId;
 
-	@Column(name = "cost_menu_id", nullable = false)
-	private Long costMenuId;
+	// @Column(name = "cost_menu_id", nullable = false)
+	// private Long costMenuId;
 }

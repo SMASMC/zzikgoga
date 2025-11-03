@@ -21,10 +21,10 @@ public class CreateTripRequest {
 	private LocalDate endDate;    // "2025-01-06"
 
 	@JsonProperty("male_count")
-	private Integer maleCount;
+	private Short maleCount;
 
 	@JsonProperty("female_count")
-	private Integer femaleCount;
+	private Short femaleCount;
 
 	@JsonProperty("companion_id")
 	private List<Long> companionId;

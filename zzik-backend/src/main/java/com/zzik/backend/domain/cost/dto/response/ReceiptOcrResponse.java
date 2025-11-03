@@ -18,4 +18,5 @@ public record ReceiptOcrResponse(
 	@Schema(description = "품목 리스트") List<ReceiptItemDto> items,
 	@Schema(description = "원본 엔진 추론 결과(SUCCESS/FAIL)") String inferResult
 ) {
+
 }
