@@ -3,7 +3,15 @@ package com.zzik.backend.domain.auth.entity;
 import com.zzik.backend.domain.auth.enums.Gender;
 import com.zzik.backend.domain.auth.enums.Provider;
 import com.zzik.backend.global.base.entity.BaseEntity;
-import jakarta.persistence.*;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -25,9 +33,6 @@ public class Member extends BaseEntity {
 
 	@Column(name = "email", nullable = false, unique = true, length = 255)
 	private String email; // 이메일 (고유값)
-
-	@Column(name = "phone", length = 14)
-	private String phone; // 전화번호 (선택적, management 도메인 호환용)
 
 	@Column(name = "password", length = 128)
 	private String password; // Argon2로 단방향 암호화, 추후 자체 로그인 확장성을 고려하여 nullable
@@ -69,11 +74,10 @@ public class Member extends BaseEntity {
 
 	@Builder
 	public Member(String email, String phone, String password, Provider provider, String providerId,
-				  String name, Gender gender, Short birthYear, String bankCode,
-				  String accountNum, String thumbnailUrl, String walletAddress,
-				  String walletPrivateKey, Short remainingArweaveUses) {
+		String name, Gender gender, Short birthYear, String bankCode,
+		String accountNum, String thumbnailUrl, String walletAddress,
+		String walletPrivateKey, Short remainingArweaveUses) {
 		this.email = email;
-		this.phone = phone;
 		this.password = password;
 		this.provider = provider;
 		this.providerId = providerId;
@@ -92,8 +96,8 @@ public class Member extends BaseEntity {
 	 * OAuth 소셜 로그인용 회원 생성 팩토리 메서드
 	 */
 	public static Member createOAuthMember(String email, Provider provider, String providerId,
-										   String name, Gender gender, Short birthYear,
-										   String bankCode, String accountNum) {
+		String name, Gender gender, Short birthYear,
+		String bankCode, String accountNum) {
 		return Member.builder()
 			.email(email)
 			.phone(null)
@@ -108,7 +112,7 @@ public class Member extends BaseEntity {
 			.thumbnailUrl(null)
 			.walletAddress("")
 			.walletPrivateKey("")
-			.remainingArweaveUses((short) 1)
+			.remainingArweaveUses((short)1)
 			.build();
 	}
 
@@ -125,13 +129,13 @@ public class Member extends BaseEntity {
 			.providerId("temp_" + phone)
 			.name(name)
 			.gender(Gender.MALE) // 임시값
-			.birthYear((short) 1990) // 임시값
+			.birthYear((short)1990) // 임시값
 			.bankCode("") // 임시값
 			.accountNum("") // 임시값
 			.thumbnailUrl(null)
 			.walletAddress("")
 			.walletPrivateKey("")
-			.remainingArweaveUses((short) 1)
+			.remainingArweaveUses((short)1)
 			.build();
 	}
 }

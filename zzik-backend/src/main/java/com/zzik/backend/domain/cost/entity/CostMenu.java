@@ -32,6 +32,9 @@ public class CostMenu extends BaseEntity {
 	@Column(name = "menu_name", length = 200, nullable = false)
 	private String menuName;
 
+	@Column(name = "count", nullable = false)
+	private Short count = 1;
+
 	@Column(name = "amount", nullable = false)
 	private Long amount;
 
@@ -39,9 +42,10 @@ public class CostMenu extends BaseEntity {
 	private String mustPayerIds;
 
 	@Builder
-	public CostMenu(Cost cost, String menuName, Long amount, String mustPayerIds) {
+	public CostMenu(Cost cost, String menuName, Short count, Long amount, String mustPayerIds) {
 		this.cost = cost;
 		this.menuName = menuName;
+		this.count = count != null ? count : 1;
 		this.amount = amount;
 		this.mustPayerIds = mustPayerIds;
 	}

@@ -56,7 +56,8 @@ public class CostService {
 
 	private final CostRepository costRepository;
 	private final CostMenuRepository costMenuRepository;
-	private final CostMenuMemberRepository costMenuMemberRepository;
+	// 레거시 테이블: 현재 사용 안 함
+	// private final CostMenuMemberRepository costMenuMemberRepository;
 
 	public void validateReceiptImage(MultipartFile file) {
 		if (file == null || file.isEmpty()) {
@@ -356,6 +357,8 @@ public class CostService {
 		costMenuRepository.saveAll(menus);
 
 		// 5) (옵션) 초기 배분이 온 경우 cost_menu_member 생성 + 카운터 갱신
+		// 레거시 테이블: 현재 사용 안 함 - cost_menu.must_payer_ids로 대체
+		/*
 		for (int idx = 0; idx < menus.size(); idx++) {
 			var dto = req.getItems().get(idx);
 			var menu = menus.get(idx);
@@ -366,8 +369,8 @@ public class CostService {
 				List<CostMenuMember> links = new ArrayList<>();
 				for (Long memberId : uniq) {
 					links.add(CostMenuMember.builder()
-						.costMenuId(menu.getId())
-						.memberId(memberId)
+						//.costMenuId(menu.getId())
+						//.memberId(memberId)
 						.build());
 				}
 				costMenuMemberRepository.saveAll(links);
@@ -378,6 +381,7 @@ public class CostService {
 			}
 		}
 		costMenuRepository.saveAll(menus);
+		*/
 
 		log.info("Created cost id={}, total={}, menus={}", costId, finalTotal, menus.size());
 		return costId;
@@ -391,18 +395,24 @@ public class CostService {
 		return (s == null || s.isBlank()) ? null : s.trim();
 	}
 
+	// 레거시 테이블: 현재 사용 안 함 - cost_menu.must_payer_ids로 대체
+	/*
 	/** 메뉴에 정산자 추가 */
+	/*
 	@Transactional
 	public void addMember(Long costMenuId, Long memberId) {
 		if (!costMenuMemberRepository.existsByCostMenuIdAndMemberId(costMenuId, memberId)) {
 			costMenuMemberRepository.save(
-				CostMenuMember.builder().costMenuId(costMenuId).memberId(memberId).build()
+				CostMenuMember.builder()
+					//.costMenuId(costMenuId).memberId(memberId)
+					.build()
 			);
 			recomputeCount(costMenuId);
 		}
 	}
 
 	/** 메뉴에서 정산자 제거 */
+	/*
 	@Transactional
 	public void removeMember(Long costMenuId, Long memberId) {
 		costMenuMemberRepository.deleteByCostMenuIdAndMemberId(costMenuId, memberId);
@@ -410,11 +420,13 @@ public class CostService {
 	}
 
 	/** n_cost_menu_member 재계산 */
+	/*
 	private void recomputeCount(Long costMenuId) {
-		long c = costMenuMemberRepository.countByCostMenuId(costMenuId);
+		long c = costMenuMemberRepository.countByCostMenu_Id(costMenuId);
 		CostMenu menu = costMenuRepository.findById(costMenuId)
 			.orElseThrow(() -> new IllegalArgumentException("cost_menu not found: " + costMenuId));
 		//menu.setNCostMenuMember((byte)Math.max(0, (int)c));
 		costMenuRepository.save(menu);
 	}
+	*/
 }

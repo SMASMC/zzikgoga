@@ -47,11 +47,11 @@ public class Trip extends BaseEntity {
 	@Column(name = "end_date", nullable = false)
 	private LocalDate endDate;
 
-	@Column(name = "male_count", nullable = false, columnDefinition = "SMALLINT DEFAULT 0")
-	private Integer maleCount = 0;
+	@Column(name = "male_count", nullable = false)
+	private Short maleCount = 0;
 
-	@Column(name = "female_count", nullable = false, columnDefinition = "SMALLINT DEFAULT 0")
-	private Integer femaleCount = 0;
+	@Column(name = "female_count", nullable = false)
+	private Short femaleCount = 0;
 
 	@Column(name = "is_cost_completed", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
 	private Boolean isCostCompleted = false;
@@ -68,8 +68,8 @@ public class Trip extends BaseEntity {
 		String title,
 		LocalDate startDate,
 		LocalDate endDate,
-		Integer maleCount,
-		Integer femaleCount,
+		Short maleCount,
+		Short femaleCount,
 		Boolean isCostCompleted
 	) {
 		this.owner = owner;
