@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -24,6 +26,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zzik.backend.domain.auth.entity.Member;
+import com.zzik.backend.domain.auth.repository.MemberRepository;
 import com.zzik.backend.domain.cost.config.ClovaOcrProperties;
 import com.zzik.backend.domain.cost.dto.request.SaveCostMenuItem;
 import com.zzik.backend.domain.cost.dto.request.SaveCostRequest;
@@ -31,10 +35,10 @@ import com.zzik.backend.domain.cost.dto.response.ReceiptItemDto;
 import com.zzik.backend.domain.cost.dto.response.ReceiptOcrResponse;
 import com.zzik.backend.domain.cost.entity.Cost;
 import com.zzik.backend.domain.cost.entity.CostMenu;
-import com.zzik.backend.domain.cost.entity.CostMenuMember;
-import com.zzik.backend.domain.cost.repository.CostMenuMemberRepository;
 import com.zzik.backend.domain.cost.repository.CostMenuRepository;
 import com.zzik.backend.domain.cost.repository.CostRepository;
+import com.zzik.backend.domain.plan.entity.Trip;
+import com.zzik.backend.domain.plan.repository.TripRepository;
 import com.zzik.backend.global.exception.BusinessException;
 import com.zzik.backend.global.exception.ExceptionCode;
 
@@ -56,7 +60,9 @@ public class CostService {
 
 	private final CostRepository costRepository;
 	private final CostMenuRepository costMenuRepository;
-	private final CostMenuMemberRepository costMenuMemberRepository;
+	private final TripRepository tripRepository;
+	@Autowired
+	private MemberRepository memberRepository;
 
 	public void validateReceiptImage(MultipartFile file) {
 		if (file == null || file.isEmpty()) {
@@ -71,7 +77,7 @@ public class CostService {
 		}
 	}
 
-	public ReceiptOcrResponse recognizeReceipt(Long tripId, MultipartFile file) {
+	public ReceiptOcrResponse ocrAndCreate(Long tripId, MultipartFile file, SaveCostRequest request) {
 		validateReceiptImage(file);
 		try {
 			String base64 = Base64.getEncoder().encodeToString(file.getBytes());
@@ -108,186 +114,82 @@ public class CostService {
 			}
 
 			JsonNode root = objectMapper.readTree(resp.getBody());
-			return toResponse(tripId, root);
+			ReceiptOcrResponse ocrResult = toResponse(tripId, root);
+
+			SaveCostRequest mapped = mapOcrToRequest(ocrResult);
+			Long costId = createCost(tripId, mapped);
+
+			log.info("OCR 처리 완료. costId={}", costId);
+			return ocrResult;
 
 		} catch (BusinessException e) {
 			throw e;
 		} catch (Exception e) {
-			log.warn("OCR 호출 실패: {}", e.toString());
+			log.error("OCR 처리 중 오류", e);
 			throw BusinessException.from(ExceptionCode.OCR_PROCESS_FAIL);
 		}
 	}
 
 	private ReceiptOcrResponse toResponse(Long tripId, JsonNode root) {
 		try {
-			String pretty = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(root);
-			log.info("\n✅ OCR Response:\n{}", pretty);
-		} catch (Exception e) {
-			log.warn("❌ Failed logging OCR response: {}", e.getMessage());
-		}
+			JsonNode images = root.get("images");
+			if (images == null || images.isEmpty())
+				throw BusinessException.from(ExceptionCode.OCR_PROCESS_FAIL);
+			JsonNode result = images.get(0).get("receipt").get("result");
+			if (result == null)
+				throw BusinessException.from(ExceptionCode.OCR_PROCESS_FAIL);
 
-		JsonNode image0 = root.path("images").path(0);
-		String inferResult = image0.path("inferResult").asText();
-		JsonNode result = image0.path("receipt").path("result");
+			String storeName = safeText(result, "storeInfo", "name", "text");
+			String date = safeText(result, "paymentInfo", "date", "text");
+			String resultPrice = safeText(result, "totalPrice", "price", "formatted");
 
-		// 가게명
-		String store = text(result, "storeInfo", "name", "text");
-		String subStore = text(result, "storeInfo", "subName", "text");
-		if (StringUtils.hasText(subStore))
-			store = store + " " + subStore;
-
-		// 결제일
-		String date = text(result, "paymentInfo", "date", "text");
-
-		// 카드정보
-		String cardCompany = text(result, "paymentInfo", "cardInfo", "company", "text");
-		String cardNumber = text(result, "paymentInfo", "cardInfo", "number", "text");
-		String installment = text(result, "paymentInfo", "cardInfo", "installmentPlanMonths", "text");
-		String approval = text(result, "paymentInfo", "confirmNum", "text");
-
-		// 라인 아이템
-		List<ReceiptItemDto> items = new ArrayList<>();
-		JsonNode subResults = result.path("subResults");
-		if (subResults.isArray()) {
-			for (JsonNode sr : subResults) {
-				JsonNode srItems = sr.path("items");
-				if (srItems.isArray()) {
-					for (JsonNode it : srItems) {
-						String name = text(it, "name", "text");
-						String count = text(it, "count", "text");
-						// 가격은 it.price.price.* 구조가 일반적
-						String price = readPriceLike(it.path("price").path("price"));
-						if (!StringUtils.hasText(price)) {
-							price = readPriceLike(it.path("price")); // 폴백
-						}
+			List<ReceiptItemDto> items = new ArrayList<>();
+			JsonNode subs = result.get("subResults");
+			if (subs != null && subs.isArray()) {
+				for (JsonNode item : subs) {
+					String name = safeText(item, "name", "text");
+					String count = safeText(item, "count", "text");
+					String price = safeText(item, "price", "price", "formatted");
+					if (StringUtils.hasText(name) && StringUtils.hasText(price)) {
 						items.add(new ReceiptItemDto(name, count, price));
 					}
 				}
 			}
+
+			// OCR 확장 필드들(카드사/번호/할부/승인번호/총액/추론결과)은 없을 수 있으므로 null 허용
+			String cardCompany = safeText(result, "paymentInfo", "cardInfo", "company", "text");
+			String cardNumber = safeText(result, "paymentInfo", "cardInfo", "number", "text");
+			String installmentMonths = safeText(result, "paymentInfo", "installment", "month", "text");
+			String approvalNumber = safeText(result, "paymentInfo", "approvalNo", "text");
+			String totalPrice = safeText(result, "totalPrice", "price", "formatted");
+			String inferResult = safeText(images.get(0), "inferResult");
+			return new ReceiptOcrResponse(
+					tripId,
+					storeName,
+					date,
+					cardCompany,
+					cardNumber,
+					installmentMonths,
+					approvalNumber,
+					totalPrice,
+					resultPrice,
+					items,
+					inferResult
+			);
+		} catch (Exception e) {
+			log.error("OCR 응답 파싱 실패", e);
+			throw BusinessException.from(ExceptionCode.OCR_PROCESS_FAIL);
 		}
-
-		// === 총합(결제금액) 계산: 다단계 폴백 ===
-		// 1) 대표 필드들
-		String total = firstNonEmpty(
-			readPriceLike(result.path("resultPrice").path("price")),
-			readPriceLike(result.path("paymentPrice").path("price")),
-			readPriceLike(result.path("totalPrice").path("price")),
-			readPriceLike(result.path("totalPayment").path("price")),
-			readPriceLike(result.path("totalAmount").path("price")),
-			readPriceLike(result.path("total").path("price")),
-			readPriceLike(result.path("amount").path("price"))
-		);
-
-		// 2) keyText(합계/총액/결제금액 등) 기반 검색
-		if (!StringUtils.hasText(total)) {
-			total = findPriceByKeyText(result);
-		}
-
-		// 3) 라인아이템 가격 합산
-		if (!StringUtils.hasText(total)) {
-			total = sumLineItems(result);
-		}
-
-		// 결과금액 = total (필요시 별도 분기 가능)
-		String resultPrice = total;
-
-		return new ReceiptOcrResponse(
-			tripId, store, date, cardCompany, cardNumber, installment, approval,
-			total, resultPrice, items, inferResult
-		);
 	}
 
-	/** 안전한 텍스트 추출: {formatted.value} 우선, 없으면 text 사용 */
-	private String text(JsonNode node, String... path) {
-		JsonNode cur = node;
-		for (String p : path)
-			cur = cur.path(p);
-		if (cur.isMissingNode())
-			return "";
-		String formatted = cur.path("formatted").path("value").asText(null);
-		if (formatted != null)
-			return formatted;
-		return cur.asText("");
-	}
-
-	/** "114,000" / {"formatted":{"value":"114000"}} 등 형태를 공통 처리 */
-	private String readPriceLike(JsonNode node) {
-		if (node == null || node.isMissingNode())
-			return "";
-		// formatted.value 우선
-		String v = node.path("formatted").path("value").asText(null);
-		if (StringUtils.hasText(v))
-			return v;
-		// 텍스트에 콤마가 있는 경우 숫자만 추출
-		String t = node.path("text").asText("");
-		if (StringUtils.hasText(t))
-			return t.replaceAll("[^0-9]", "");
-		// 마지막 폴백(노드 자체 문자열)
-		String raw = node.asText("");
-		return raw.replaceAll("[^0-9]", "");
-	}
-
-	/** keyText가 "합계/총액/결제금액/총금액/청구금액" 류인 price를 DFS로 탐색 */
-	private String findPriceByKeyText(JsonNode node) {
-		if (node == null || node.isMissingNode())
-			return "";
-		String[] keys = {"합계", "총액", "총구매액", "결제금액", "총금액", "청구금액"};
-
-		if (node.has("keyText")) {
-			String k = node.path("keyText").asText("");
-			for (String cand : keys) {
-				if (k.contains(cand)) {
-					// price 하위 우선
-					if (node.has("price")) {
-						String p = readPriceLike(node.path("price"));
-						if (StringUtils.hasText(p))
-							return p;
-					}
-					// 노드 자체가 price인 경우
-					String self = readPriceLike(node);
-					if (StringUtils.hasText(self))
-						return self;
-				}
-			}
+	private String safeText(JsonNode parent, String... path) {
+		JsonNode node = parent;
+		for (String p : path) {
+			if (node == null)
+				return null;
+			node = node.get(p);
 		}
-		for (JsonNode child : node) {
-			String got = findPriceByKeyText(child);
-			if (StringUtils.hasText(got))
-				return got;
-		}
-		return "";
-	}
-
-	/** 라인아이템의 price 합산 */
-	private String sumLineItems(JsonNode result) {
-		long sum = 0;
-		JsonNode subResults = result.path("subResults");
-		if (subResults.isArray()) {
-			for (JsonNode sr : subResults) {
-				JsonNode items = sr.path("items");
-				if (items.isArray()) {
-					for (JsonNode it : items) {
-						String v = readPriceLike(it.path("price").path("price"));
-						if (!StringUtils.hasText(v))
-							v = readPriceLike(it.path("price"));
-						if (StringUtils.hasText(v)) {
-							try {
-								sum += Long.parseLong(v);
-							} catch (Exception ignore) {
-							}
-						}
-					}
-				}
-			}
-		}
-		return sum > 0 ? String.valueOf(sum) : "";
-	}
-
-	private String firstNonEmpty(String... vals) {
-		for (String s : vals)
-			if (StringUtils.hasText(s))
-				return s;
-		return "";
+		return node != null && !node.isNull() ? node.asText() : null;
 	}
 
 	private String getExt(String name) {
@@ -310,38 +212,43 @@ public class CostService {
 			throw new IllegalArgumentException("place는 필수입니다.");
 		if (!StringUtils.hasText(req.getPaidAt()))
 			throw new IllegalArgumentException("paidAt은 필수입니다.");
-		// 1) 메뉴 금액 확정 + 합계
+		// 1) 메뉴 금액 합산
 		long itemsTotal = 0L;
-		List<CostMenu> menus = new ArrayList<>();
 		for (SaveCostMenuItem i : req.getItems()) {
 			long amount = resolveAmount(i);
 			itemsTotal += amount;
-
-			CostMenu m = CostMenu.builder()
-				//.costId(null) // cost 저장 후 채움
-				.menuName(i.getMenuName().trim())
-				.amount(amount)
-				//.nCostMenuMember((byte)0)
-				.build();
-			menus.add(m);
 		}
 
-		// 2) 최종 총액 결정(없으면 items 합계, 있으면 허용오차 검증)
+		// 2) 최종 총액 결정(입력된 items 합계, 입력 총액과 차 검증)
 		long finalTotal = (req.getTotalAmount() == null) ? itemsTotal : req.getTotalAmount();
 		if (req.getTotalAmount() != null) {
 			long diff = Math.abs(req.getTotalAmount() - itemsTotal);
-			long tol = Math.max(100L, Math.round(itemsTotal * 0.01)); // ±100원 또는 ±1%
+			long tol = Math.max(100L, Math.round(itemsTotal * 0.01));
 			if (diff > tol) {
-				log.warn("총액 불일치: reported={}, items={}, diff={}", req.getTotalAmount(), itemsTotal, diff);
-				finalTotal = itemsTotal; // 라인아이템 합 우선
+				log.warn("총액 불일치 reported={}, items={}, diff={}", req.getTotalAmount(), itemsTotal, diff);
+				finalTotal = itemsTotal;
 			}
 		}
 
+		// TODO: SecurityContext에서 로그인 사용자 ID 추출
+		Long memberId = 3L;
+		Member createdBy = memberRepository.findById(memberId)
+			.orElseThrow(() -> new IllegalArgumentException("로그인 사용자를 찾을 수 없습니다."));
+
+		Member payer = createdBy;
+		if (req.getPayerId() != null) {
+			payer = memberRepository.findById(req.getPayerId())
+				.orElseThrow(() -> new IllegalArgumentException("payerId 멤버를 찾을 수 없습니다."));
+		}
+
+		Trip trip = tripRepository.findById(tripId)
+			.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 여행입니다."));
+
 		// 3) cost 저장
 		Cost cost = Cost.builder()
-			//.tripId(tripId)
-			//.createdBy(req.getCreatedBy())
-			//.payerId(req.getPayerId())
+			.trip(trip)
+			.createdBy(createdBy)
+			.payer(payer)
 			.paidAt(req.getPaidAt().trim())
 			.place(req.getPlace().trim())
 			.totalAmount(finalTotal)
@@ -350,35 +257,26 @@ public class CostService {
 			.build();
 		cost = costRepository.save(cost);
 
-		// 4) cost_menu 저장
-		final Long costId = cost.getId();
-		//menus.forEach(m -> m.setCostId(costId));
-		costMenuRepository.saveAll(menus);
-
-		// 5) (옵션) 초기 배분이 온 경우 cost_menu_member 생성 + 카운터 갱신
-		for (int idx = 0; idx < menus.size(); idx++) {
-			var dto = req.getItems().get(idx);
-			var menu = menus.get(idx);
-
-			int created = 0;
+		// 4) cost_menu 저장 (must_payer_ids JSONB 사용)
+		List<CostMenu> menus = new ArrayList<>();
+		for (SaveCostMenuItem dto : req.getItems()) {
+			long amount = resolveAmount(dto);
+			String mustJson = null;
 			if (dto.getMemberIds() != null && !dto.getMemberIds().isEmpty()) {
 				Set<Long> uniq = new LinkedHashSet<>(dto.getMemberIds());
-				List<CostMenuMember> links = new ArrayList<>();
-				for (Long memberId : uniq) {
-					links.add(CostMenuMember.builder()
-						.costMenuId(menu.getId())
-						.memberId(memberId)
-						.build());
-				}
-				costMenuMemberRepository.saveAll(links);
-				created = uniq.size();
+				mustJson = toJson(new ArrayList<>(uniq));
 			}
-			if (created > 0) {
-				//menu.setNCostMenuMember((byte)created);
-			}
+			CostMenu m = CostMenu.builder()
+				.cost(cost)
+				.menuName(dto.getMenuName().trim())
+				.amount(amount)
+				.mustPayerIds(mustJson)
+				.build();
+			menus.add(m);
 		}
 		costMenuRepository.saveAll(menus);
 
+		final Long costId = cost.getId();
 		log.info("Created cost id={}, total={}, menus={}", costId, finalTotal, menus.size());
 		return costId;
 	}
@@ -391,30 +289,84 @@ public class CostService {
 		return (s == null || s.isBlank()) ? null : s.trim();
 	}
 
-	/** 메뉴에 정산자 추가 */
+	/** 메뉴별 정산자 추가 (JSONB must_payer_ids) */
 	@Transactional
 	public void addMember(Long costMenuId, Long memberId) {
-		if (!costMenuMemberRepository.existsByCostMenuIdAndMemberId(costMenuId, memberId)) {
-			costMenuMemberRepository.save(
-				CostMenuMember.builder().costMenuId(costMenuId).memberId(memberId).build()
-			);
-			recomputeCount(costMenuId);
+		CostMenu menu = costMenuRepository.findById(costMenuId)
+			.orElseThrow(() -> new IllegalArgumentException("cost_menu not found: " + costMenuId));
+		Set<Long> ids = parseIds(menu.getMustPayerIds());
+		if (ids.add(memberId)) {
+			menu.setMustPayerIds(toJson(ids));
+			costMenuRepository.save(menu);
 		}
 	}
 
-	/** 메뉴에서 정산자 제거 */
+	/** 메뉴에서 정산자 제거 (JSONB must_payer_ids) */
 	@Transactional
 	public void removeMember(Long costMenuId, Long memberId) {
-		costMenuMemberRepository.deleteByCostMenuIdAndMemberId(costMenuId, memberId);
-		recomputeCount(costMenuId);
-	}
-
-	/** n_cost_menu_member 재계산 */
-	private void recomputeCount(Long costMenuId) {
-		long c = costMenuMemberRepository.countByCostMenuId(costMenuId);
 		CostMenu menu = costMenuRepository.findById(costMenuId)
 			.orElseThrow(() -> new IllegalArgumentException("cost_menu not found: " + costMenuId));
-		//menu.setNCostMenuMember((byte)Math.max(0, (int)c));
-		costMenuRepository.save(menu);
+		Set<Long> ids = parseIds(menu.getMustPayerIds());
+		if (ids.remove(memberId)) {
+			menu.setMustPayerIds(toJson(ids));
+			costMenuRepository.save(menu);
+		}
+	}
+
+	private Set<Long> parseIds(String json) {
+		if (json == null || json.isBlank())
+			return new LinkedHashSet<>();
+		try {
+			Long[] arr = objectMapper.readValue(json, Long[].class);
+			return new LinkedHashSet<>(java.util.Arrays.asList(arr));
+		} catch (Exception e) {
+			return new LinkedHashSet<>();
+		}
+	}
+
+	private String toJson(Collection<Long> ids) {
+		try {
+			return objectMapper.writeValueAsString(ids);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("must_payer_ids serialization failed", e);
+		}
+	}
+
+	private SaveCostRequest mapOcrToRequest(ReceiptOcrResponse ocr) {
+		List<SaveCostMenuItem> menuItems = new ArrayList<>();
+
+		// OCR에서 menu 리스트가 있으면 변환
+		if (ocr.items() != null) {
+			for (ReceiptItemDto i : ocr.items()) {
+				long price = 0L;
+				try {
+					price = Long.parseLong(i.price().replaceAll("[^0-9]", ""));
+				} catch (Exception ignore) {
+				}
+
+				menuItems.add(SaveCostMenuItem.builder()
+					.menuName(i.name())
+					.amount(price)
+					.build());
+			}
+		}
+
+		return SaveCostRequest.builder()
+			.createdBy(null)
+			.payerId(null)
+			.place(ocr.storeName())
+			.paidAt(ocr.date())
+			.totalAmount(parseLongSafe(ocr.resultPrice()))
+			.receiptJson(null)
+			.items(menuItems)
+			.build();
+	}
+
+	private Long parseLongSafe(String s) {
+		try {
+			return Long.parseLong(s.replaceAll("[^0-9]", ""));
+		} catch (Exception ignore) {
+			return null;
+		}
 	}
 }

@@ -13,7 +13,8 @@ import lombok.Setter;
 @Builder
 public class SaveCostMenuItem {
 	private String menuName;
+	private Integer count;
 	private Long amount;
 	private java.util.List<Long> memberIds;
-	private Integer count;
 }
+

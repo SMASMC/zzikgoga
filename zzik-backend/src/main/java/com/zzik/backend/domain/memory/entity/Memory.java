@@ -27,7 +27,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * 추억 엔티티
- * 여행 추억을 PDF/NFT로 저장하고 관리합니다.
+ * 여행 추억의 PDF/NFT 등을 관리합니다.
  */
 @Entity
 @Table(name = "memory")
@@ -35,65 +35,66 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Memory extends BaseEntity {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-	@ManyToOne(fetch = FetchType.LAZY) // 지연 로딩
-	@JoinColumn(name = "member_id", nullable = false)
-	private Member member; // FK to member.id
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "member_id", nullable = false)
+    private Member member; // FK to member.id
 
-	@ManyToOne(fetch = FetchType.LAZY) // 지연 로딩
-	@JoinColumn(name = "trip_id", nullable = false)
-	private Trip trip; // FK to trip.id
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "trip_id", nullable = false)
+    private Trip trip; // FK to trip.id
 
-	@Column(name = "title", nullable = false, length = 255)
-	private String title; // 추억 제목
+    @Column(name = "title", nullable = false, length = 255)
+    private String title; // 추억 제목
 
-	@Enumerated(EnumType.STRING)
-	@Column(name = "status", nullable = false, columnDefinition = "memory_status_type")
-	@JdbcType(org.hibernate.dialect.PostgreSQLEnumJdbcType.class)
-	private MemoryStatus status = MemoryStatus.ONPROCESS;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, columnDefinition = "memory_status")
+    @JdbcType(org.hibernate.dialect.PostgreSQLEnumJdbcType.class)
+    private MemoryStatus status = MemoryStatus.ONPROCESS;
 
-	@Column(name = "content", columnDefinition = "JSONB")
-	private String content; // 임시저장 내용 (PostgreSQL JSONB를 String으로 매핑, JSON 직렬화/역직렬화는 애플리케이션에서 처리)
+    @Column(name = "content", columnDefinition = "JSONB")
+    private String content; // 임시저장 콘텐츠(JSON)
 
-	@Column(name = "pdf_url", length = 1024)
-	private String pdfUrl; // PDF 파일 URL
+    @Column(name = "pdf_url", length = 1024)
+    private String pdfUrl; // PDF URL
 
-	@Column(name = "arweave_url", length = 1024)
-	private String arweaveUrl; // Arweave 분산 저장소 URL
+    @Column(name = "arweave_url", length = 1024)
+    private String arweaveUrl; // Arweave URL
 
-	@Column(name = "nft_id", length = 255)
-	private String nftId; // NFT ID
+    @Column(name = "nft_id", length = 255)
+    private String nftId; // NFT ID
 
-	@Enumerated(EnumType.STRING)
-	@Column(name = "mint_status", nullable = false, columnDefinition = "mint_status_type")  // DEFAULT 제거, ENUM 타입 명시
-	@JdbcType(org.hibernate.dialect.PostgreSQLEnumJdbcType.class)
-	// Hibernate 6에서 PostgreSQL ENUM 지원 (import: org.hibernate.dialect.PostgreSQLEnumJdbcType)
-	private MintStatus mintStatus = MintStatus.NONE;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "mint_status", nullable = false, columnDefinition = "mint_status")
+    @JdbcType(org.hibernate.dialect.PostgreSQLEnumJdbcType.class)
+    private MintStatus mintStatus = MintStatus.NONE;
 
-	@Column(name = "mint_hash", length = 255)
-	private String mintHash; // NFT 민팅 트랜잭션 해시
+    @Column(name = "mint_hash", length = 255)
+    private String mintHash; // 트랜잭션 해시
 
-	@Enumerated(EnumType.STRING) // ENUM을 문자열로 저장 (PostgreSQL storage_type_type)
-	@Column(name = "storage_type")
-	private StorageType storageType; // 저장소 타입 (S3/Arweave)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "storage_type", columnDefinition = "storage_type")
+    @JdbcType(org.hibernate.dialect.PostgreSQLEnumJdbcType.class)
+    private StorageType storageType; // 저장소 타입(S3/Arweave)
 
-	@Builder
-	public Memory(Member member, Trip trip, String title, MemoryStatus status,
-		String content, String pdfUrl, String arweaveUrl, String nftId,
-		MintStatus mintStatus, String mintHash, StorageType storageType) {
-		this.member = member;
-		this.trip = trip;
-		this.title = title;
-		this.status = status != null ? status : MemoryStatus.ONPROCESS;
-		this.content = content;
-		this.pdfUrl = pdfUrl;
-		this.arweaveUrl = arweaveUrl;
-		this.nftId = nftId;
-		this.mintStatus = mintStatus != null ? mintStatus : MintStatus.NONE;
-		this.mintHash = mintHash;
-		this.storageType = storageType;
-	}
+    @Builder
+    public Memory(Member member, Trip trip, String title, MemoryStatus status,
+                  String content, String pdfUrl, String arweaveUrl, String nftId,
+                  MintStatus mintStatus, String mintHash, StorageType storageType) {
+        this.member = member;
+        this.trip = trip;
+        this.title = title;
+        this.status = status != null ? status : MemoryStatus.ONPROCESS;
+        this.content = content;
+        this.pdfUrl = pdfUrl;
+        this.arweaveUrl = arweaveUrl;
+        this.nftId = nftId;
+        this.mintStatus = mintStatus != null ? mintStatus : MintStatus.NONE;
+        this.mintHash = mintHash;
+        this.storageType = storageType;
+    }
 }
+
