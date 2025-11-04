@@ -1,5 +1,3 @@
-import { useAuthStore } from '@shared/stores/useAuthStore'
-
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
 
 interface RequestConfig extends RequestInit {
@@ -14,20 +12,16 @@ class ApiClient {
   }
 
   private async request<T>(endpoint: string, config: RequestConfig = {}): Promise<T> {
-    const { token } = useAuthStore.getState()
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...config.headers,
     }
 
-    if (token) {
-      headers.Authorization = `Bearer ${token}`
-    }
-
     const response = await fetch(`${this.baseURL}${endpoint}`, {
       ...config,
       headers,
+      credentials: 'include',
     })
 
     if (!response.ok) {
