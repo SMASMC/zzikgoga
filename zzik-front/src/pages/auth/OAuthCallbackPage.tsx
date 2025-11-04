@@ -52,10 +52,10 @@ export function OAuthCallbackPage() {
         console.log('OAuth Callback Response:', data)
 
         // 3. 로그인 완료
-        if ('accessToken' in data && data.accessToken) {
-          console.log('로그인 성공 - 토큰 저장 및 mypage로 이동')
-          setAuth(data.user, data.accessToken, data.refreshToken)
-          console.log('✅ accessToken 및 refreshToken 로컬 스토리지에 저장 완료')
+        if (data.loggedIn && data.user) {
+          console.log('로그인 성공 - 정보 저장 및 mypage로 이동')
+          setAuth(data.user)
+          console.log('로그인 여부 전역 저장 완료')
           navigate('/mypage', { replace: true })
           return
         }
@@ -63,8 +63,9 @@ export function OAuthCallbackPage() {
         // 4. 신규 회원 (회원가입 페이지 이동)
         if ('signupRequired' in data && data.signupRequired) {
           console.log('회원가입 필요 - signup 페이지로 이동')
-          navigate(`/auth/signup?token=${encodeURIComponent(data.signupSessionToken)}`, {
+          navigate(`/auth/signup`, {
             replace: true,
+            state: data,
           })
           return
         }

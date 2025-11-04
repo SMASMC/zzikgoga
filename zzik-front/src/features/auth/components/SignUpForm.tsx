@@ -96,9 +96,9 @@ const SignUpForm = ({
       console.log('회원가입 응답:', response)
 
       // accessToken과 user 정보를 store에 저장
-      if (response.accessToken && response.user) {
-        useAuthStore.getState().setAuth(response.user, response.accessToken, response.refreshToken)
-        console.log('회원가입 성공 - accessToken 및 refreshToken 로컬 스토리지에 저장 완료')
+      if (response.loggedIn && response.user) {
+        useAuthStore.getState().setAuth(response.user)
+        console.log('회원가입 성공 - 로그인 정보 전역 저장 완료')
         console.log('사용자 정보 저장 완료:', response.user)
       } else {
         throw new Error('회원가입 응답에 필수 정보가 없습니다')

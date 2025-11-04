@@ -13,7 +13,7 @@ export class AuthService {
   public static async register(data: SignupRequest): Promise<SignupResponse> {
     // TODO: 백엔드 팀에게 회원가입 엔드포인트 URL 확인 필요
     // 예상 엔드포인트: /auth/register 또는 /auth/signup
-    const response = await apiClient.post<SignupResponse>('/auth/register', data)
+    const response = await apiClient.post<SignupResponse>('/auth/signup', data)
     return response
   }
 }
