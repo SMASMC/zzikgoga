@@ -44,7 +44,7 @@ const Header = ({ transparentUntilScroll = false, scrollOffset = 10 }: HeaderPro
         </Link>
 
         <div className="flex gap-4 items-center">
-          <SolidButton onClick={handleLoginForm} variant="point" size="sm">
+          <SolidButton onClick={handleLoginForm} variant="point" size="md" rounded="full">
             로그인
           </SolidButton>
         </div>
