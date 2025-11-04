@@ -155,8 +155,16 @@ public class AuthService {
 		return Map.of(
 			"loggedIn", true,
 			"accessToken", accessToken,
+<<<<<<< Updated upstream
 			"refreshToken", refreshToken,
 			"user", Map.of("id", saved.getId())
+=======
+			// "refreshToken", refreshToken,
+			"user", Map.of("id", saved.getId(),
+				"name", saved.getName(),
+				"email", saved.getEmail(),
+				"picture", saved.getThumbnailUrl())
+>>>>>>> Stashed changes
 		);
 	}
 
