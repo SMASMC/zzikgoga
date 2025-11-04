@@ -1,11 +1,11 @@
 import { WebSocket as NodeWS } from 'ws'
-;(global as any).WebSocket = NodeWS
+  ; (global as any).WebSocket = NodeWS
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 
 const ydoc = new Y.Doc();
 const provider = new WebsocketProvider(
-  'ws://localhost:8081',
+  'ws://localhost:3100',
   'trip-101',
   ydoc
 );

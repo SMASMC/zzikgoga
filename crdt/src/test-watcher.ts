@@ -1,5 +1,5 @@
 import { WebSocket as NodeWS } from 'ws'
-;(global as any).WebSocket = NodeWS
+  ; (global as any).WebSocket = NodeWS
 
 import * as Y from 'yjs'
 import { WebsocketProvider } from 'y-websocket'
@@ -7,7 +7,7 @@ import { WebsocketProvider } from 'y-websocket'
 console.log('Watcher script start')
 
 const ydoc = new Y.Doc()
-const provider = new WebsocketProvider('ws://localhost:8081', 'trip-101', ydoc)
+const provider = new WebsocketProvider('ws://localhost:3100', 'trip-101', ydoc)
 
 const tripInfo = ydoc.getMap('tripInfo')
 
@@ -24,4 +24,4 @@ provider.on('status', (event: { status: string }) => {
 })
 
 // 💡 Node 프로세스가 즉시 종료되지 않게 유지 (임시)
-setInterval(() => {}, 1000)
+setInterval(() => { }, 1000)
