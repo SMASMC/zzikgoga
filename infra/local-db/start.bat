@@ -31,12 +31,12 @@ echo [3/4] 기존 컨테이너 확인 중...
 docker ps -a --filter "name=db" --filter "name=redis" --format "{{.Names}}" | findstr /r "db redis" > nul 2>&1
 if %errorlevel% equ 0 (
     echo [INFO] 기존 컨테이너가 존재합니다. 중지 및 제거 중...
-    docker-compose -p zzik-local-backend -f ..\main-ec2\db\docker-compose.psql.yml -f ..\main-ec2\db\docker-compose.redis.yml down
+    docker-compose -p zzik-local-backend -f ..\main-ec2\db\docker-compose.psql.yml -f ..\main-ec2\db\docker-compose.redis.yml -f docker-compose.override.yml down
 )
 echo.
 
 echo [4/4] PostgreSQL과 Redis 컨테이너 시작 중...
-docker-compose -p zzik-local-backend -f ..\main-ec2\db\docker-compose.psql.yml -f ..\main-ec2\db\docker-compose.redis.yml up -d
+docker-compose -p zzik-local-backend -f ..\main-ec2\db\docker-compose.psql.yml -f ..\main-ec2\db\docker-compose.redis.yml -f docker-compose.override.yml up -d
 
 if %errorlevel% neq 0 (
     echo.

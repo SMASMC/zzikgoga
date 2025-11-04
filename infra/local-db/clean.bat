@@ -33,7 +33,7 @@ echo.
 
 echo [2/3] 컨테이너 및 볼륨 삭제 중...
 cd /d "%~dp0"
-docker-compose -p zzik-local-backend -f ..\main-ec2\db\docker-compose.psql.yml -f ..\main-ec2\db\docker-compose.redis.yml down -v
+docker-compose -p zzik-local-backend -f ..\main-ec2\db\docker-compose.psql.yml -f ..\main-ec2\db\docker-compose.redis.yml -f docker-compose.override.yml down -v
 
 if %errorlevel% neq 0 (
     echo.

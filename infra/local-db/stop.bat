@@ -18,7 +18,7 @@ echo.
 
 echo [2/3] 컨테이너 중지 및 제거 중...
 cd /d "%~dp0"
-docker-compose -p zzik-local-backend -f ..\main-ec2\db\docker-compose.psql.yml -f ..\main-ec2\db\docker-compose.redis.yml down
+docker-compose -p zzik-local-backend -f ..\main-ec2\db\docker-compose.psql.yml -f ..\main-ec2\db\docker-compose.redis.yml -f docker-compose.override.yml down
 
 if %errorlevel% neq 0 (
     echo.
