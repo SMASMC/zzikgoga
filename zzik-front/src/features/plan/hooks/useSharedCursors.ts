@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Awareness } from 'y-protocols/awareness'
 import { acquireProvider, releaseProvider } from '../stores/yjsStore'
 
-const CURSOR_TTL = 8000
+const CURSOR_TTL = 2000
 const MESSAGE_TTL = 5000
 const COLOR_PALETTE = ['#ef4444', '#22c55e', '#3b82f6', '#f97316', '#a855f7', '#14b8a6', '#facc15']
 
@@ -20,6 +20,56 @@ const hashToIndex = (value: string, length: number) => {
 
 const pickColor = (seed: string) =>
   COLOR_PALETTE[hashToIndex(seed || 'default', COLOR_PALETTE.length)]
+
+const GUEST_ID_STORAGE_KEY = 'plan-cursor-guest-identity'
+
+interface StoredGuestIdentity {
+  id: string
+  name: string
+}
+
+const loadGuestIdentity = (): StoredGuestIdentity | null => {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  try {
+    const raw = window.localStorage.getItem(GUEST_ID_STORAGE_KEY)
+    if (!raw) {
+      return null
+    }
+    const parsed = JSON.parse(raw) as StoredGuestIdentity
+    if (!parsed?.id || !parsed?.name) {
+      return null
+    }
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+const saveGuestIdentity = (identity: StoredGuestIdentity) => {
+  if (typeof window === 'undefined') {
+    return
+  }
+  try {
+    window.localStorage.setItem(GUEST_ID_STORAGE_KEY, JSON.stringify(identity))
+  } catch {
+    // ignore write errors (e.g. storage quota)
+  }
+}
+
+const generateGuestIdentity = (): StoredGuestIdentity => {
+  const unique =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID().slice(0, 8)
+      : Math.random().toString(36).slice(2, 10)
+
+  return {
+    id: `guest-${unique}`,
+    name: `Guest ${unique.slice(0, 4).toUpperCase()}`,
+  }
+}
 
 interface CursorPosition {
   x: number
@@ -186,12 +236,21 @@ const collectAwarenessSnapshot = (
 
 export const useSharedCursors = (roomId: string): SharedCursorSession => {
   const authUser = useAuthStore((state) => state.user)
-  const fallbackUserRef = useRef(
-    buildSelfIdentity(`guest-${Math.random().toString(36).slice(2, 10)}`, 'Guest', null)
-  )
+  const fallbackUserRef = useRef<{ id: string; name: string; picture: string | null }>()
 
-  const baseId = authUser?.id ?? fallbackUserRef.current.id
-  const baseName = authUser?.name ?? 'Guest'
+  if (!fallbackUserRef.current) {
+    const stored = loadGuestIdentity()
+    const identity = stored ?? generateGuestIdentity()
+    if (!stored) {
+      saveGuestIdentity(identity)
+    }
+    fallbackUserRef.current = buildSelfIdentity(identity.id, identity.name, null)
+  }
+
+  const guestIdentity = fallbackUserRef.current!
+
+  const baseId = authUser?.id ?? guestIdentity.id
+  const baseName = authUser?.name ?? guestIdentity.name
   const basePicture = authUser?.picture ?? null
 
   const color = useMemo(() => pickColor(baseId), [baseId])
@@ -285,6 +344,37 @@ export const useSharedCursors = (roomId: string): SharedCursorSession => {
       message: null,
     })
 
+    const clearCursorState = () => {
+      awareness.setLocalState({
+        user: {
+          id: self.id,
+          name: self.name,
+          color: self.color,
+          picture: self.picture ?? null,
+        },
+        cursor: null,
+        message: null,
+      })
+    }
+
+    const disposePresence = () => {
+      awareness.setLocalState(null)
+    }
+
+    const handlePageHide = () => {
+      disposePresence()
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        clearCursorState()
+      }
+    }
+
+    window.addEventListener('beforeunload', handlePageHide)
+    window.addEventListener('pagehide', handlePageHide)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
     updateFromAwareness()
 
     awareness.on('update', updateFromAwareness)
@@ -301,6 +391,9 @@ export const useSharedCursors = (roomId: string): SharedCursorSession => {
       awareness.off('update', updateFromAwareness)
       awareness.off('change', updateFromAwareness)
       awareness.setLocalState(null)
+      window.removeEventListener('beforeunload', handlePageHide)
+      window.removeEventListener('pagehide', handlePageHide)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
       if (refreshIntervalRef.current !== null) {
         window.clearInterval(refreshIntervalRef.current)
         refreshIntervalRef.current = null
