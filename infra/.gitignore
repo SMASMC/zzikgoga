@@ -33,6 +33,7 @@ yarn-error.log*
 
 # Exception: local-backend development environment (safe to commit)
 !local-backend/.env
+!local-db/.env
 
 # Temporary files
 *.tmp
