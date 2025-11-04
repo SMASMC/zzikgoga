@@ -54,6 +54,10 @@ public enum ExceptionCode {
 	TRIP_NOT_FOUND(HttpStatus.NOT_FOUND, 40404, "조회할 여행이 존재하지 않습니다.", "plan - trip not found"),
 	PLAN_INVALID_TITLE(HttpStatus.FORBIDDEN, 40405, "여행 제목은 필수입니다.", "plan - 제목 입력 필수"),
 	PLAN_INVALID_DATE_RANGE(HttpStatus.FORBIDDEN, 40406, "유효하지 않은 날짜 형식입니다.", "plan - 유효하지 않은 날짜 형식"),
+
+	/* 4042x - plan - location*/
+	LOCATION_API_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, 40420, "장소 검색 API 호출에 실패했습니다.", "plan - 외부 지도 API 호출 실패"),
+
 	/* 405xx - memory */
 
 	/* 406xx - media */
@@ -82,4 +86,5 @@ public enum ExceptionCode {
 	ExceptionCode(HttpStatus httpStatus, int errorCode, String message) {
 		this(httpStatus, errorCode, message, "");
 	}
+
 }
