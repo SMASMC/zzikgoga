@@ -28,25 +28,23 @@ import lombok.RequiredArgsConstructor;
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
-	private static final String[] SWAGGER_ENDPOINTS = {
+	public static final String[] PUBLIC_API_PATHS = {
+		// --- Swagger ---
 		"/api-docs/**", "/v3/api-docs/**", "/docs/open-api-3.0.1.yaml",
 		"/swagger-ui/**", "/swagger", "/docs",
+		// --- 기본 경로 ---
+		"/", "/error",
+		// --- Actuator ---
+		"/actuator/**",
+		// --- 공개 API (인증 불필요) ---
+		"/cost/**",
+		"/plan/**",
+		"/auth/kakao",
+		"/auth/callback",
+		"/auth/signup",
+		"/auth/reissue"
+		// ❗️ /auth/check, /auth/logout은 여기서 반드시 제외!
 	};
-	private static final String[] PUBLIC_ENDPOINTS = {"/", "/error"};
-	private static final String[] ANONYMOUS_ENDPOINTS = {
-		"/v1/auth/login",                    // 신랑/신부 로그인
-		"/v1/auth/register",                 // 신랑/신부 회원가입
-		"/v1/auth/guest/login",              // 하객 로그인
-		"/v1/auth/guest/*/signup",           // 하객 회원가입
-		"/v1/auth/spouse/verify",            // 배우자 코드 검증
-		"/v1/auth/phone/check",              // 전화번호 중복검사
-		"/v1/auth/status",                    // 토큰 검증
-		"/api/cost/*/receipt",
-		"/api/cost/*",
-		"/api/auth/*",
-		"/api/plan/*",
-	};
-	private static final String[] ATUATOR_ENDPOINTS = {"/actuator/**"};
 
 	private final CorsConfigurationSource corsConfigurationSource;
 	private final AccessDeniedHandler accessDeniedHandler;
@@ -62,16 +60,10 @@ public class SecurityConfig {
 			.cors(cors -> cors.configurationSource(corsConfigurationSource))
 			.authorizeHttpRequests(
 				request -> defaultAuthorizeHttpRequests(request)
-					.requestMatchers(SWAGGER_ENDPOINTS).permitAll()
-					.requestMatchers(ATUATOR_ENDPOINTS).permitAll()
-					.requestMatchers(ANONYMOUS_ENDPOINTS).permitAll() // ANONYMOUS 엔드포인트는 인증 없이 접근 가능
+					.requestMatchers(PUBLIC_API_PATHS).permitAll()
 					.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-					.requestMatchers(HttpMethod.POST, "/cost/*/receipt", "/api/cost/*/receipt").permitAll()
-					.requestMatchers(HttpMethod.GET, "/cost/*/receipt", "/api/cost/*/receipt").permitAll()
-					.requestMatchers("/cost/**").permitAll()
-					.requestMatchers("/auth/**").permitAll()
-					.requestMatchers("/plan/**").permitAll()
-					.anyRequest().authenticated() // 나머지는 인증 필요 (메서드 레벨에서 세부 권한 검사)
+					.requestMatchers("/auth/check", "/auth/logout").authenticated()
+					.anyRequest().authenticated()
 			).build();
 	}
 
@@ -96,6 +88,6 @@ public class SecurityConfig {
 		<AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizedUrl> defaultAuthorizeHttpRequests(
 		AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry auth) {
 		return auth.requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
-			.requestMatchers(PUBLIC_ENDPOINTS).permitAll();
+			.requestMatchers("/", "/error").permitAll();
 	}
 }
