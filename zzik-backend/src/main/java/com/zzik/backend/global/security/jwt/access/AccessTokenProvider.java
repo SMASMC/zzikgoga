@@ -19,6 +19,7 @@ import com.zzik.backend.global.security.jwt.JwtClaims;
 import com.zzik.backend.global.security.jwt.JwtProvider;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -96,6 +97,21 @@ public class AccessTokenProvider implements JwtProvider {
 			.setExpiration(exp)
 			.signWith(secretKey, SignatureAlgorithm.HS256)
 			.compact();
+	}
+
+	public Long getMemberIdFromExpiredToken(String token) {
+		try {
+			Claims claims = Jwts.parser()
+				.verifyWith(secretKey)
+				.build()
+				.parseSignedClaims(token)
+				.getPayload();
+
+			return Long.valueOf(claims.getSubject());
+
+		} catch (ExpiredJwtException e) {
+			return Long.valueOf(e.getClaims().getSubject());
+		}
 	}
 
 }
