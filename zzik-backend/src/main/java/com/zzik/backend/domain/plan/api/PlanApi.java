@@ -5,11 +5,13 @@ import java.util.Map;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import com.zzik.backend.domain.plan.dto.request.CreateTripRequest;
+import com.zzik.backend.domain.plan.dto.response.InviteLinkResponse;
 import com.zzik.backend.domain.plan.dto.response.TripListResponse;
 import com.zzik.backend.global.annotation.swagger.ApiErrorResponseExplanation;
 import com.zzik.backend.global.annotation.swagger.ApiResponseExplanations;
@@ -51,4 +53,19 @@ public interface PlanApi {
 	)
 	@PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
 	ResponseEntity<ApiResponse<Map<String, Long>>> createTrip(@RequestBody CreateTripRequest request);
+
+	@Operation(summary = "여행 초대 링크 생성")
+	@ApiResponseExplanations(
+		success = @ApiSuccessResponseExplanation(
+			description = "초대 링크 생성 완료",
+			responseClass = InviteLinkResponse.class
+		),
+		errors = {
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.TRIP_NOT_FOUND),
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.FORBIDDEN_TRIP),
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.PLAN_INVALID_DATE_RANGE)
+		}
+	)
+	@PostMapping("/{tripId}/invite")
+	ResponseEntity<ApiResponse<InviteLinkResponse>> createInvite(@PathVariable Long tripId);
 }
