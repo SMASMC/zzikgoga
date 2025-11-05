@@ -49,10 +49,9 @@ export function OAuthCallbackPage() {
         //   { idToken },
         //   { withCredentials: true }
         // )
-        const data = await apiClient.post<OAuthCallbackResponse>(
-          '/auth/kakao',
-         {idToken: idToken}
-        )
+        const data = await apiClient.post<OAuthCallbackResponse>('/auth/kakao', {
+          idToken: idToken,
+        })
 
         console.log('OAuth Callback Response:', data)
 

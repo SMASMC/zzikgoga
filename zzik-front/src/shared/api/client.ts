@@ -11,12 +11,14 @@ interface ApiResponse<T> {
 }
 
 function isApiResponse<T = unknown>(data: unknown): data is ApiResponse<T> {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    'code' in data &&
-    'content' in data
-  )
+  return typeof data === 'object' && data !== null && 'code' in data && 'content' in data
+}
+
+function extractMessage(input: unknown): string | undefined {
+  if (typeof input !== 'object' || input === null) return undefined
+  const msg = (input as Record<string, unknown>)['message']
+  if (msg === null || typeof msg === 'undefined') return undefined
+  return String(msg)
 }
 
 class ApiClient {
@@ -51,17 +53,16 @@ class ApiClient {
       if (isApiResponse(data)) {
         throw new Error(data.message || `HTTP Error: ${response.status}`)
       }
-      const message = (typeof data === 'object' && data && 'message' in (data as any))
-        ? String((data as any).message)
-        : undefined
+      const message = extractMessage(data)
       throw new Error(message || `HTTP Error: ${response.status}`)
     }
 
     // Handle API envelope: { code, content, message }
     if (isApiResponse<T>(data)) {
-      
-      return data.content
-      
+      if (data.code === 20000) {
+        return data.content
+      }
+      throw new Error(data.message || `API Error: ${data.code}`)
     }
 
     // Fallback: return parsed JSON directly when not wrapped
