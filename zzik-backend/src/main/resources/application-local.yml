@@ -28,10 +28,5 @@ swagger:
   server-url: "http://localhost:8081/api"
   description: "Local 테스트용 서버"
 
-clova-ocr:
-  invoke-url: https://9b0f1vyfru.apigw.ntruss.com/custom/v1/47091/f279c51c3c879a1c442f2f74930c0e045ddbe27645cf55822df64e254e146a3d/document/receipt
-  secret-key: UmRIU3pkdmVJeXFFYXlCZUZZeU5XYm1vc3JRc05OWmk=
-
 kakao:
-  client-id: d681737d278913da69c79651d2267263
   redirect-uri: "http://localhost:5173/auth/callback"
