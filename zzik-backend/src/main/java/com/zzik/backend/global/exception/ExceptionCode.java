@@ -62,6 +62,10 @@ public enum ExceptionCode {
 	TRIP_NOT_FOUND(HttpStatus.NOT_FOUND, 40404, "조회할 여행이 존재하지 않습니다.", "plan - trip not found"),
 	PLAN_INVALID_TITLE(HttpStatus.FORBIDDEN, 40405, "여행 제목은 필수입니다.", "plan - 제목 입력 필수"),
 	PLAN_INVALID_DATE_RANGE(HttpStatus.FORBIDDEN, 40406, "유효하지 않은 날짜 형식입니다.", "plan - 유효하지 않은 날짜 형식"),
+	INVITE_INVALID(HttpStatus.UNAUTHORIZED, 40451, "유효하지 않은 초대 링크입니다."),
+	INVITE_EXPIRED(HttpStatus.UNAUTHORIZED, 40452, "초대 링크가 만료되었습니다."),
+
+
 	/* 405xx - memory */
 
 	/* 406xx - media */

@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.zzik.backend.domain.auth.entity.Member;
 import com.zzik.backend.domain.plan.dto.request.CreateTripRequest;
+import com.zzik.backend.domain.plan.dto.response.InviteAcceptResponse;
 import com.zzik.backend.domain.plan.dto.response.TripListResponse;
 import com.zzik.backend.domain.plan.dto.response.TripSummaryResponse;
 import com.zzik.backend.domain.plan.entity.Companion;
@@ -185,8 +186,58 @@ public class PlanService {
 
 		String key = "invite:trip:" + tripId + ":latest_jti";
 		redisTemplate.opsForValue().set(key, jti, ttl);
-		
+
 		return inviteBaseUrl + "?token=" + token;
+	}
+
+	@Transactional
+	public InviteAcceptResponse acceptInvite(String token, Long memberId) {
+		try {
+			var claims = inviteTokenProvider.getClaimsFromToken(token);
+			Long tripId = ((Number)claims.get("tripId")).longValue();
+
+			String jti = (String)claims.get("jti");
+			assertLatestJti(tripId, jti);
+
+			Trip trip = tripRepository.findById(tripId)
+				.orElseThrow(() -> BusinessException.from(ExceptionCode.TRIP_NOT_FOUND));
+
+			boolean already = tripMemberRepository.existsByTripIdAndMemberId(tripId, memberId);
+			if (!already) {
+				Member memberRef = em.getReference(Member.class, memberId);
+				TripMember join = TripMember.builder()
+					.trip(trip)
+					.member(memberRef)
+					.isCostAccepted(false)
+					.build();
+				tripMemberRepository.save(join);
+			}
+
+			return InviteAcceptResponse.builder()
+				.joined(!already)
+				.tripId(trip.getId())
+				.build();
+
+		} catch (io.jsonwebtoken.ExpiredJwtException e) {
+			throw BusinessException.from(ExceptionCode.EXPIRED_ACCESS_TOKEN);
+		} catch (Exception e) {
+			throw BusinessException.from(ExceptionCode.MALFORMED_TOKEN);
+		}
+	}
+
+	private void assertLatestJti(Long tripId, String jti) {
+		String key = "invite:trip:" + tripId + ":jti";
+		String saved = redisTemplate.opsForValue().get(key);
+
+		if (saved == null) {
+			// 처음 쓰는 링크라면 기록해둔다
+			redisTemplate.opsForValue().set(key, jti);
+			return;
+		}
+
+		if (!saved.equals(jti)) {
+			throw BusinessException.from(ExceptionCode.INVITE_INVALID);
+		}
 	}
 
 }
