@@ -11,7 +11,9 @@ const MyPageHeader = () => {
           <img src="zzikgoga_logo.png" alt="logo" className="w-32" />
         </Link>
         <div className="flex items-center gap-4">
-          <div className="px-5 py-2 text-text-600 font-bmjua">{user ? `${user.name}님 반갑습니다` : '로그인이 필요합니다'}</div>
+          <div className="px-5 py-2 text-text-600 font-bmjua">
+            {user ? `${user.name}님 반갑습니다` : '로그인이 필요합니다'}
+          </div>
         </div>
       </nav>
     </header>

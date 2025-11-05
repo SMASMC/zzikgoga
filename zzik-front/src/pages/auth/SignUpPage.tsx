@@ -3,7 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 import SignUpForm from '@/features/auth/components/SignUpForm'
 
 export function SignupPage() {
-  const location = useLocation();
+  const location = useLocation()
   const data = location.state
 
   if (!data || !data.signupRequired || !data.signupSessionToken) {

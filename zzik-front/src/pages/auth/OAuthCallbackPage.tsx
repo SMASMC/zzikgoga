@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuthStore } from '../../shared/stores/useAuthStore'
 import { OAuthCallbackResponse } from '@/features/auth/types/auth'
+import { apiClient } from '@/shared/api/client'
 
 export function OAuthCallbackPage() {
   const navigate = useNavigate()
@@ -43,10 +44,14 @@ export function OAuthCallbackPage() {
         // 2. 백엔드로 idToken 전달 → JWT 발급 or signupToken 반환
         console.log('idToken:', idToken)
         console.log('API Base URL:', import.meta.env.VITE_API_BASE_URL)
-        const { data } = await axios.post<OAuthCallbackResponse>(
-          `${import.meta.env.VITE_API_BASE_URL}/auth/kakao`,
-          { idToken },
-          { withCredentials: true }
+        // const { data } = await axios.post<OAuthCallbackResponse>(
+        //   `${import.meta.env.VITE_API_BASE_URL}/auth/kakao`,
+        //   { idToken },
+        //   { withCredentials: true }
+        // )
+        const data = await apiClient.post<OAuthCallbackResponse>(
+          '/auth/kakao',
+         {idToken: idToken}
         )
 
         console.log('OAuth Callback Response:', data)

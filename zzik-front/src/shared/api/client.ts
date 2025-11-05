@@ -4,6 +4,21 @@ interface RequestConfig extends RequestInit {
   headers?: Record<string, string>
 }
 
+interface ApiResponse<T> {
+  code: number
+  content: T
+  message?: string | null
+}
+
+function isApiResponse<T = unknown>(data: unknown): data is ApiResponse<T> {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'code' in data &&
+    'content' in data
+  )
+}
+
 class ApiClient {
   private baseURL: string
 
@@ -12,7 +27,6 @@ class ApiClient {
   }
 
   private async request<T>(endpoint: string, config: RequestConfig = {}): Promise<T> {
-
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...config.headers,
@@ -24,14 +38,34 @@ class ApiClient {
       credentials: 'include',
     })
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({
-        message: 'An error occurred',
-      }))
-      throw new Error(error.message || `HTTP Error: ${response.status}`)
+    let data: unknown = null
+    try {
+      // Attempt to parse JSON for both success and error handling
+      data = await response.json()
+    } catch {
+      data = null
     }
 
-    return response.json()
+    if (!response.ok) {
+      // Prefer API-provided message when available
+      if (isApiResponse(data)) {
+        throw new Error(data.message || `HTTP Error: ${response.status}`)
+      }
+      const message = (typeof data === 'object' && data && 'message' in (data as any))
+        ? String((data as any).message)
+        : undefined
+      throw new Error(message || `HTTP Error: ${response.status}`)
+    }
+
+    // Handle API envelope: { code, content, message }
+    if (isApiResponse<T>(data)) {
+      
+      return data.content
+      
+    }
+
+    // Fallback: return parsed JSON directly when not wrapped
+    return data as T
   }
 
   async get<T>(endpoint: string, config?: RequestConfig): Promise<T> {
