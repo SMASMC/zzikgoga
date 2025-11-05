@@ -46,6 +46,8 @@ public enum ExceptionCode {
 	OCR_PROCESS_FAIL(HttpStatus.CONFLICT, 40303, "영수증 OCR 처리에 실패했습니다.", "cost - 인식 실패"),
 	UNSUPPORTED_IMAGE_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, 40304, "지원하지 않는 이미지 형식입니다.", "cost - 이미지 형식 오류"),
 	UPLOAD_SIZE_EXCEEDED(HttpStatus.PAYLOAD_TOO_LARGE, 40305, "이미지 용량이 제한을 초과했습니다. (최대 50MB)", "cost - 이미지 사이즈 초과"),
+	ZERO_TOTAL_AMOUNT(HttpStatus.CONFLICT, 40306, "영수증 총액이 0원으로 인식되었습니다. 사진을 다시 찍어주세요.", "cost - 총액 0원 인식"),
+	RECEIPT_CONTEXT_INVALID(HttpStatus.CONFLICT, 40307, "영수증 필수 입력 사항이 입력되지 않았습니다.", "cost - 입력 사항 미기재"),
 
 	/* 404xx - plan */
 	INVALID_COMPANION(HttpStatus.NOT_FOUND, 40401, "존재하지 않는 동반자 ID입니다.", "plan - companion not found"),
