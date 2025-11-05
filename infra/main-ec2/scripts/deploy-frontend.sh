@@ -16,6 +16,10 @@ DEBUG_MODE="${DEBUG_MODE:-false}"
 # 롤백 플래그
 DEPLOYMENT_FAILED=0
 NEED_ROLLBACK=0
+IMAGE_NAME="${IMAGE_NAME:-zzikgoga-frontend}"
+IMAGE_TAG="${IMAGE_TAG:-latest}"
+CURRENT_IMAGE="${IMAGE_NAME}:${IMAGE_TAG}"
+PREVIOUS_IMAGE="${IMAGE_NAME}:${IMAGE_TAG}-previous"
 
 # 롤백 함수
 rollback_deployment() {
@@ -28,6 +32,11 @@ rollback_deployment() {
   if [ -n "${NEW_ENV:-}" ] && docker ps -a --format '{{.Names}}' | grep -qx "zzikgoga-frontend-${NEW_ENV}"; then
     echo "  🛑 새 컨테이너 중지 중: zzikgoga-frontend-${NEW_ENV}"
     docker compose -p frontend-${NEW_ENV} -f docker-compose-frontend-${NEW_ENV}.yml down 2>/dev/null || true
+  fi
+
+  if docker image inspect "${PREVIOUS_IMAGE}" >/dev/null 2>&1; then
+    echo "  🔁 Docker 이미지 태그 복구: ${CURRENT_IMAGE} ← ${PREVIOUS_IMAGE}"
+    docker tag "${PREVIOUS_IMAGE}" "${CURRENT_IMAGE}" || true
   fi
 
   # 이전 환경이 있었다면 복구
@@ -131,6 +140,14 @@ echo ""
 if ! docker images | grep -q "zzikgoga-frontend.*latest"; then
     echo "❌ Docker 이미지가 없습니다: zzikgoga-frontend:latest"
     exit 1
+fi
+
+# 현재 이미지를 백업 태그로 저장 (롤백을 위해)
+if docker image inspect "${CURRENT_IMAGE}" >/dev/null 2>&1; then
+  echo "💾 현재 이미지 백업: ${CURRENT_IMAGE} → ${PREVIOUS_IMAGE}"
+  docker tag "${CURRENT_IMAGE}" "${PREVIOUS_IMAGE}" || true
+else
+  echo "ℹ️ 현재 이미지가 없습니다 (첫 배포일 수 있음)"
 fi
 
 # 새로운 환경 시작
