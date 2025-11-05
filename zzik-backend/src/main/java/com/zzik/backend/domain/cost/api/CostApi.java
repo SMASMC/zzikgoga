@@ -31,11 +31,12 @@ public interface CostApi {
 	@ApiResponseExplanations(
 		success = @ApiSuccessResponseExplanation(
 			description = "OCR 분석 및 저장 성공 (생성된 비용 ID 반환)",
-			responseClass = Long.class
+			responseClass = ReceiptOcrResponse.class
 		),
 		errors = {
 			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.INVALID_TRIP),
 			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.OCR_PROCESS_FAIL),
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.ZERO_TOTAL_AMOUNT),
 			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.UNSUPPORTED_IMAGE_TYPE),
 			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.UPLOAD_SIZE_EXCEEDED)
 		}
@@ -46,8 +47,7 @@ public interface CostApi {
 	)
 	ResponseEntity<ApiResponse<ReceiptOcrResponse>> uploadReceiptAndSave(
 		@PathVariable Long tripId,
-		@RequestPart("file") MultipartFile file,
-		@RequestPart("request") SaveCostRequest request
+		@RequestPart("file") MultipartFile file
 	);
 
 	@Operation(
@@ -60,7 +60,8 @@ public interface CostApi {
 			responseClass = Long.class
 		),
 		errors = {
-			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.INVALID_TRIP)
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.INVALID_TRIP),
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.ZERO_TOTAL_AMOUNT)
 		}
 	)
 	@PostMapping(
