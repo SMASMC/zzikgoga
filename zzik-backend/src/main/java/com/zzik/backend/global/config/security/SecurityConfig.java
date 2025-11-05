@@ -37,13 +37,10 @@ public class SecurityConfig {
 		// --- Actuator ---
 		"/actuator/**",
 		// --- 공개 API (인증 불필요) ---
-		"/cost/**",
-		"/plan/**",
 		"/auth/kakao",
 		"/auth/callback",
 		"/auth/signup",
 		"/auth/reissue"
-		// ❗️ /auth/check, /auth/logout은 여기서 반드시 제외!
 	};
 
 	private final CorsConfigurationSource corsConfigurationSource;
