@@ -29,5 +29,4 @@ invite:
   base-url: https://zzik.kr/invite
 
 kakao:
-  client-id: ${KAKAO_CLIENT_ID}
   redirect-uri: ${KAKAO_REDIRECT_URI}

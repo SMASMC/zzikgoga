@@ -26,3 +26,10 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui/index.html
+
+clova-ocr:
+  invoke-url: ${CLOVA_OCR_INVOKE_URL}
+  secret-key: ${CLOVA_OCR_SECRET_KEY}
+
+kakao:
+  client-id: ${KAKAO_CLIENT_ID}
