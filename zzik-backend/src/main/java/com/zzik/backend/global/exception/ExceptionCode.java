@@ -36,6 +36,12 @@ public enum ExceptionCode {
 	INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, 40110, "유효하지 않은 Refresh Token", "auth - 토큰 갱신 시 잘못된 토큰"),
 	EXPIRED_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, 40111, "만료된 Refresh Token", "auth - 토큰 갱신 시 만료된 토큰"),
 	ALREADY_LOGOUT_TOKEN(HttpStatus.NOT_FOUND, 40112, "이미 로그아웃된 토큰", "auth - 로그아웃 시 이미 무효화된 토큰"),
+	INVALID_KAKAO_ID_TOKEN(HttpStatus.UNAUTHORIZED, 40113, "카카오 ID 토큰이 유효하지 않습니다."),
+	KAKAO_AUTH_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 40114, "카카오 인증 서버 통신에 실패했습니다."),
+	INVALID_SIGNUP_TOKEN(HttpStatus.UNAUTHORIZED, 40115, "회원가입 세션 토큰이 유효하지 않습니다."),
+	ALREADY_REGISTERED_USER(HttpStatus.CONFLICT, 40116, "이미 가입된 사용자입니다."),
+	INVALID_ACCESS_TOKEN(HttpStatus.UNAUTHORIZED, 40117, "유효하지 않은 액세스 토큰입니다."), // 기존 JWT 예외 외 일반 AT 예외
+	SESSION_EXPIRED_OR_LOGOUT(HttpStatus.UNAUTHORIZED, 40118, "세션이 만료되었거나 로그아웃된 상태입니다. 다시 로그인해주세요."),
 
 	/* 402xx - user */
 	FORBIDDEN_TRIP(HttpStatus.FORBIDDEN, 40201, "해당 여행에 속해 있지 않습니다.", "user - 요청한 여행에 대해서 접근권한없음"),
