@@ -1,7 +1,8 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import SolidButton from '@/components/atoms/SolidButton'
 import { useEffect, useState } from 'react'
 import LoginModal from '@/features/auth/components/LoginModal'
+import { useAuthStore } from '@/shared/stores/useAuthStore'
 
 interface HeaderProps {
   transparentUntilScroll?: boolean
@@ -11,6 +12,9 @@ interface HeaderProps {
 const Header = ({ transparentUntilScroll = false, scrollOffset = 10 }: HeaderProps) => {
   const [scrolled, setScrolled] = useState(false)
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
+  const navigate = useNavigate()
+  const user = useAuthStore((state) => state.user)
+  const logout = useAuthStore((state) => state.logout)
 
   useEffect(() => {
     if (!transparentUntilScroll) return
@@ -36,6 +40,11 @@ const Header = ({ transparentUntilScroll = false, scrollOffset = 10 }: HeaderPro
     setIsLoginModalOpen(false)
   }
 
+  const handleLogout = async () => {
+    await logout()
+    navigate('/')
+  }
+
   return (
     <header className={`${wrapperBase} ${wrapperMode}`}>
       <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -44,9 +53,15 @@ const Header = ({ transparentUntilScroll = false, scrollOffset = 10 }: HeaderPro
         </Link>
 
         <div className="flex gap-4 items-center">
-          <SolidButton onClick={handleLoginForm} variant="point" size="md" rounded="full">
-            로그인
-          </SolidButton>
+          {user ? (
+            <SolidButton onClick={handleLogout} variant="point" size="md" rounded="full">
+              로그아웃
+            </SolidButton>
+          ) : (
+            <SolidButton onClick={handleLoginForm} variant="point" size="md" rounded="full">
+              로그인
+            </SolidButton>
+          )}
         </div>
       </nav>
 
