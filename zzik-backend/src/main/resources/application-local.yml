@@ -9,7 +9,7 @@ spring:
     password: zzik
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     properties:
       hibernate:
         show_sql: true
@@ -30,4 +30,4 @@ clova-ocr:
 
 kakao:
   client-id: d681737d278913da69c79651d2267263
-  redirect-uri: "http://localhost:8081/api/auth/callback"
+  redirect-uri: "http://localhost:5173/auth/callback"

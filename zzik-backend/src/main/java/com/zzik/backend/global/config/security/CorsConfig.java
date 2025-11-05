@@ -20,7 +20,8 @@ public class CorsConfig {
 		CorsConfiguration configuration = new CorsConfiguration();
 		configuration.setAllowedOriginPatterns(
 			List.of("http://localhost:*", "http://127.0.0.1:*", "https://i13a102.p.ssafy.io",
-				"http://localhost:8081/api/*", "http://localhost:8080/api/*")
+				"http://localhost:8081/api/*", "http://localhost:8080/api/*", "http://localhost:5173","http://localhost:5173/*",
+				"https://zzik.kr", "https://zzik.kr/*", "https://api.zzik.kr", "https://api.zzik.kr/*")
 		);
 		configuration.setAllowedMethods(List.of("GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"));
 		configuration.setAllowedHeaders(List.of("*"));

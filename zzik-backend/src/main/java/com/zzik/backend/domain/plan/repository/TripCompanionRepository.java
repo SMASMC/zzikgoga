@@ -15,4 +15,6 @@ public interface TripCompanionRepository extends JpaRepository<TripCompanion, Lo
 	List<TripCompanion> findByTripId(Long tripId);
 
 	void deleteByTripId(Long tripId);
+
+	boolean existsByTripIdAndCompanionId(Long tripId, Long companionId);
 }

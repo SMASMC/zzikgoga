@@ -1,5 +1,7 @@
 package com.zzik.backend.domain.plan.entity;
 
+import org.hibernate.annotations.JdbcType;
+
 import com.zzik.backend.domain.plan.enums.BudgetCategory;
 import com.zzik.backend.global.base.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -36,7 +38,8 @@ public class Budget extends BaseEntity {
 	private LocalDate date; // 예산 날짜
 
 	@Enumerated(EnumType.STRING) // ENUM을 문자열로 저장 (PostgreSQL budget_category_type)
-	@Column(name = "category", nullable = false)
+	@Column(name = "category", nullable = false, columnDefinition = "budget_category")
+	@JdbcType(org.hibernate.dialect.PostgreSQLEnumJdbcType.class)
 	private BudgetCategory category; // 예산 카테고리
 
 	@Column(name = "description", columnDefinition = "TEXT")
