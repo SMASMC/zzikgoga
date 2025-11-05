@@ -19,6 +19,7 @@ jwt:
   secret-key:
     access-token: ${JWT_ACCESS_SECRET}
     refresh-token: ${JWT_REFRESH_SECRET}
+    invite-token: ${JWT_INVITE_SECRET}
 
 swagger:
   server-url: "https://api.zzik.kr/api"
