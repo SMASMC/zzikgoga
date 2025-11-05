@@ -98,12 +98,6 @@ function toIsoString(v: any): string {
 export async function loadYDocFromDB(tripId: number, doc: Y.Doc): Promise<Y.Doc> {
     const client = await pool.connect();
 
-    try {
-        await client.query('SET search_path TO test;');
-    } catch (e) {
-        console.warn('[DB Load] Failed to set search_path. (이 무시는 로컬 테스트 시 괜찮을 수 있음)', (e as Error).message);
-    }
-
     console.log(`[DB Load] Loading trip ${tripId} from PostgreSQL...`);
 
     try {

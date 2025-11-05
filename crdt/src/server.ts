@@ -53,12 +53,6 @@ async function getOrCreateRoom(roomName: string): Promise<Room> {
     const tripId = Number(tripIdMatch[1])
     console.log(`[room] loading trip ${tripId} from DB into Y.Doc ...`)
 
-    // DB search_path 설정용
-    pool.on('connect', (client) => {
-      client.query('SET search_path TO test;')
-      console.log('[DB] search_path set to test')
-    })
-
     await loadYDocFromDB(tripId, doc)
     console.log(`[room] trip ${tripId} loaded into doc.`)
 

@@ -462,13 +462,32 @@ export function setupPersistence(doc: Y.Doc) {
     }
 
     // --- schedules 감시 ---
-    const schedulesMap = doc.getMap('schedules');
+    const schedulesMap = doc.getMap('schedules')
 
-    // 기존 dateKey들
-    for (const [dateKey, maybeDayArray] of schedulesMap.entries()) {
-        const yDayArray = maybeDayArray as Y.Array<Y.Map<any>>;
-        observeScheduleDayArray(yDayArray, tripId, dateKey);
-    }
+    schedulesMap.observe((event: Y.YMapEvent<unknown>, tr: Y.Transaction) => {
+        if (!isUserOrigin(tr)) return
+
+        for (const [key, change] of event.changes.keys) {
+            if (change.action === 'add') {
+                const dateKey = String(key)
+                const yDayArray = schedulesMap.get(dateKey) as Y.Array<Y.Map<any>> | undefined
+                if (yDayArray) {
+                    console.log('[Persistence] schedules: added dateKey', { tripId, dateKey })
+                    observeScheduleDayArray(yDayArray, tripId, dateKey)
+
+                    // Initial upsert for items that arrived in the same transaction
+                    yDayArray.toArray().forEach((item, idx) => {
+                        if (item instanceof Y.Map) {
+                            debounce(`schedule_upsert:${tripId}:${dateKey}:init:${idx}`, () => {
+                                upsertScheduleItem(tripId, item, dateKey)
+                            })
+                            hookScheduleItemObservers(item, tripId, dateKey)
+                        }
+                    })
+                }
+            }
+        }
+    })
 
     // 새 dateKey 추가 시
     schedulesMap.observe((event: Y.YMapEvent<any>, tr: Y.Transaction) => {
@@ -483,25 +502,43 @@ export function setupPersistence(doc: Y.Doc) {
     });
 
     // --- budgets 감시 ---
-    const budgetsMap = doc.getMap('budgets');
+    const budgetsMap = doc.getMap('budgets')
 
-    // 기존 dateKey들
-    for (const [dateKey, maybeDayArray] of budgetsMap.entries()) {
-        const yDayArray = maybeDayArray as Y.Array<Y.Map<any>>;
+    budgetsMap.observe((event: Y.YMapEvent<unknown>, tr: Y.Transaction) => {
+        if (!isUserOrigin(tr)) return
+
+        for (const [key, change] of event.changes.keys) {
+            if (change.action === 'add') {
+                const dateKey = String(key)
+                const yDayArray = budgetsMap.get(dateKey) as Y.Array<Y.Map<any>> | undefined
+                if (yDayArray) {
+                    observeBudgetDayArray(yDayArray, tripId, dateKey)
+
+                    // Initial upsert for items that arrived in the same transaction
+                    yDayArray.toArray().forEach((item, idx) => {
+                        if (item instanceof Y.Map) {
+                            debounce(`budget_upsert:${tripId}:${dateKey}:init:${idx}`, () => {
+                                upsertBudgetItem(tripId, item, dateKey)
+                            })
+                            hookBudgetItemObservers(item, tripId, dateKey)
+                        }
+                    })
+                }
+            }
+        }
+    })
+
+// 새 dateKey 추가 시
+budgetsMap.observe((event: Y.YMapEvent<any>, tr: Y.Transaction) => {
+    if (!isUserOrigin(tr)) return;
+
+    event.changes.added.forEach((key: any) => {
+        const dateKey = key as string;
+        const yDayArray = budgetsMap.get(dateKey) as Y.Array<Y.Map<any>>;
         observeBudgetDayArray(yDayArray, tripId, dateKey);
-    }
-
-    // 새 dateKey 추가 시
-    budgetsMap.observe((event: Y.YMapEvent<any>, tr: Y.Transaction) => {
-        if (!isUserOrigin(tr)) return;
-
-        event.changes.added.forEach((key: any) => {
-            const dateKey = key as string;
-            const yDayArray = budgetsMap.get(dateKey) as Y.Array<Y.Map<any>>;
-            observeBudgetDayArray(yDayArray, tripId, dateKey);
-        });
-        // budgetsMap에서 dateKey 제거 시의 동작도 정책 따라 후처리 가능
     });
+    // budgetsMap에서 dateKey 제거 시의 동작도 정책 따라 후처리 가능
+});
 
-    console.log(`[Persistence] Persistence listeners attached for trip ${tripId}.`);
+console.log(`[Persistence] Persistence listeners attached for trip ${tripId}.`);
 }
