@@ -41,6 +41,7 @@ import com.zzik.backend.domain.plan.entity.Trip;
 import com.zzik.backend.domain.plan.repository.TripRepository;
 import com.zzik.backend.global.exception.BusinessException;
 import com.zzik.backend.global.exception.ExceptionCode;
+import com.zzik.backend.global.security.utils.SecurityUtil;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -214,7 +215,7 @@ public class CostService {
 			throw BusinessException.from(ExceptionCode.RECEIPT_CONTEXT_INVALID);
 
 		// TODO: SecurityContext에서 로그인 사용자 ID 추출
-		Long memberId = 3L;
+		Long memberId = SecurityUtil.getCurrentMemberId();
 		Member createdBy = memberRepository.findById(memberId)
 			.orElseThrow(() -> BusinessException.from(ExceptionCode.NOT_FOUND_USER));
 
