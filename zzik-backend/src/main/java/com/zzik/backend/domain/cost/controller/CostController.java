@@ -17,7 +17,7 @@ import com.zzik.backend.domain.cost.service.CostService;
 import com.zzik.backend.global.presentation.ApiResponse;
 
 import lombok.RequiredArgsConstructor;
-asdgdsgdasfdsfrerfewf //TODO 고의적 에러error
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/cost")
