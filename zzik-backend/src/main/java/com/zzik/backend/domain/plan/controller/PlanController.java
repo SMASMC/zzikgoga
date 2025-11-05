@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.zzik.backend.domain.plan.api.PlanApi;
 import com.zzik.backend.domain.plan.dto.request.CreateTripRequest;
+import com.zzik.backend.domain.plan.dto.response.InviteLinkResponse;
 import com.zzik.backend.domain.plan.dto.response.TripListResponse;
 import com.zzik.backend.domain.plan.service.PlanService;
 import com.zzik.backend.global.presentation.ApiResponse;
@@ -32,5 +33,15 @@ public class PlanController implements PlanApi {
 		Long ownerId = SecurityUtil.getCurrentMemberId();
 		Long tripId = planService.createTrip(request, ownerId);
 		return ResponseEntity.ok(ApiResponse.createSuccess(Map.of("tripId", tripId)));
+	}
+
+	@Override
+	public ResponseEntity<ApiResponse<InviteLinkResponse>> createInvite(Long tripId) {
+		Long requesterId = SecurityUtil.getCurrentMemberId();
+		String inviteUrl = planService.createInviteLink(tripId, requesterId);
+		InviteLinkResponse body = InviteLinkResponse.builder()
+			.inviteUrl(inviteUrl)
+			.build();
+		return ResponseEntity.ok(ApiResponse.createSuccess(body));
 	}
 }
