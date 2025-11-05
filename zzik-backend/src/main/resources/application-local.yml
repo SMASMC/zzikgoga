@@ -19,6 +19,10 @@ jwt:
   secret-key:
     access-token: zzikAccessAccessAccessTokenSecretKeyForzzik
     refresh-token: zzikRefreshRefreshRefreshTokenSecretKeyForzzik
+    invite-token: zzikIInviteInviteInviteTokenSecretKeyForzzik
+
+invite:
+  base-url: http://localhost:5173/invite
 
 swagger:
   server-url: "http://localhost:8081/api"
