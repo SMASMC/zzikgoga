@@ -16,4 +16,12 @@ export class AuthService {
     const response = await apiClient.post<SignupResponse>('/auth/signup', data)
     return response
   }
+
+  /**
+   * 로그아웃 (백엔드에서 httpOnly 쿠키 삭제)
+   * @returns 로그아웃 성공 여부
+   */
+  public static async logout(): Promise<void> {
+    await apiClient.post<void>('/auth/logout', {})
+  }
 }
