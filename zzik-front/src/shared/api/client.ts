@@ -1,3 +1,5 @@
+import { getCookie } from '../utils/cookie'
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
 
 interface RequestConfig extends RequestInit {
@@ -29,15 +31,19 @@ class ApiClient {
   }
 
   private async request<T>(endpoint: string, config: RequestConfig = {}): Promise<T> {
+    // 쿠키에서 accessToken 가져오기
+    const accessToken = getCookie('accessToken')
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      ...(accessToken && { Authorization: `Bearer ${accessToken}` }), // 토큰이 있으면 Authorization 헤더 추가
       ...config.headers,
     }
 
     const response = await fetch(`${this.baseURL}${endpoint}`, {
       ...config,
       headers,
-      credentials: 'include',
+      credentials: 'include', // 쿠키 자동 전송도 유지
     })
 
     let data: unknown = null

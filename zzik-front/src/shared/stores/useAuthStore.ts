@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { User } from '@/features/auth/types/auth'
+import { deleteCookie } from '@/shared/utils/cookie'
 
 interface AuthState {
   user: User | null
@@ -19,11 +20,14 @@ export const useAuthStore = create<AuthState>()(
           user,
           isAuthenticated: !!user,
         }),
-      logout: () =>
+      logout: () => {
+        // 쿠키에서 accessToken 삭제
+        deleteCookie('accessToken')
         set({
           user: null,
           isAuthenticated: false,
-        }),
+        })
+      },
     }),
     {
       name: 'auth-storage',

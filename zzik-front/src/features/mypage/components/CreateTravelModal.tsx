@@ -3,6 +3,8 @@
 
 import { useState } from 'react'
 import Calendar from '@components/atoms/Calendar'
+import { CreateTravelRequest } from '../types/mypage'
+import { TravelService } from '../services/travelService'
 
 const CreateTravelModal = ({ onClose }: { onClose: () => void }) => {
   const [companion, setCompanion] = useState<string[]>([])
@@ -36,6 +38,36 @@ const CreateTravelModal = ({ onClose }: { onClose: () => void }) => {
     return `${year}-${month}-${day}`
   }
 
+  // 동행자 문자열을 ID로 매핑
+  const companionToId = (label: string): number => {
+    const mapping: Record<string, number> = {
+      '연인 ∙ 배우자': 1,
+      친구: 2,
+      '지인 ∙ 동료': 3,
+      혼자: 4,
+      아이: 5,
+      부모님: 6,
+      기타: 7,
+    }
+    return mapping[label] || 0
+  }
+
+  // 테마 문자열을 ID로 매핑
+  const themeToId = (tag: string): number => {
+    const mapping: Record<string, number> = {
+      '#카페투어': 1,
+      '#도심 속 휴식': 2,
+      '#드라이브': 3,
+      '#감성': 4,
+      '#먹방': 5,
+      '#캠핑': 6,
+      '#힐링': 7,
+      '#즉흥': 8,
+      '#기념일': 9,
+    }
+    return mapping[tag] || 0
+  }
+
   // 여행 생성 버튼 클릭 핸들러
   const handleCreateTravel = () => {
     // 유효성 검사
@@ -56,36 +88,27 @@ const CreateTravelModal = ({ onClose }: { onClose: () => void }) => {
       return
     }
 
-    // API로 전송할 데이터 준비 (ERD 명세서 기준)
-    // api 나오게 되면 types/mypage.ts에 추가
-    const travelData = {
+    // API로 전송할 데이터 준비 (CreateTravelRequest 형식)
+    const travelData: CreateTravelRequest = {
       title: '제목 없는 여행', // 프론트 default 값
-      companion: companion, // VARCHAR(255)
       start_date: formatDate(startDate), // DATE 형식: YYYY-MM-DD
       end_date: formatDate(endDate), // DATE 형식: YYYY-MM-DD
       male_count: maleCount, // TINYINT
       female_count: femaleCount, // TINYINT
-
-      theme: theme, // VARCHAR(255)
+      companion_id: companion.map(companionToId).filter((id) => id > 0),
+      thema_id: theme.map(themeToId).filter((id) => id > 0),
     }
 
-    // TODO: 실제 API 호출
-    // api 나오게 되면 auth쪽 보고 각 폴더에 필요한 코드 추가하기
-    // 예시:
-    // try {
-    //   const response = await createTravelAPI(travelData)
-    //   console.log('여행 생성 성공:', response)
-    //   onClose() // 모달 닫기
-    //   // 성공 후 처리 (예: 여행 목록 페이지로 이동 또는 새로고침)
-    // } catch (error) {
-    //   console.error('여행 생성 실패:', error)
-    //   alert('여행 생성에 실패했습니다. 다시 시도해주세요.')
-    // }
-
-    // 임시: 데이터 확인용
-    alert(
-      `api 연결 전 여행 생성 데이터 확인\n\n제목: ${travelData.title}\n출발: ${travelData.start_date}\n도착: ${travelData.end_date}\n남성: ${travelData.male_count}명\n여성: ${travelData.female_count}명`
-    )
+    // TravelService를 통해 여행 생성
+    TravelService.createTravel(travelData)
+      .then((response) => {
+        console.log('여행 생성 성공:', response)
+        onClose()
+      })
+      .catch((error) => {
+        console.error('여행 생성 실패:', error)
+        alert('여행 생성에 실패했습니다. 다시 시도해주세요.')
+      })
   }
 
   return (
