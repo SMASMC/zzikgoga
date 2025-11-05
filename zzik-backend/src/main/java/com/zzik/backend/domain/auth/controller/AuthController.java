@@ -5,17 +5,28 @@ import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.CookieValue; // ❗️ Import
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.zzik.backend.domain.auth.dto.request.KakaoLoginRequest;
 import com.zzik.backend.domain.auth.dto.request.SignupRequest;
 import com.zzik.backend.domain.auth.dto.response.AuthCheckResponse;
+import com.zzik.backend.domain.auth.dto.response.AuthResult;
+import com.zzik.backend.domain.auth.dto.response.AuthSuccessResponse;
+import com.zzik.backend.domain.auth.dto.response.KakaoLoginResult;
+import com.zzik.backend.domain.auth.dto.response.LoginResponse;
+import com.zzik.backend.domain.auth.dto.response.LogoutResponse;
+import com.zzik.backend.domain.auth.dto.response.MessageResponse;
+import com.zzik.backend.domain.auth.dto.response.SignupData;
+import com.zzik.backend.domain.auth.dto.response.SignupRequiredResponse;
 import com.zzik.backend.domain.auth.service.AuthService;
+import com.zzik.backend.global.exception.BusinessException;
+import com.zzik.backend.global.exception.ExceptionCode;
+import com.zzik.backend.global.presentation.ApiResponse;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
@@ -30,78 +41,68 @@ public class AuthController {
 
 	private static final long ACCESS_TOKEN_COOKIE_VALIDITY_SECONDS = 1800;
 
-	@GetMapping("/callback")
-	public ResponseEntity<?> kakaoLogin(
-		@RequestParam("code") String code,
-		HttpServletResponse response
-	) throws ParseException {
-
-		Map<String, Object> result = authService.handleKakaoLogin(code);
-		return handleAuthResponse(result, response);
-	}
-
 	@PostMapping("/kakao")
-	public ResponseEntity<?> kakaoLogin(
-		@RequestBody Map<String, String> body,
+	public ResponseEntity<ApiResponse<LoginResponse>> kakaoLogin(
+		@RequestBody KakaoLoginRequest kakaoLoginRequest,
 		HttpServletResponse response
 	) throws ParseException {
 
-		String idToken = body.get("idToken");
-		Map<String, Object> result = authService.handleKakaoLoginFromIdToken(idToken);
-		return handleAuthResponse(result, response);
+		String idToken = kakaoLoginRequest.idToken();
+
+		KakaoLoginResult result = authService.handleKakaoLoginFromIdToken(idToken);
+
+		if (result instanceof AuthResult authResult) {
+			addAccessTokenCookie(response, authResult.accessToken());
+			var responseDto = new AuthSuccessResponse(true, authResult.user());
+			return ResponseEntity.ok(ApiResponse.createSuccess(responseDto));
+
+		} else if (result instanceof SignupData signupData) {
+			var responseDto = new SignupRequiredResponse(
+				false,
+				true,
+				signupData.signupSessionToken(),
+				signupData.name(),
+				signupData.email(),
+				signupData.picture()
+			);
+			return ResponseEntity.ok(ApiResponse.createSuccess(responseDto));
+		}
+
+		throw new IllegalStateException("Unexpected KakaoLoginResult type");
 	}
 
 	@PostMapping("/signup")
-	public ResponseEntity<?> signup(
+	public ResponseEntity<ApiResponse<AuthSuccessResponse>> signup(
 		@RequestBody SignupRequest req,
 		HttpServletResponse response
 	) {
 
-		Map<String, Object> result = authService.signup(req);
-		return handleAuthResponse(result, response);
-	}
+		AuthResult authResult = authService.signup(req);
 
-	/**
-	 *  로그인/회원가입 성공 시 공통 로직: AT는 쿠키로, RT는 응답에서 제거
-	 */
-	private ResponseEntity<?> handleAuthResponse(Map<String, Object> result, HttpServletResponse response) {
-		if (result.get("accessToken") != null) {
-			String accessToken = (String)result.get("accessToken");
-			addAccessTokenCookie(response, accessToken); // AT 쿠키 설정
+		addAccessTokenCookie(response, authResult.accessToken());
+		var responseDto = new AuthSuccessResponse(true, authResult.user());
 
-			return ResponseEntity.ok(Map.of(
-				"loggedIn", true,
-				"user", result.get("user")
-			));
-		}
-
-		return ResponseEntity.ok(result);
+		return ResponseEntity.ok(ApiResponse.createSuccess(responseDto));
 	}
 
 	@PostMapping("/reissue")
-	public ResponseEntity<?> reissue(
+	public ResponseEntity<ApiResponse<MessageResponse>> reissue(
 		@CookieValue(name = "accessToken", required = false) String expiredAccessToken,
 		HttpServletResponse response
 	) {
 		if (expiredAccessToken == null) {
-			return ResponseEntity.status(401).body(Map.of("error", "Access token cookie is missing"));
+			throw BusinessException.from(ExceptionCode.EMPTY_ACCESS_TOKEN);
 		}
 
-		try {
-			String newAccessToken = authService.reissueToken(expiredAccessToken);
+		String newAccessToken = authService.reissueToken(expiredAccessToken);
 
-			addAccessTokenCookie(response, newAccessToken);
+		addAccessTokenCookie(response, newAccessToken);
 
-			return ResponseEntity.ok(Map.of("message", "Token reissued"));
-
-		} catch (RuntimeException e) {
-			deleteAccessTokenCookie(response);
-			return ResponseEntity.status(401).body(Map.of("error", e.getMessage()));
-		}
+		return ResponseEntity.ok(ApiResponse.createSuccess(new MessageResponse("Token reissued")));
 	}
 
 	@PostMapping("/logout")
-	public ResponseEntity<?> logout(
+	public ResponseEntity<ApiResponse<LogoutResponse>> logout(
 		@CookieValue(name = "accessToken", required = false) String accessToken,
 		HttpServletResponse response
 	) {
@@ -111,11 +112,12 @@ public class AuthController {
 
 		deleteAccessTokenCookie(response);
 
-		return ResponseEntity.ok(Map.of("loggedIn", false, "message", "Logged out"));
+		var responseDto = new LogoutResponse(false, "Logged out");
+		return ResponseEntity.ok(ApiResponse.createSuccess(responseDto));
 	}
 
 	/**
-	 * AccessToken을 HttpOnly 쿠키에 추가
+	 * AccessToken을 HttpOnly 쿠키에 추가 (변경 없음)
 	 */
 	private void addAccessTokenCookie(HttpServletResponse response, String token) {
 		Cookie cookie = new Cookie("accessToken", token);
@@ -127,7 +129,7 @@ public class AuthController {
 	}
 
 	/**
-	 * AccessToken 쿠키 삭제
+	 * AccessToken 쿠키 삭제 (변경 없음)
 	 */
 	private void deleteAccessTokenCookie(HttpServletResponse response) {
 		Cookie cookie = new Cookie("accessToken", null);
@@ -139,19 +141,16 @@ public class AuthController {
 	}
 
 	@GetMapping("/check")
-	public ResponseEntity<?> checkLoginStatus(
+	public ResponseEntity<ApiResponse<AuthSuccessResponse>> checkLoginStatus(
 		@AuthenticationPrincipal Long memberId
 	) {
-		System.out.println(memberId);
 		if (memberId == null) {
-			return ResponseEntity.status(401).body(Map.of("loggedIn", false));
+			throw BusinessException.from(ExceptionCode.EMPTY_ACCESS_TOKEN);
 		}
 
 		AuthCheckResponse userInfo = authService.checkLoginStatus(memberId);
 
-		return ResponseEntity.ok(Map.of(
-			"loggedIn", true,
-			"user", userInfo
-		));
+		var responseDto = new AuthSuccessResponse(true, userInfo);
+		return ResponseEntity.ok(ApiResponse.createSuccess(responseDto));
 	}
 }

@@ -1,11 +1,10 @@
 package com.zzik.backend.domain.auth.service;
 
 import java.text.ParseException;
-import java.time.Duration; // ❗️ Import
+import java.time.Duration;
 import java.util.Date;
 import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit; // ❗️ Import
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -20,22 +19,29 @@ import org.springframework.web.client.RestTemplate;
 
 import com.zzik.backend.domain.auth.dto.request.SignupRequest;
 import com.zzik.backend.domain.auth.dto.response.AuthCheckResponse;
+import com.zzik.backend.domain.auth.dto.response.AuthResult;
+import com.zzik.backend.domain.auth.dto.response.KakaoLoginResult;
 import com.zzik.backend.domain.auth.dto.response.KakaoTokenResponse;
+import com.zzik.backend.domain.auth.dto.response.SignupData;
 import com.zzik.backend.domain.auth.entity.Member;
 import com.zzik.backend.domain.auth.enums.Gender;
 import com.zzik.backend.domain.auth.enums.Provider;
 import com.zzik.backend.domain.auth.repository.MemberRepository;
+import com.zzik.backend.global.exception.BusinessException;
+import com.zzik.backend.global.exception.ExceptionCode;
 import com.zzik.backend.global.security.jwt.access.AccessTokenClaim;
 import com.zzik.backend.global.security.jwt.access.AccessTokenProvider;
 import com.zzik.backend.global.security.jwt.refresh.RefreshTokenClaim;
 import com.zzik.backend.global.security.jwt.refresh.RefreshTokenProvider;
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException; // ❗️ Import
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import shaded_package.com.nimbusds.jwt.SignedJWT;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -52,27 +58,20 @@ public class AuthService {
 	@Value("${kakao.redirect-uri}")
 	private String kakaoRedirectUri;
 
-	// ❗️ RT의 유효 기간 (RefreshTokenProvider의 유효시간과 일치시켜야 함)
 	private static final Duration REFRESH_TOKEN_VALIDITY_DURATION = Duration.ofDays(30);
 	private static final Duration REFRESH_TOKEN_ROTATION_THRESHOLD = Duration.ofDays(7);
 
 	private static final String RT_KEY_PREFIX = "RT:";
 	private static final String AT_BLACKLIST_KEY_PREFIX = "BL_AT:";
 
-
-	public Map<String, Object> handleKakaoLogin(String code) throws ParseException {
-		String idToken = getIdTokenFromKakao(code);
-		return processKakaoIdToken(idToken);
-	}
-
-	public Map<String, Object> handleKakaoLoginFromIdToken(String idToken) throws ParseException {
+	public KakaoLoginResult handleKakaoLoginFromIdToken(String idToken) throws ParseException {
 		return processKakaoIdToken(idToken);
 	}
 
 	/**
 	 * 카카오 ID 토큰 파싱 및 로그인/가입 처리 (공통 로직)
 	 */
-	private Map<String, Object> processKakaoIdToken(String idToken) {
+	private KakaoLoginResult processKakaoIdToken(String idToken) {
 		try {
 			var jwt = SignedJWT.parse(idToken);
 			var claims = jwt.getJWTClaimsSet();
@@ -85,9 +84,16 @@ public class AuthService {
 			String email = claims.getStringClaim("email");
 			String picture = claims.getStringClaim("picture");
 
-			if (!"https://kauth.kakao.com".equals(iss)) throw new RuntimeException("Invalid issuer");
-			if (!kakaoClientId.equals(aud)) throw new RuntimeException("Invalid audience");
-			if (exp.before(new Date())) throw new RuntimeException("Token expired");
+			// ❗️ 변경: RuntimeException -> BusinessException
+			if (!"https://kauth.kakao.com".equals(iss)) {
+				throw BusinessException.from(ExceptionCode.INVALID_KAKAO_ID_TOKEN);
+			}
+			if (!kakaoClientId.equals(aud)) {
+				throw BusinessException.from(ExceptionCode.INVALID_KAKAO_ID_TOKEN);
+			}
+			if (exp.before(new Date())) {
+				throw BusinessException.from(ExceptionCode.INVALID_KAKAO_ID_TOKEN);
+			}
 
 			var found = memberRepository.findByProviderAndProviderId(Provider.KAKAO, sub);
 			if (found.isPresent()) {
@@ -98,15 +104,15 @@ public class AuthService {
 				String rtKey = RT_KEY_PREFIX + m.getId();
 				redis.opsForValue().set(rtKey, refreshToken, REFRESH_TOKEN_VALIDITY_DURATION);
 
-				return Map.of(
-					"loggedIn", true,
-					"accessToken", accessToken,
-					// "refreshToken", refreshToken,
-					"user", Map.of("id", m.getId(),
-						"name", nickName,
-						"email", email,
-						"picture", picture)
-				);
+				// ❗️ 변경: Map -> AuthResult DTO
+				AuthCheckResponse userDto = AuthCheckResponse.builder()
+					.id(m.getId())
+					.name(nickName) // 카카오 프로필 기준
+					.email(email)
+					.picture(picture)
+					.build();
+
+				return new AuthResult(accessToken, userDto);
 			}
 
 			String signupSessionToken = accessTokenProvider.issueTempToken(
@@ -114,31 +120,32 @@ public class AuthService {
 				Duration.ofMinutes(15)
 			);
 
-			return Map.of(
-				"loggedIn", false,
-				"signupRequired", true,
-				"signupSessionToken", signupSessionToken,
-				"name", nickName,
-				"email", email,
-				"picture", picture
-			);
+			// ❗️ 변경: Map -> SignupData DTO
+			return new SignupData(signupSessionToken, nickName, email, picture);
+
+		} catch (BusinessException e) {
+			throw e; // BusinessException은 그대로 re-throw
 		} catch (Exception e) {
-			throw new RuntimeException("Invalid id_token", e);
+			log.error("Invalid id_token processing error", e);
+			// ❗️ 변경: RuntimeException -> BusinessException
+			throw BusinessException.from(ExceptionCode.INVALID_KAKAO_ID_TOKEN);
 		}
 	}
 
 	@Transactional
-	public Map<String, Object> signup(SignupRequest req) {
+	public AuthResult signup(SignupRequest req) {
 		Claims claims = accessTokenProvider.getClaimsFromToken(req.signupSessionToken());
 		String provider = (String)claims.get("provider");
 		String providerId = (String)claims.get("providerId");
 
 		if (!"KAKAO".equals(provider)) {
-			throw new RuntimeException("Invalid signupSessionToken");
+			// ❗️ 변경: RuntimeException -> BusinessException
+			throw BusinessException.from(ExceptionCode.INVALID_SIGNUP_TOKEN);
 		}
 
 		if (memberRepository.existsByProviderAndProviderId(Provider.valueOf(provider), providerId)) {
-			throw new RuntimeException("Already registered");
+			// ❗️ 변경: RuntimeException -> BusinessException
+			throw BusinessException.from(ExceptionCode.ALREADY_REGISTERED_USER);
 		}
 
 		Member newMember = Member.builder()
@@ -165,6 +172,7 @@ public class AuthService {
 		String rtKey = RT_KEY_PREFIX + saved.getId();
 		redis.opsForValue().set(rtKey, refreshToken, REFRESH_TOKEN_VALIDITY_DURATION);
 
+<<<<<<< Updated upstream
 		return Map.of(
 			"loggedIn", true,
 			"accessToken", accessToken,
@@ -173,6 +181,17 @@ public class AuthService {
 				"email", saved.getEmail(),
 				"picture", saved.getThumbnailUrl())
 		);
+=======
+		// ❗️ 변경: Map -> AuthResult DTO
+		AuthCheckResponse userDto = AuthCheckResponse.builder()
+			.id(saved.getId())
+			.name(saved.getName())
+			.email(saved.getEmail())
+			.picture(saved.getThumbnailUrl())
+			.build();
+
+		return new AuthResult(accessToken, userDto);
+>>>>>>> Stashed changes
 	}
 
 	public String getIdTokenFromKakao(String code) {
@@ -189,26 +208,35 @@ public class AuthService {
 
 		HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
 
-		ResponseEntity<KakaoTokenResponse> response =
-			restTemplate.postForEntity(url, request, KakaoTokenResponse.class);
+		try {
+			ResponseEntity<KakaoTokenResponse> response =
+				restTemplate.postForEntity(url, request, KakaoTokenResponse.class);
 
-		KakaoTokenResponse body = response.getBody();
-		if (body == null || body.getId_token() == null) {
-			throw new RuntimeException("Failed to get id_token from Kakao");
+			KakaoTokenResponse body = response.getBody();
+			if (body == null || body.getId_token() == null) {
+				// ❗️ 변경: RuntimeException -> BusinessException
+				throw BusinessException.from(ExceptionCode.KAKAO_AUTH_FAILED);
+			}
+
+			return body.getId_token();
+
+		} catch (Exception e) {
+			log.error("Failed to get id_token from Kakao", e);
+			// ❗️ 변경: RuntimeException -> BusinessException
+			throw BusinessException.from(ExceptionCode.KAKAO_AUTH_FAILED);
 		}
-
-		return body.getId_token();
 	}
 
 	/**
-	 * 토큰 재발급 로직 (완전 변경)
+	 * 토큰 재발급 로직
 	 * @param expiredAccessToken 만료된 AT (쿠키에서 추출)
 	 * @return String 새로 발급된 AT
 	 */
 	public String reissueToken(String expiredAccessToken) {
 		String blKey = AT_BLACKLIST_KEY_PREFIX + expiredAccessToken;
 		if (redis.opsForValue().get(blKey) != null) {
-			throw new RuntimeException("Logged out token. Please log in again.");
+			// ❗️ 변경: RuntimeException -> BusinessException
+			throw BusinessException.from(ExceptionCode.ALREADY_LOGOUT_TOKEN);
 		}
 
 		Long memberId;
@@ -217,18 +245,21 @@ public class AuthService {
 		} catch (ExpiredJwtException e) {
 			memberId = Long.valueOf(e.getClaims().getSubject());
 		} catch (Exception e) {
-			throw new RuntimeException("Invalid access token. Please log in again.", e);
+			// ❗️ 변경: RuntimeException -> BusinessException
+			throw BusinessException.from(ExceptionCode.INVALID_ACCESS_TOKEN);
 		}
 
 		if (memberId == null) {
-			throw new RuntimeException("Invalid access token. Please log in again.");
+			// ❗️ 변경: RuntimeException -> BusinessException
+			throw BusinessException.from(ExceptionCode.INVALID_ACCESS_TOKEN);
 		}
 
 		String rtKey = RT_KEY_PREFIX + memberId;
 		String storedRefreshToken = redis.opsForValue().get(rtKey);
 
 		if (storedRefreshToken == null) {
-			throw new RuntimeException("Session expired or logged out. Please log in again.");
+			// ❗️ 변경: RuntimeException -> BusinessException
+			throw BusinessException.from(ExceptionCode.SESSION_EXPIRED_OR_LOGOUT);
 		}
 
 		Claims rtClaims;
@@ -236,12 +267,13 @@ public class AuthService {
 			rtClaims = refreshTokenProvider.getClaimsFromToken(storedRefreshToken);
 		} catch (Exception e) {
 			redis.delete(rtKey);
-			throw new RuntimeException("Refresh token is invalid. Please log in again.", e);
+			// ❗️ 변경: RuntimeException -> BusinessException
+			throw BusinessException.from(ExceptionCode.INVALID_REFRESH_TOKEN);
 		}
 
 		// (선택적) 5. DB에서 사용자 존재 확인 (탈퇴 대비)
 		// memberRepository.findById(memberId)
-		//   .orElseThrow(() -> new RuntimeException("Member not found"));
+		//   .orElseThrow(() -> BusinessException.from(ExceptionCode.NOT_FOUND_USER));
 
 		// (권장) RT Rotation
 		boolean rotate = shouldRotateRefresh(rtClaims, REFRESH_TOKEN_ROTATION_THRESHOLD);
@@ -256,15 +288,17 @@ public class AuthService {
 
 
 	/**
-	 * 로그아웃 로직 (완전 변경)
+	 * 로그아웃 로직 (반환 타입 void로 변경)
 	 * @param accessToken 유효한 AT (쿠키에서 추출)
 	 */
-	public Map<String, Object> logout(String accessToken) {
+	public void logout(String accessToken) {
 		Claims claims;
 		try {
 			claims = accessTokenProvider.getClaimsFromToken(accessToken);
 		} catch (Exception e) {
-			return Map.of("loggedIn", false, "message", "Invalid or expired token");
+			// ❗️ 변경: 유효하지 않은 토큰으로 로그아웃 시도 시, 조용히 종료
+			log.warn("Invalid token detected during logout attempt: {}", e.getMessage());
+			return;
 		}
 
 		Long memberId = extractMemberId(claims);
@@ -280,7 +314,7 @@ public class AuthService {
 			redis.opsForValue().set(blKey, "1", ttlMs, TimeUnit.MILLISECONDS);
 		}
 
-		return Map.of("loggedIn", false, "message", "Logged out");
+		// ❗️ 변경: Map 반환 제거
 	}
 
 
@@ -299,13 +333,15 @@ public class AuthService {
 			} catch (NumberFormatException ignore) {
 			}
 		}
-		throw new RuntimeException("Invalid token: member id missing");
+		// ❗️ 변경: RuntimeException -> BusinessException
+		throw BusinessException.from(ExceptionCode.INVALID_ACCESS_TOKEN);
 	}
 
 	public AuthCheckResponse checkLoginStatus(Long memberId) {
 
 		Member member = memberRepository.findById(memberId)
-			.orElseThrow(() -> new RuntimeException("Member not found with id: " + memberId));
+			// ❗️ 변경: RuntimeException -> BusinessException
+			.orElseThrow(() -> BusinessException.from(ExceptionCode.NOT_FOUND_USER));
 
 		return AuthCheckResponse.builder()
 			.id(member.getId())

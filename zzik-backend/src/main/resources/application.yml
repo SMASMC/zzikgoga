@@ -18,7 +18,7 @@ spring:
     default-schema: public
 jwt:
   expiration-time:
-    access-token: 1_800_000
+    access-token: 1_800_00
     refresh-token: 604_800_000
 springdoc:
   api-docs:
