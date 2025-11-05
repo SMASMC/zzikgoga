@@ -12,7 +12,7 @@ import { useSharedCursors } from '../hooks/useSharedCursors'
 const CHAT_AUTO_HIDE_MS = 5000
 
 const getRoomId = (planId: string | null) =>
-  planId && planId.trim().length > 0 ? `plan-${planId.trim()}` : 'plan-default-room'
+  planId && planId.trim().length > 0 ? `trip-${planId.trim()}` : 'trip-3'
 
 const formatTimestamp = (timestamp: number) =>
   new Date(timestamp).toLocaleTimeString('ko-KR', {
@@ -250,7 +250,7 @@ const PlaceBoard = () => {
         <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-sm text-slate-500">
           <div className="flex flex-col gap-1">
             <span className="text-base font-semibold text-slate-700">
-              여행 일정 보드에 팀원과 함께 참여하세요
+              여행 일정 보드에 팀원과 함께 참여하세요.{' '}
             </span>
             <span>마우스를 움직이면 서로의 커서를, 메시지를 보내면 실시간으로 공유돼요.</span>
           </div>
@@ -283,7 +283,7 @@ const PlaceBoard = () => {
           <div className="max-h-60 overflow-y-auto px-5 py-3">
             {chatMessages.length === 0 ? (
               <div className="rounded-lg border border-dashed border-slate-200 bg-white/70 px-4 py-6 text-center text-xs text-slate-400">
-                아직 메시지가 없어요. “/” 키를 눌러 첫 메시지를 남겨보세요.
+                아직 메시지가 없어요 '/' 키를 눌러 첫 메시지를 남겨보세요.
               </div>
             ) : (
               <div className="flex flex-col gap-3">
@@ -348,7 +348,7 @@ const PlaceBoard = () => {
                 type="submit"
                 className="rounded-full bg-blue-500 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-600"
               >
-                보내기
+                보내기{' '}
               </button>
             </form>
           </div>

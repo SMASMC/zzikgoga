@@ -1,0 +1,252 @@
+import { useEffect, useRef, useState, useCallback } from 'react'
+import * as Y from 'yjs'
+import { acquireProvider, releaseProvider } from '../stores/yjsStore'
+
+export interface YBudgetItem {
+  id: number | null
+  category: string
+  amount: number
+  description: string
+}
+
+export interface YLocationItem {
+  id?: number | null
+  name: string
+  full_address: string
+  detail: string
+  latitude: number | null
+  longitude: number | null
+}
+
+export interface YScheduleItem {
+  id: number | null
+  start_time: string // 'YYYY-MM-DDTHH:mm'
+  offset_time: string | null // Postgres interval string or null
+  has_location: boolean
+  location: YLocationItem | null
+  memo: string
+}
+
+export interface TripInfoPlain {
+  id?: number
+  title?: string
+  start_date?: string
+  end_date?: string
+}
+
+const yTextToString = (v: unknown) => (v instanceof Y.Text ? v.toString() : String(v ?? ''))
+
+const toIntervalString = (ms: number): string | null => {
+  if (!Number.isFinite(ms) || ms <= 0) return null
+  const totalSeconds = Math.floor(ms / 1000)
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  const parts: string[] = []
+  if (hours) parts.push(`${hours} hours`)
+  if (minutes) parts.push(`${minutes} minutes`)
+  if (seconds && !hours && !minutes) parts.push(`${seconds} seconds`)
+  return parts.length ? parts.join(' ') : null
+}
+
+const dateKeyOf = (isoLocalMinute: string) => isoLocalMinute.slice(0, 10)
+
+const snapshotBudgets = (doc: Y.Doc): Record<string, YBudgetItem[]> => {
+  const budgetsMap = doc.getMap('budgets') as Y.Map<Y.Array<Y.Map<unknown>>>
+  const result: Record<string, YBudgetItem[]> = {}
+
+  budgetsMap.forEach((yArr, dateKey) => {
+    const items: YBudgetItem[] = []
+    yArr.forEach((yMap) => {
+      const id = (yMap.get('id') as number) ?? null
+      const category = (yMap.get('category') as string) ?? ''
+      const amountRaw = yMap.get('amount') as unknown
+      const amount = typeof amountRaw === 'number' ? amountRaw : Number(amountRaw ?? 0)
+      const description = yTextToString(yMap.get('description'))
+      items.push({ id, category, amount, description })
+    })
+    result[dateKey] = items
+  })
+
+  return result
+}
+
+const snapshotSchedules = (doc: Y.Doc): Record<string, YScheduleItem[]> => {
+  const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
+  const result: Record<string, YScheduleItem[]> = {}
+
+  schedulesMap.forEach((yArr, dateKey) => {
+    const items: YScheduleItem[] = []
+    yArr.forEach((yMap) => {
+      const id = (yMap.get('id') as number) ?? null
+      const start_time = (yMap.get('start_time') as string) ?? ''
+      const offset_time = (yMap.get('offset_time') as string | null) ?? null
+      const has_location = Boolean(yMap.get('has_location'))
+      const memo = yTextToString(yMap.get('memo'))
+      const location = ((): YLocationItem | null => {
+        const raw = yMap.get('location') as unknown
+        if (!raw || typeof raw !== 'object') return null
+        const obj = raw as Record<string, unknown>
+        return {
+          id: (obj.id as number) ?? null,
+          name: (obj.name as string) ?? '',
+          full_address: (obj.full_address as string) ?? '',
+          detail: (obj.detail as string) ?? '',
+          latitude: (obj.latitude as number) ?? null,
+          longitude: (obj.longitude as number) ?? null,
+        }
+      })()
+      items.push({ id, start_time, offset_time, has_location, location, memo })
+    })
+    result[dateKey] = items
+  })
+
+  return result
+}
+
+export const useYTripDoc = (roomId: string) => {
+  const providerRef = useRef<ReturnType<typeof acquireProvider> | null>(null)
+  const [tripInfo, setTripInfo] = useState<TripInfoPlain>({})
+  const [budgetsByDate, setBudgetsByDate] = useState<Record<string, YBudgetItem[]>>({})
+  const [schedulesByDate, setSchedulesByDate] = useState<Record<string, YScheduleItem[]>>({})
+
+  useEffect(() => {
+    const entry = acquireProvider(roomId)
+    providerRef.current = entry
+
+    const doc = entry.doc
+    const updateAll = () => {
+      const tripMap = doc.getMap('tripInfo')
+      setTripInfo({
+        id: (tripMap.get('id') as number) ?? undefined,
+        title: yTextToString(tripMap.get('title') as unknown),
+        start_date: (tripMap.get('start_date') as string) ?? undefined,
+        end_date: (tripMap.get('end_date') as string) ?? undefined,
+      })
+      setBudgetsByDate(snapshotBudgets(doc))
+      setSchedulesByDate(snapshotSchedules(doc))
+    }
+
+    // Initial snapshot
+    updateAll()
+
+    const budgetsMap = doc.getMap('budgets') as Y.Map<unknown>
+    const schedulesMap = doc.getMap('schedules') as Y.Map<unknown>
+    const tripMap = doc.getMap('tripInfo') as Y.Map<unknown>
+
+    const budgetsObserver = () => setBudgetsByDate(snapshotBudgets(doc))
+    const schedulesObserver = () => setSchedulesByDate(snapshotSchedules(doc))
+    const tripObserver = () => {
+      const t = doc.getMap('tripInfo')
+      setTripInfo({
+        id: (t.get('id') as number) ?? undefined,
+        title: yTextToString(t.get('title') as unknown),
+        start_date: (t.get('start_date') as string) ?? undefined,
+        end_date: (t.get('end_date') as string) ?? undefined,
+      })
+    }
+
+    budgetsMap.observeDeep(budgetsObserver)
+    schedulesMap.observeDeep(schedulesObserver)
+    tripMap.observe(tripObserver)
+
+    return () => {
+      budgetsMap.unobserveDeep(budgetsObserver)
+      schedulesMap.unobserveDeep(schedulesObserver)
+      tripMap.unobserve(tripObserver)
+      releaseProvider(roomId)
+      providerRef.current = null
+    }
+  }, [roomId])
+
+  const addBudget = useCallback(
+    (dateKey: string, budget: { category: string; amount: number; description?: string }) => {
+      const entry = providerRef.current
+      if (!entry) return
+      const { doc } = entry
+      const budgetsMap = doc.getMap('budgets') as Y.Map<Y.Array<Y.Map<unknown>>>
+      let yArr = budgetsMap.get(dateKey)
+      if (!(yArr instanceof Y.Array)) {
+        yArr = new Y.Array<Y.Map<unknown>>()
+        budgetsMap.set(dateKey, yArr)
+      }
+      const yItem = new Y.Map<unknown>()
+      yItem.set('id', null)
+      yItem.set('category', budget.category)
+      yItem.set('amount', Number(budget.amount) || 0)
+      yItem.set('description', new Y.Text(budget.description ?? ''))
+      yArr.push([yItem])
+    },
+    []
+  )
+
+  const addSchedule = useCallback(
+    (payload: {
+      startTimeLocal: string // 'YYYY-MM-DDTHH:mm'
+      endTimeLocal?: string | null // optional; used to compute offset_time
+      memo?: string
+      location?: {
+        name: string
+        full_address?: string
+        detail?: string
+        latitude?: number | null
+        longitude?: number | null
+      } | null
+    }) => {
+      const entry = providerRef.current
+      if (!entry) return
+      const { doc } = entry
+
+      const dateKey = dateKeyOf(payload.startTimeLocal)
+      const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
+      let yArr = schedulesMap.get(dateKey)
+      if (!(yArr instanceof Y.Array)) {
+        yArr = new Y.Array<Y.Map<unknown>>()
+        schedulesMap.set(dateKey, yArr)
+      }
+      const yItem = new Y.Map<unknown>()
+      yItem.set('id', null)
+      yItem.set('start_time', payload.startTimeLocal)
+
+      let offset: string | null = null
+      if (payload.endTimeLocal) {
+        try {
+          const start = new Date(payload.startTimeLocal)
+          const end = new Date(payload.endTimeLocal)
+          const ms = end.getTime() - start.getTime()
+          offset = toIntervalString(ms)
+        } catch {
+          offset = null
+        }
+      }
+      yItem.set('offset_time', offset)
+      yItem.set('memo', new Y.Text(payload.memo ?? ''))
+      const has_location = Boolean(payload.location)
+      yItem.set('has_location', has_location)
+      yItem.set(
+        'location',
+        has_location
+          ? {
+              id: null,
+              name: payload.location!.name,
+              full_address: payload.location!.full_address ?? '',
+              detail: payload.location!.detail ?? '',
+              latitude: payload.location!.latitude ?? null,
+              longitude: payload.location!.longitude ?? null,
+            }
+          : null
+      )
+      yArr.push([yItem])
+    },
+    []
+  )
+
+  return {
+    doc: providerRef.current?.doc ?? null,
+    tripInfo,
+    budgetsByDate,
+    schedulesByDate,
+    addBudget,
+    addSchedule,
+  }
+}
