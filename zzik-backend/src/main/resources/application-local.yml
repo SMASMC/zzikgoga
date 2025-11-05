@@ -30,7 +30,7 @@ swagger:
 
 clova-ocr:
   invoke-url: https://9b0f1vyfru.apigw.ntruss.com/custom/v1/47091/f279c51c3c879a1c442f2f74930c0e045ddbe27645cf55822df64e254e146a3d/document/receipt
-  secret-key: YU1tSkt5Z0RHZWZ1a3h3ek52QW5OT1hSa2xOc3VmY0I=
+  secret-key: UmRIU3pkdmVJeXFFYXlCZUZZeU5XYm1vc3JRc05OWmk=
 
 kakao:
   client-id: d681737d278913da69c79651d2267263

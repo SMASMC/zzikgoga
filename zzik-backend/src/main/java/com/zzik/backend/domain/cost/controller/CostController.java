@@ -6,6 +6,7 @@ import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -25,11 +26,12 @@ public class CostController implements CostApi {
 	private final CostService costService;
 
 	@Override
-	public ResponseEntity<ApiResponse<ReceiptOcrResponse>> uploadReceiptAndSave(Long tripId, MultipartFile file,
-		SaveCostRequest request) {
-		//ReceiptOcrResponse result = costService.ocrAndCreate(tripId, file, request);
-		//return ResponseEntity.ok(ApiResponse.createSuccess(result));
-		return ResponseEntity.ok(ApiResponse.createSuccess(null));
+	public ResponseEntity<ApiResponse<ReceiptOcrResponse>> uploadReceiptAndSave(
+		@PathVariable Long tripId,
+		@RequestPart("file") MultipartFile file
+	) {
+		ReceiptOcrResponse result = costService.ocrAndCreate(tripId, file);
+		return ResponseEntity.ok(ApiResponse.createSuccess(result));
 	}
 
 	@Override

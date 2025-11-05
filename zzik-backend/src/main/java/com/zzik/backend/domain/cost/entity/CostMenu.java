@@ -1,5 +1,10 @@
 package com.zzik.backend.domain.cost.entity;
 
+import java.util.List;
+
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import com.zzik.backend.global.base.entity.BaseEntity;
 
 import jakarta.persistence.Column;
@@ -33,27 +38,28 @@ public class CostMenu extends BaseEntity {
 	private String menuName;
 
 	@Column(name = "count", nullable = false)
-	private Short count = 1;
+	private int count;
 
 	@Column(name = "amount", nullable = false)
 	private Long amount;
 
 	@Column(name = "must_payer_ids", columnDefinition = "JSONB")
-	private String mustPayerIds;
+	@JdbcTypeCode(SqlTypes.JSON)
+	private List<Long> mustPayerIds;
 
 	public void setCost(Cost cost) {
 		this.cost = cost;
 	}
 
-	public void setMustPayerIds(String mustPayerIds) {
+	public void setMustPayerIds(List<Long> mustPayerIds) {
 		this.mustPayerIds = mustPayerIds;
 	}
 
 	@Builder
-	public CostMenu(Cost cost, String menuName, Short count, Long amount, String mustPayerIds) {
+	public CostMenu(Cost cost, String menuName, int count, Long amount, List<Long> mustPayerIds) {
 		this.cost = cost;
 		this.menuName = menuName;
-		this.count = count != null ? count : 1;
+		this.count = count;
 		this.amount = amount;
 		this.mustPayerIds = mustPayerIds;
 	}
