@@ -11,7 +11,7 @@ public record ReceiptOcrResponse(
 	@Schema(description = "결제 일시 원문") String date,
 	@Schema(description = "카드사") String cardCompany,
 	@Schema(description = "카드번호") String cardNumber,
-	@Schema(description = "총 구매액", defaultValue = "0L") Long totalPrice,
+	@Schema(description = "총 구매액", type = "integer", format = "int64", defaultValue = "0") Long totalPrice,
 	@Schema(description = "항목 리스트") List<ReceiptItemDto> items
 ) {
 	public ReceiptOcrResponse {

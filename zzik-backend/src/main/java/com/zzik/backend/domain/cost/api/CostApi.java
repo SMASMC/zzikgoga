@@ -31,7 +31,7 @@ public interface CostApi {
 	@ApiResponseExplanations(
 		success = @ApiSuccessResponseExplanation(
 			description = "OCR 분석 및 저장 성공 (생성된 비용 ID 반환)",
-			responseClass = Long.class
+			responseClass = ReceiptOcrResponse.class
 		),
 		errors = {
 			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.INVALID_TRIP),
