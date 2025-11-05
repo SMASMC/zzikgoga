@@ -7,7 +7,7 @@ import PlaceModal from './PlaceModal'
 
 const libraries: Libraries = ['places']
 
-interface NewPlace {
+export interface NewPlace {
   id: string
   displayName: { text: string }
   formattedAddress: string
@@ -235,7 +235,15 @@ const PlaceSearchPanel = () => {
       </div>
 
       {isModalOpen && selectedPlace ? (
-        <PlaceModal onClose={handleClosePlaceModal} placeName={selectedPlace.displayName.text} />
+        <PlaceModal
+          onClose={handleClosePlaceModal}
+          place={{
+            name: selectedPlace.displayName.text,
+            full_address: selectedPlace.formattedAddress,
+            latitude: selectedPlace.location.latitude,
+            longitude: selectedPlace.location.longitude,
+          }}
+        />
       ) : null}
     </aside>
   )
