@@ -25,6 +25,9 @@ swagger:
   server-url: "https://api.zzik.kr/api"
   description: "프로덕션 서버"
 
+invite:
+  base-url: https://zzik.kr/invite
+
 kakao:
   client-id: ${KAKAO_CLIENT_ID}
   redirect-uri: ${KAKAO_REDIRECT_URI}
