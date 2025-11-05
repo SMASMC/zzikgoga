@@ -14,6 +14,8 @@ NEED_ROLLBACK=0
 
 # 롤백 함수
 rollback_deployment() {
+  # trap 제거하여 롤백 중 재귀 방지
+  trap - ERR
   echo ""
   echo "🔄 배포 실패! 롤백을 시작합니다..."
 
@@ -76,6 +78,9 @@ rollback_deployment() {
   echo "⏰ 실패 시간: $(date '+%Y-%m-%d %H:%M:%S')"
   exit 1
 }
+
+# ERR 시그널 발생 시 자동 롤백
+trap 'rollback_deployment' ERR
 
 # 1) Env 파일 준비(Jenkins가 준비한 .env 필요)
 if [ ! -f "${ROOT_DIR}/.env" ]; then
@@ -221,6 +226,9 @@ fi
 
 # 최종 배포 성공 확인 후에만 이전 환경 정리
 echo "✅ 배포 성공 확인 완료"
+
+# trap 해제 - 이제 롤백이 필요 없음
+trap - ERR
 
 # 7) 이전 색(OLD) 백엔드만 안전 정리(DB/Redis/네트워크는 유지)
 if [ -n "$CURRENT" ]; then

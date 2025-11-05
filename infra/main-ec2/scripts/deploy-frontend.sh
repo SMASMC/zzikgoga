@@ -19,6 +19,8 @@ NEED_ROLLBACK=0
 
 # 롤백 함수
 rollback_deployment() {
+  # trap 제거하여 롤백 중 재귀 방지
+  trap - ERR
   echo ""
   echo "🔄 배포 실패! 롤백을 시작합니다..."
 
@@ -75,6 +77,9 @@ rollback_deployment() {
   echo "⏰ 실패 시간: $(date '+%Y-%m-%d %H:%M:%S')"
   exit 1
 }
+
+# ERR 시그널 발생 시 자동 롤백
+trap 'rollback_deployment' ERR
 
 # 현재 활성 환경 확인
 CURRENT_ENV=""
@@ -232,6 +237,9 @@ esac
 
 # 배포 성공 확인
 echo "✅ 배포 성공 확인 완료"
+
+# trap 해제 - 이제 롤백이 필요 없음
+trap - ERR
 
 # 기존 환경 종료 (성공 시에만)
 if [ "$CURRENT_ENV" != "" ]; then
