@@ -20,6 +20,7 @@ jwt:
   expiration-time:
     access-token: 1_800_000
     refresh-token: 604_800_000
+    invite-token: 86_400_000
 springdoc:
   api-docs:
     path: /v3/api-docs
