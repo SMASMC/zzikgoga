@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import com.zzik.backend.domain.plan.dto.request.CreateTripRequest;
+import com.zzik.backend.domain.plan.dto.request.InviteAcceptRequest;
+import com.zzik.backend.domain.plan.dto.response.InviteAcceptResponse;
 import com.zzik.backend.domain.plan.dto.response.InviteLinkResponse;
 import com.zzik.backend.domain.plan.dto.response.TripListResponse;
 import com.zzik.backend.global.annotation.swagger.ApiErrorResponseExplanation;
@@ -68,4 +70,20 @@ public interface PlanApi {
 	)
 	@PostMapping("/{tripId}/invite")
 	ResponseEntity<ApiResponse<InviteLinkResponse>> createInvite(@PathVariable Long tripId);
+
+	@Operation(summary = "여행 초대 수락(검증+멤버추가)")
+	@ApiResponseExplanations(
+		success = @ApiSuccessResponseExplanation(
+			description = "초대 수락 완료(혹은 이미 멤버)",
+			responseClass = InviteAcceptResponse.class
+		),
+		errors = {
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.TRIP_NOT_FOUND),
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.EMPTY_ACCESS_TOKEN),
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.MALFORMED_TOKEN),
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.EXPIRED_ACCESS_TOKEN)
+		}
+	)
+	@PostMapping(value = "/invite/accept", consumes = MediaType.APPLICATION_JSON_VALUE)
+	ResponseEntity<ApiResponse<InviteAcceptResponse>> acceptInvite(@RequestBody InviteAcceptRequest request);
 }
