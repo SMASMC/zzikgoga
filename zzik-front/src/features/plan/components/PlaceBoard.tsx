@@ -8,6 +8,9 @@ import { useSearchParams } from 'react-router-dom'
 import { cn } from '@/shared/utils/cn'
 import RemoteCursors from './RemoteCursors'
 import { useSharedCursors } from '../hooks/useSharedCursors'
+import { useYTripDoc } from '../hooks/useYTripDoc'
+import * as Y from 'yjs'
+import YTextEditor from './YTextEditor'
 
 const CHAT_AUTO_HIDE_MS = 5000
 
@@ -20,10 +23,21 @@ const formatTimestamp = (timestamp: number) =>
     minute: '2-digit',
   })
 
+const toTime = (isoLocal: string) =>
+  isoLocal?.length >= 16 ? isoLocal.slice(11, 16) : isoLocal || ''
+
 const PlaceBoard = () => {
   const [searchParams] = useSearchParams()
   const planId = searchParams.get('planId')
   const roomId = useMemo(() => getRoomId(planId), [planId])
+
+  // Schedules/Trip info (merged from SchedulePanel)
+  const { schedulesByDate, tripInfo, doc } = useYTripDoc(roomId)
+  let titleYText: Y.Text | null = null
+  if (doc) {
+    const t = (doc.getMap('tripInfo') as Y.Map<unknown>).get('title')
+    if (t instanceof Y.Text) titleYText = t
+  }
 
   const boardRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -101,7 +115,16 @@ const PlaceBoard = () => {
     }
   }, [clearCursor, isChatOpen, selfMessage])
 
-  const handlePointerDown = useCallback(() => {
+  const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement | null
+    if (target) {
+      const isInteractive = !!target.closest(
+        '[contenteditable="true"], input, textarea, select, button, a, [role="button"]'
+      )
+      if (isInteractive) {
+        return
+      }
+    }
     boardRef.current?.focus()
   }, [])
 
@@ -208,6 +231,8 @@ const PlaceBoard = () => {
     [clearAutoHideTimer]
   )
 
+  const hasSchedules = useMemo(() => Object.keys(schedulesByDate).length > 0, [schedulesByDate])
+
   return (
     <section className="relative flex flex-1 flex-col overflow-hidden border-x border-slate-200 bg-slate-50">
       <div
@@ -247,7 +272,12 @@ const PlaceBoard = () => {
           </div>
         ) : null}
 
-        <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-sm text-slate-500">
+        <div
+          className={cn(
+            'flex h-full flex-col items-center justify-center gap-3 text-center text-sm text-slate-500',
+            hasSchedules && 'hidden'
+          )}
+        >
           <div className="flex flex-col gap-1">
             <span className="text-base font-semibold text-slate-700">
               여행 일정 보드에 팀원과 함께 참여하세요.{' '}
@@ -255,6 +285,74 @@ const PlaceBoard = () => {
             <span>마우스를 움직이면 서로의 커서를, 메시지를 보내면 실시간으로 공유돼요.</span>
           </div>
         </div>
+
+        {hasSchedules ? (
+          <div className="flex h-full flex-col gap-4 p-4">
+            <header className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold text-slate-800">여행 일정</h2>
+              <div className="min-w-0 flex-1">
+                {titleYText ? (
+                  <YTextEditor ytext={titleYText} />
+                ) : (
+                  <span className="text-xs text-slate-400">Trip #{tripInfo.id ?? ''}</span>
+                )}
+              </div>
+            </header>
+            <div className="flex h-0 min-h-[60%] flex-1 flex-col gap-3 overflow-y-auto rounded-lg border border-slate-200 p-3 bg-white/80">
+              {Object.entries(schedulesByDate)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([date, items]) => (
+                  <div key={date} className="rounded-md border border-slate-100 bg-white p-2">
+                    <div className="mb-1 text-xs font-semibold text-slate-600">{date}</div>
+                    {items.length === 0 ? (
+                      <div className="text-xs text-slate-400">항목 없음</div>
+                    ) : (
+                      <ul className="space-y-1 text-sm">
+                        {items
+                          .slice()
+                          .sort((a, b) => a.start_time.localeCompare(b.start_time))
+                          .map((it, idx) => {
+                            let yMemo: Y.Text | null = null
+                            if (doc) {
+                              const yMap = doc.getMap('schedules') as Y.Map<unknown>
+                              const yArr = yMap.get(date) as Y.Array<Y.Map<unknown>> | undefined
+                              const yItem = yArr?.get(idx) as Y.Map<unknown> | undefined
+                              const m = yItem?.get('memo')
+                              if (m instanceof Y.Text) yMemo = m
+                            }
+                            return (
+                              <li
+                                key={`${date}-${it.id ?? 'n'}-${idx}`}
+                                className="rounded border border-slate-100 bg-white p-2"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="font-medium text-slate-800">
+                                    {it.location?.name || '일정'}
+                                  </span>
+                                  <span className="text-xs text-slate-500">
+                                    {toTime(it.start_time)}
+                                  </span>
+                                </div>
+                                {yMemo ? (
+                                  <div className="mt-1">
+                                    <YTextEditor ytext={yMemo} />
+                                  </div>
+                                ) : null}
+                                {it.location?.detail ? (
+                                  <div className="mt-0.5 line-clamp-1 text-[11px] text-slate-400">
+                                    {it.location.detail}
+                                  </div>
+                                ) : null}
+                              </li>
+                            )
+                          })}
+                      </ul>
+                    )}
+                  </div>
+                ))}
+            </div>
+          </div>
+        ) : null}
 
         <button
           type="button"
