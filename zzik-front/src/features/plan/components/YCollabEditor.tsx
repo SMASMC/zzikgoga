@@ -9,9 +9,10 @@ interface YCollabEditorProps {
   field: string
   initialText?: string
   className?: string
+  onPlainTextChange?: (text: string) => void
 }
 
-const YCollabEditor = ({ doc, field, initialText, className }: YCollabEditorProps) => {
+const YCollabEditor = ({ doc, field, initialText, className, onPlainTextChange }: YCollabEditorProps) => {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({}),
@@ -40,6 +41,23 @@ const YCollabEditor = ({ doc, field, initialText, className }: YCollabEditorProp
       //
     }
   }, [doc, editor, field, initialText])
+
+  // Mirror plain text to caller (used to keep legacy Y.Text memo in sync)
+  useEffect(() => {
+    if (!editor || !onPlainTextChange) return
+    let last = ''
+    const handler = () => {
+      const text = editor.getText({ blockSeparator: '\n' })
+      if (text !== last) {
+        last = text
+        onPlainTextChange(text)
+      }
+    }
+    editor.on('update', handler)
+    return () => {
+      editor.off('update', handler)
+    }
+  }, [editor, onPlainTextChange])
 
   useEffect(() => () => editor?.destroy(), [editor])
 
