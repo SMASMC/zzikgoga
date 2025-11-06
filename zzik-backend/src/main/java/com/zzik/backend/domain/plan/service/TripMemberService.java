@@ -2,8 +2,8 @@ package com.zzik.backend.domain.plan.service;
 
 import org.springframework.stereotype.Service;
 
-import com.zzik.backend.domain.cost.repository.TripMemberRepository;
 import com.zzik.backend.domain.plan.entity.TripMember;
+import com.zzik.backend.domain.plan.repository.TripMemberRepository;
 import com.zzik.backend.global.exception.BusinessException;
 import com.zzik.backend.global.exception.ExceptionCode;
 

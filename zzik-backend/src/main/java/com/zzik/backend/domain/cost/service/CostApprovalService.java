@@ -7,8 +7,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.zzik.backend.domain.cost.dto.request.CostApprovalRequest;
 import com.zzik.backend.domain.cost.dto.response.CostApprovalResponse;
-import com.zzik.backend.domain.cost.repository.TripMemberRepository;
 import com.zzik.backend.domain.plan.entity.TripMember;
+import com.zzik.backend.domain.plan.repository.TripMemberRepository;
 import com.zzik.backend.domain.plan.repository.TripRepository;
 import com.zzik.backend.domain.plan.service.TripMemberService;
 import com.zzik.backend.global.exception.BusinessException;
@@ -25,7 +25,7 @@ public class CostApprovalService {
 	private final TripMemberService tripMemberService;
 
 	@Transactional
-	CostApprovalResponse doCostApproval(Long tripId, CostApprovalRequest request) {
+	public CostApprovalResponse doCostApproval(Long tripId, CostApprovalRequest request) {
 		//1. TripMemeber의 isCostAccepted를 True로
 		long memberId = SecurityUtil.getCurrentMemberId();
 		if (!tripRepository.existsById(tripId))

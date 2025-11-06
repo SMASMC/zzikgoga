@@ -13,6 +13,8 @@ public interface TripMemberRepository extends JpaRepository<TripMember, Long> {
 	boolean existsByTripIdAndMemberId(Long tripId, Long memberId);
 
 	Optional<TripMember> findByTripIdAndMemberId(Long tripId, Long memberId);
-	
+
 	void deleteByTripId(Long tripId);
+
+	Optional<TripMember> findByMember_IdAndTrip_Id(long memberId, Long tripId);
 }
