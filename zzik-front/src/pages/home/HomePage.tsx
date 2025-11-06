@@ -160,7 +160,7 @@ const HomePage = () => {
                   {(() => {
                     const primary =
                       current.id === 1
-                        ? { label: '계획 하기', to: '/plan' }
+                        ? { label: '계획 하기', to: '/mypage' }
                         : current.id === 2
                           ? { label: '정산 하기', to: '/settle' }
                           : current.id === 3

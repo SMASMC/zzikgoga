@@ -4,15 +4,15 @@ import type {
   KeyboardEvent as ReactKeyboardEvent,
   FormEvent as ReactFormEvent,
 } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { cn } from '@/shared/utils/cn'
 import RemoteCursors from './RemoteCursors'
 import { useSharedCursors } from '../hooks/useSharedCursors'
 
 const CHAT_AUTO_HIDE_MS = 5000
 
-const getRoomId = (planId: string | null) =>
-  planId && planId.trim().length > 0 ? `trip-${planId.trim()}` : 'trip-3'
+const getRoomId = (tripId: string | undefined) =>
+  tripId && tripId.trim().length > 0 ? `trip-${tripId.trim()}` : 'trip-default'
 
 const formatTimestamp = (timestamp: number) =>
   new Date(timestamp).toLocaleTimeString('ko-KR', {
@@ -21,9 +21,8 @@ const formatTimestamp = (timestamp: number) =>
   })
 
 const PlaceBoard = () => {
-  const [searchParams] = useSearchParams()
-  const planId = searchParams.get('planId')
-  const roomId = useMemo(() => getRoomId(planId), [planId])
+  const { tripId } = useParams<{ tripId: string }>()
+  const roomId = useMemo(() => getRoomId(tripId), [tripId])
 
   const boardRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)

@@ -5,6 +5,14 @@ export interface TravelAddCardProps {
   onCreateTravel: () => void
 }
 
+// 여행 카드 props 정의
+export interface TravelCardProps {
+  tripId: number
+  title: string
+  date: string
+  img: string
+}
+
 export interface CreateTravelRequest {
   title: string
   start_date: string
@@ -17,7 +25,7 @@ export interface CreateTravelRequest {
 
 // 여행 정보 (목록 조회 시)
 export interface Travel {
-  id: number
+  tripId: number // 전역 고유 식별자 (사용자별 연속되지 않을 수 있음: 1, 3, 4, 10 등)
   title: string
   start_date: string
   end_date: string

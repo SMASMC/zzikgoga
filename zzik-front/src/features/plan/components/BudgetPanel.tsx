@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import SolidButton from '@/components/atoms/SolidButton'
 import Input from '@/components/atoms/Input'
 import { useYTripDoc } from '../hooks/useYTripDoc'
@@ -9,11 +9,10 @@ import * as Y from 'yjs'
 const todayKey = () => new Date().toISOString().slice(0, 10)
 
 const BudgetPanel = () => {
-  const [searchParams] = useSearchParams()
-  const planId = searchParams.get('planId')
+  const { tripId } = useParams<{ tripId: string }>()
   const roomId = useMemo(
-    () => (planId && planId.trim().length > 0 ? `trip-${planId.trim()}` : 'trip-3'),
-    [planId]
+    () => (tripId && tripId.trim().length > 0 ? `trip-${tripId.trim()}` : 'trip-default'),
+    [tripId]
   )
 
   const { budgetsByDate, addBudget, doc } = useYTripDoc(roomId)
