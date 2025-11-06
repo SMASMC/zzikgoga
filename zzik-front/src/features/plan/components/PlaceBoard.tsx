@@ -361,6 +361,12 @@ const PlaceBoard = () => {
                           .map((it, originalIndex) => ({ it, originalIndex }))
                           .sort((a, b) => a.it.start_time.localeCompare(b.it.start_time))
                           .map(({ it, originalIndex }) => {
+                            let yItem: Y.Map<unknown> | undefined
+                            if (doc) {
+                              const yMap = doc.getMap('schedules') as Y.Map<unknown>
+                              const yArr = yMap.get(date) as Y.Array<Y.Map<unknown>> | undefined
+                              yItem = yArr?.get(originalIndex) as Y.Map<unknown> | undefined
+                            }
                             return (
                               <li
                                 key={`${date}-${it.id ?? 'n'}-${originalIndex}`}
@@ -397,6 +403,18 @@ const PlaceBoard = () => {
                                       doc={doc}
                                       field={`memo-${it.uid || `${date}-${originalIndex}`}`}
                                       initialText={it.memo}
+                                      onPlainTextChange={(text) => {
+                                        if (!doc || !yItem) return
+                                        doc.transact(() => {
+                                          const m = yItem!.get('memo') as unknown
+                                          if (m instanceof Y.Text) {
+                                            m.delete(0, (m as Y.Text).length)
+                                            m.insert(0, text)
+                                          } else {
+                                            yItem!.set('memo', new Y.Text(text))
+                                          }
+                                        }, 'mirror-memo')
+                                      }}
                                     />
                                   ) : null}
                                 </div>
