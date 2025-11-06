@@ -20,6 +20,7 @@ export interface YLocationItem {
 
 export interface YScheduleItem {
   id: number | null
+  uid: string
   start_time: string // 'YYYY-MM-DDTHH:mm'
   offset_time: string | null // 'HH:MM' string or null
   has_location: boolean
@@ -76,6 +77,7 @@ const snapshotSchedules = (doc: Y.Doc): Record<string, YScheduleItem[]> => {
     const items: YScheduleItem[] = []
     yArr.forEach((yMap) => {
       const id = (yMap.get('id') as number) ?? null
+      const uid = (yMap.get('uid') as string) ?? ''
       const start_time = (yMap.get('start_time') as string) ?? ''
       const offset_time = (yMap.get('offset_time') as string | null) ?? null
       const has_location = Boolean(yMap.get('has_location'))
@@ -93,7 +95,7 @@ const snapshotSchedules = (doc: Y.Doc): Record<string, YScheduleItem[]> => {
           longitude: (obj.longitude as number) ?? null,
         }
       })()
-      items.push({ id, start_time, offset_time, has_location, location, memo })
+      items.push({ id, uid, start_time, offset_time, has_location, location, memo })
     })
     result[dateKey] = items
   })
@@ -146,6 +148,20 @@ export const useYTripDoc = (roomId: string) => {
     budgetsMap.observeDeep(budgetsObserver)
     schedulesMap.observeDeep(schedulesObserver)
     tripMap.observe(tripObserver)
+
+    // Ensure each schedule item has a stable uid
+    const ensureUids = () => {
+      const sm = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
+      sm.forEach((arr) => {
+        arr.forEach((m) => {
+          const u = m.get('uid') as string | undefined
+          if (!u || typeof u !== 'string' || u.length < 5) {
+            m.set('uid', `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
+          }
+        })
+      })
+    }
+    ensureUids()
 
     return () => {
       budgetsMap.unobserveDeep(budgetsObserver)
@@ -203,6 +219,7 @@ export const useYTripDoc = (roomId: string) => {
       }
       const yItem = new Y.Map<unknown>()
       yItem.set('id', null)
+      yItem.set('uid', `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
       yItem.set('start_time', payload.startTimeLocal)
 
       let offset: string | null = null
@@ -240,6 +257,7 @@ export const useYTripDoc = (roomId: string) => {
 
   return {
     doc: providerRef.current?.doc ?? null,
+    awareness: (providerRef.current?.awareness as unknown) ?? null,
     tripInfo,
     budgetsByDate,
     schedulesByDate,
