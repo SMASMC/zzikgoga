@@ -7,6 +7,10 @@ echo "⏰ 시작 시간: $(date '+%Y-%m-%d %H:%M:%S')"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DB_DIR="${ROOT_DIR}/db"
 PROJECT="main-ec2"
+IMAGE_NAME="${IMAGE_NAME:-zzikgoga}"
+IMAGE_TAG="${IMAGE_TAG:-latest}"
+CURRENT_IMAGE="${IMAGE_NAME}:${IMAGE_TAG}"
+PREVIOUS_IMAGE="${IMAGE_NAME}:${IMAGE_TAG}-previous"
 
 # 롤백 플래그
 DEPLOYMENT_FAILED=0
@@ -14,19 +18,26 @@ NEED_ROLLBACK=0
 
 # 롤백 함수
 rollback_deployment() {
+  # trap 제거하여 롤백 중 재귀 방지
+  trap - ERR
   echo ""
   echo "🔄 배포 실패! 롤백을 시작합니다..."
 
   # 새로 배포한 컨테이너 중지 및 제거
   if [ -n "${NEW:-}" ] && docker ps -a --format '{{.Names}}' | grep -qx "zzikgoga-${NEW}"; then
-    echo "  🛑 새 컨테이너 중지 중: zzikgoga-${NEW}"
+    echo "  🔥 신규 컨테이너 중지: zzikgoga-${NEW}"
     docker stop "zzikgoga-${NEW}" 2>/dev/null || true
     docker rm -f "zzikgoga-${NEW}" 2>/dev/null || true
 
-    # docker-compose로 완전히 정리
+    # docker-compose로 신규 리소스 정리
     if [ -f "${ROOT_DIR}/docker-compose-backend-${NEW}.yml" ]; then
       ( cd "${ROOT_DIR}" && docker compose -p "${PROJECT}" -f "docker-compose-backend-${NEW}.yml" down 2>/dev/null || true )
     fi
+  fi
+
+  if docker image inspect "${PREVIOUS_IMAGE}" >/dev/null 2>&1; then
+    echo "  🔁 Docker 이미지 태그 복구: ${CURRENT_IMAGE} ← ${PREVIOUS_IMAGE}"
+    docker tag "${PREVIOUS_IMAGE}" "${CURRENT_IMAGE}" || true
   fi
 
   # 이전 환경이 있었다면 복구
@@ -76,6 +87,9 @@ rollback_deployment() {
   echo "⏰ 실패 시간: $(date '+%Y-%m-%d %H:%M:%S')"
   exit 1
 }
+
+# ERR 시그널 발생 시 자동 롤백
+trap 'rollback_deployment' ERR
 
 # 1) Env 파일 준비(Jenkins가 준비한 .env 필요)
 if [ ! -f "${ROOT_DIR}/.env" ]; then
@@ -144,6 +158,14 @@ GREEN_UP=$(docker ps --format '{{.Names}}' | grep -c '^zzikgoga-green$' || true)
 CURRENT=""; [ "$BLUE_UP" -gt 0 ] && CURRENT=blue; [ "$GREEN_UP" -gt 0 ] && CURRENT=green
 if [ "$CURRENT" = "blue" ]; then NEW=green; NEW_PORT=8082; OLD=blue; OLD_PORT=8081; else NEW=blue; NEW_PORT=8081; OLD=green; OLD_PORT=8082; fi
 echo "📋 current=${CURRENT:-none} → new=$NEW ($NEW_PORT)"
+
+# 4-1) 현재 이미지를 백업 태그로 저장 (롤백을 위해)
+if docker image inspect "${CURRENT_IMAGE}" >/dev/null 2>&1; then
+  echo "💾 현재 이미지 백업: ${CURRENT_IMAGE} → ${PREVIOUS_IMAGE}"
+  docker tag "${CURRENT_IMAGE}" "${PREVIOUS_IMAGE}" || true
+else
+  echo "ℹ️ 현재 이미지가 없습니다 (첫 배포일 수 있음)"
+fi
 
 # 4) 새 색 기동(compose up -d)
 ( cd "${ROOT_DIR}" && docker compose -p "${PROJECT}" -f "docker-compose-backend-${NEW}.yml" up -d )
@@ -221,6 +243,9 @@ fi
 
 # 최종 배포 성공 확인 후에만 이전 환경 정리
 echo "✅ 배포 성공 확인 완료"
+
+# trap 해제 - 이제 롤백이 필요 없음
+trap - ERR
 
 # 7) 이전 색(OLD) 백엔드만 안전 정리(DB/Redis/네트워크는 유지)
 if [ -n "$CURRENT" ]; then
