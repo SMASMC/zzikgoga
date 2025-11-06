@@ -6,7 +6,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -20,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.zzik.backend.domain.auth.entity.Member;
 import com.zzik.backend.domain.plan.dto.request.CreateTripRequest;
+import com.zzik.backend.domain.plan.dto.response.ExitTripResponse;
 import com.zzik.backend.domain.plan.dto.response.InviteAcceptResponse;
 import com.zzik.backend.domain.plan.dto.response.TripListResponse;
 import com.zzik.backend.domain.plan.dto.response.TripSummaryResponse;
@@ -45,8 +45,6 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class PlanService {
-
-	private static final DateTimeFormatter RESP_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
 	private final TripRepository tripRepository;
 	private final TripCompanionRepository tripCompanionRepository;
@@ -223,6 +221,25 @@ public class PlanService {
 		} catch (Exception e) {
 			throw BusinessException.from(ExceptionCode.MALFORMED_TOKEN);
 		}
+	}
+
+	@Transactional
+	public ExitTripResponse exitTrip(Long memberId, Long tripId) {
+		// 여행 ID가 유효한지 확인
+		Trip trip = tripRepository.findById(tripId)
+			.orElseThrow(() -> BusinessException.from(ExceptionCode.TRIP_NOT_FOUND));
+
+		// 사용자가 해당 여행에 참여한 멤버인지 확인
+		boolean isMember = tripMemberRepository.existsByTripIdAndMemberId(tripId, memberId);
+		if (!isMember) {
+			throw BusinessException.from(ExceptionCode.NOT_TRIP_MEMBER);
+		}
+
+		tripMemberRepository.deleteByTripIdAndMemberId(tripId, memberId);
+
+		return ExitTripResponse.builder()
+			.deleted(true)
+			.build();
 	}
 
 	private void assertLatestJti(Long tripId, String jti) {

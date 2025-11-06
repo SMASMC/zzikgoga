@@ -3,11 +3,13 @@ package com.zzik.backend.domain.plan.controller;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.zzik.backend.domain.plan.api.PlanApi;
 import com.zzik.backend.domain.plan.dto.request.CreateTripRequest;
 import com.zzik.backend.domain.plan.dto.request.InviteAcceptRequest;
+import com.zzik.backend.domain.plan.dto.response.ExitTripResponse;
 import com.zzik.backend.domain.plan.dto.response.InviteAcceptResponse;
 import com.zzik.backend.domain.plan.dto.response.InviteLinkResponse;
 import com.zzik.backend.domain.plan.dto.response.TripListResponse;
@@ -58,6 +60,15 @@ public class PlanController implements PlanApi {
 				.body(ApiResponse.createError(ExceptionCode.MALFORMED_TOKEN));
 		}
 		var res = planService.acceptInvite(token, memberId); // 이미 구현한 서비스 로직 재사용
+		return ResponseEntity.ok(ApiResponse.createSuccess(res));
+	}
+
+	@Override
+	public ResponseEntity<ApiResponse<ExitTripResponse>> exitTrip(@PathVariable Long tripId) {
+		Long memberId = SecurityUtil.getCurrentMemberId();
+
+		var res = planService.exitTrip(memberId, tripId);
+
 		return ResponseEntity.ok(ApiResponse.createSuccess(res));
 	}
 }

@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 import com.zzik.backend.domain.plan.dto.request.CreateTripRequest;
 import com.zzik.backend.domain.plan.dto.request.InviteAcceptRequest;
+import com.zzik.backend.domain.plan.dto.response.ExitTripResponse;
 import com.zzik.backend.domain.plan.dto.response.InviteAcceptResponse;
 import com.zzik.backend.domain.plan.dto.response.InviteLinkResponse;
 import com.zzik.backend.domain.plan.dto.response.TripListResponse;
@@ -86,4 +88,19 @@ public interface PlanApi {
 	)
 	@PostMapping(value = "/invite/accept", consumes = MediaType.APPLICATION_JSON_VALUE)
 	ResponseEntity<ApiResponse<InviteAcceptResponse>> acceptInvite(@RequestBody InviteAcceptRequest request);
+
+	@Operation(summary = "여행 나가기")
+	@ApiResponseExplanations(
+		success = @ApiSuccessResponseExplanation(
+			description = "여행 나가기 성공",
+			responseClass = String.class   // 성공 메시지나 상태 코드 반환
+		),
+		errors = {
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.TRIP_NOT_FOUND),
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.NOT_TRIP_MEMBER),
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.INVALID_ACCESS_TOKEN)
+		}
+	)
+	@DeleteMapping(value = "/exit/{tripId}")
+	ResponseEntity<ApiResponse<ExitTripResponse>> exitTrip(@PathVariable Long tripId);
 }
