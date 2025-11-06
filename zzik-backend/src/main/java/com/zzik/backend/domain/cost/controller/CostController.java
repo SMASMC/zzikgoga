@@ -36,12 +36,13 @@ public class CostController implements CostApi {
 		return ResponseEntity.ok(ApiResponse.createSuccess(result));
 	}
 
+	// 정산 직접 입력
 	@Override
 	public ResponseEntity<ApiResponse<Map<String, Long>>> createCost(
 		@PathVariable Long tripId,
 		@RequestBody SaveCostRequest request
 	) {
-		Long id = costService.createCost(tripId, request);
+		Long id = costService.createCost(tripId, request, null);
 		Map<String, Long> content = Map.of("costId", id);
 		return ResponseEntity.ok(ApiResponse.createSuccess(content));
 	}

@@ -32,7 +32,7 @@ public class Photo extends BaseEntity {
 	private Trip trip; // 사진이 속한 여행 (FK to trip.id)
 
 	@Column(name = "s3_url", length = 1024, nullable = false)
-	private String s3Url; // S3에 저장된 사진 URL
+	private String s3Url; // S3 object key (presigned URL 생성에 사용)
 
 	@Builder
 	public Photo(Member member, Trip trip, String s3Url) {
