@@ -10,7 +10,7 @@ const MyPageHeader = () => {
     <header className="w-full bg-white shadow-md">
       <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
         <Link to="/" className="text-2xl font-bold text-main-600">
-          <img src="zzikgoga_logo.png" alt="logo" className="w-32" />
+          <img src="/zzikgoga_logo.png" alt="logo" className="w-32" />
         </Link>
         <div className="flex items-center gap-4">
           <div className="px-5 py-2 text-text-600 font-bmjua">

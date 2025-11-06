@@ -162,7 +162,7 @@ const HomePage = () => {
                       current.id === 1
                         ? { label: '계획 하기', to: '/mypage' }
                         : current.id === 2
-                          ? { label: '정산 하기', to: '/settle' }
+                          ? { label: '정산 하기', to: '/mypage' }
                           : current.id === 3
                             ? { label: '기록 하기', to: '/mypage' }
                             : { label: '시작하기', to: '/' }

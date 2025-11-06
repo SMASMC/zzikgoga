@@ -49,7 +49,7 @@ const Header = ({ transparentUntilScroll = false, scrollOffset = 10 }: HeaderPro
     <header className={`${wrapperBase} ${wrapperMode}`}>
       <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
         <Link to="/" className="text-2xl font-bold">
-          <img src="zzikgoga_logo.png" alt="logo" className="w-32" />
+          <img src="/zzikgoga_logo.png" alt="logo" className="w-32" />
         </Link>
 
         <div className="flex gap-4 items-center">
