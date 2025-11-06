@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.zzik.backend.domain.cost.dto.request.SaveCostRequest;
+import com.zzik.backend.domain.cost.dto.response.CostItemDetailResponse;
 import com.zzik.backend.domain.cost.dto.response.ReceiptOcrResponse;
 import com.zzik.backend.global.annotation.swagger.ApiErrorResponseExplanation;
 import com.zzik.backend.global.annotation.swagger.ApiResponseExplanations;
@@ -71,5 +73,27 @@ public interface CostApi {
 	ResponseEntity<ApiResponse<Map<String, Long>>> createCost(
 		@PathVariable Long tripId,
 		@RequestBody SaveCostRequest request
+	);
+
+	@Operation(
+		summary = "정산 내역 상세 조회",
+		description = "정산 내역에 대해서 상세 내역을 조회합니다."
+	)
+	@ApiResponseExplanations(
+		success = @ApiSuccessResponseExplanation(
+			description = "정산 상세 내역 조회 성공",
+			responseClass = CostItemDetailResponse.class
+		),
+		errors = {
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.INVALID_TRIP),
+		}
+	)
+	@GetMapping(
+		value = "/{tripId}/{costId}",
+		produces = MediaType.APPLICATION_JSON_VALUE
+	)
+	ResponseEntity<ApiResponse<CostItemDetailResponse>> getCostDetail(
+		@PathVariable Long tripId,
+		@PathVariable Long costId
 	);
 }

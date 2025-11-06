@@ -31,6 +31,7 @@ import com.zzik.backend.domain.auth.repository.MemberRepository;
 import com.zzik.backend.domain.cost.config.ClovaOcrProperties;
 import com.zzik.backend.domain.cost.dto.request.SaveCostMenuItem;
 import com.zzik.backend.domain.cost.dto.request.SaveCostRequest;
+import com.zzik.backend.domain.cost.dto.response.CostItemDetailResponse;
 import com.zzik.backend.domain.cost.dto.response.ReceiptItemDto;
 import com.zzik.backend.domain.cost.dto.response.ReceiptOcrResponse;
 import com.zzik.backend.domain.cost.entity.Cost;
@@ -280,7 +281,6 @@ public class CostService {
 				.mustPayerIds(mustJson)
 				.build();
 			menus.add(m);
-			// costMenuRepository.save(m);
 		}
 		costMenuRepository.saveAll(menus);
 
@@ -294,19 +294,6 @@ public class CostService {
 
 	private String trimOrNull(String s) {
 		return (s == null || s.isBlank()) ? null : s.trim();
-	}
-
-	@Transactional
-	public void replaceMembers(Long costMenuId, List<Long> memberIds) {
-		CostMenu menu = costMenuRepository.findById(costMenuId)
-			.orElseThrow(() -> new IllegalArgumentException("cost_menu not found: " + costMenuId));
-		if (memberIds == null || memberIds.isEmpty()) {
-			menu.setMustPayerIds(null);
-		} else {
-			List<Long> uniq = memberIds.stream().filter(Objects::nonNull).distinct().sorted().toList();
-			menu.setMustPayerIds(uniq);
-		}
-		costMenuRepository.save(menu);
 	}
 
 	private SaveCostRequest mapOcrToRequest(ReceiptOcrResponse ocr) {
@@ -367,5 +354,45 @@ public class CostService {
 		} catch (Exception ignore) {
 			return null;
 		}
+	}
+
+	@Transactional(readOnly = true)
+	public CostItemDetailResponse getCostDetail(Long tripId, Long costId) {
+		// 1) Trip 존재 여부 확인
+		Trip trip = tripRepository.findById(tripId)
+			.orElseThrow(() -> BusinessException.from(ExceptionCode.INVALID_TRIP));
+
+		// 2) Cost 조회 및 Trip 매칭 검증
+		Cost cost = costRepository.findById(costId)
+			.orElseThrow(() -> BusinessException.from(ExceptionCode.INVALID_TRIP));
+		if (!cost.getTrip().getId().equals(trip.getId())) {
+			throw BusinessException.from(ExceptionCode.INVALID_TRIP);
+		}
+
+		// 3) CostMenu 항목 조회
+		List<CostMenu> menus = costMenuRepository.findAllByCost_Id(costId);
+
+		// 4) 응답 변환
+		List<com.zzik.backend.domain.cost.dto.response.CostItemResponse> items = new ArrayList<>();
+		for (CostMenu m : menus) {
+			items.add(com.zzik.backend.domain.cost.dto.response.CostItemResponse.builder()
+				.menuName(m.getMenuName())
+				.count(m.getCount())
+				.amount(m.getAmount())
+				.memberIds(m.getMustPayerIds())
+				.build());
+		}
+
+		return CostItemDetailResponse.builder()
+			.costId(cost.getId())
+			.createdBy(cost.getCreatedBy() != null ? cost.getCreatedBy().getId() : null)
+			.payerId(cost.getPayer() != null ? cost.getPayer().getId() : null)
+			.paidAt(cost.getPaidAt())
+			.place(cost.getPlace())
+			.totalAmount(cost.getTotalAmount())
+			.memo(cost.getMemo())
+			.receiptJson(cost.getReceipt())
+			.items(items)
+			.build();
 	}
 }
