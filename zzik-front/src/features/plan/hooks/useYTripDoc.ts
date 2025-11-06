@@ -21,7 +21,7 @@ export interface YLocationItem {
 export interface YScheduleItem {
   id: number | null
   start_time: string // 'YYYY-MM-DDTHH:mm'
-  offset_time: string | null // Postgres interval string or null
+  offset_time: string | null // 'HH:MM' string or null
   has_location: boolean
   location: YLocationItem | null
   memo: string
@@ -36,17 +36,14 @@ export interface TripInfoPlain {
 
 const yTextToString = (v: unknown) => (v instanceof Y.Text ? v.toString() : String(v ?? ''))
 
-const toIntervalString = (ms: number): string | null => {
+const toOffsetHHMM = (ms: number): string | null => {
   if (!Number.isFinite(ms) || ms <= 0) return null
-  const totalSeconds = Math.floor(ms / 1000)
-  const hours = Math.floor(totalSeconds / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-  const seconds = totalSeconds % 60
-  const parts: string[] = []
-  if (hours) parts.push(`${hours} hours`)
-  if (minutes) parts.push(`${minutes} minutes`)
-  if (seconds && !hours && !minutes) parts.push(`${seconds} seconds`)
-  return parts.length ? parts.join(' ') : null
+  const totalMinutes = Math.floor(ms / 60000)
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  const hh = String(hours).padStart(2, '0')
+  const mm = String(minutes).padStart(2, '0')
+  return `${hh}:${mm}`
 }
 
 const dateKeyOf = (isoLocalMinute: string) => isoLocalMinute.slice(0, 10)
@@ -214,7 +211,7 @@ export const useYTripDoc = (roomId: string) => {
           const start = new Date(payload.startTimeLocal)
           const end = new Date(payload.endTimeLocal)
           const ms = end.getTime() - start.getTime()
-          offset = toIntervalString(ms)
+          offset = toOffsetHHMM(ms)
         } catch {
           offset = null
         }
@@ -248,5 +245,82 @@ export const useYTripDoc = (roomId: string) => {
     schedulesByDate,
     addBudget,
     addSchedule,
+    updateScheduleTime: useCallback(
+      (
+        dateKey: string,
+        index: number,
+        updates: { startTimeLocal?: string; offsetHHMM?: string | null }
+      ) => {
+        const entry = providerRef.current
+        if (!entry) return
+        const { doc } = entry
+        const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
+        const yArr = schedulesMap.get(dateKey)
+        if (!(yArr instanceof Y.Array)) return
+        const yItem = yArr.get(index) as Y.Map<unknown> | undefined
+        if (!yItem) return
+
+        const applyOffset = (map: Y.Map<unknown>) => {
+          if (updates.offsetHHMM !== undefined) {
+            map.set('offset_time', updates.offsetHHMM)
+          }
+        }
+
+        if (updates.startTimeLocal) {
+          const newDateKey = dateKeyOf(updates.startTimeLocal)
+          if (newDateKey === dateKey) {
+            yItem.set('start_time', updates.startTimeLocal)
+            applyOffset(yItem)
+          } else {
+            // Clone current item into a fresh Y.Map to avoid re-inserting integrated types across arrays
+            const snapshot = {
+              id: (yItem.get('id') as number) ?? null,
+              has_location: Boolean(yItem.get('has_location')),
+              location: yItem.get('location') as unknown,
+              memo: yItem.get('memo') as unknown,
+              offset_time: (yItem.get('offset_time') as string | null) ?? null,
+            }
+            const newMap = new Y.Map<unknown>()
+            newMap.set('id', snapshot.id)
+            newMap.set('start_time', updates.startTimeLocal)
+            newMap.set('has_location', snapshot.has_location)
+            // copy memo as plain text into a fresh Y.Text to avoid cross-parent insert of same Y.Text
+            const memoText =
+              snapshot.memo instanceof Y.Text
+                ? snapshot.memo.toString()
+                : String(snapshot.memo ?? '')
+            newMap.set('memo', new Y.Text(memoText))
+            // location can be plain object or null
+            newMap.set(
+              'location',
+              snapshot.location && typeof snapshot.location === 'object'
+                ? { ...(snapshot.location as object) }
+                : null
+            )
+            // offset_time
+            newMap.set(
+              'offset_time',
+              updates.offsetHHMM !== undefined ? updates.offsetHHMM : snapshot.offset_time
+            )
+
+            let nextArr = schedulesMap.get(newDateKey)
+            if (!(nextArr instanceof Y.Array)) {
+              nextArr = new Y.Array<Y.Map<unknown>>()
+              schedulesMap.set(newDateKey, nextArr)
+            }
+            nextArr.push([newMap])
+            // remove old item last
+            yArr.delete(index, 1)
+            // if the old array is empty, remove the date key entirely
+            if (yArr.length === 0) {
+              schedulesMap.delete(dateKey)
+            }
+          }
+        } else {
+          applyOffset(yItem)
+        }
+      },
+      []
+    ),
   }
 }
