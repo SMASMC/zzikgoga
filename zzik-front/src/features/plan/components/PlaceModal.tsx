@@ -1,6 +1,6 @@
 import SolidButton from '@/components/atoms/SolidButton'
 import { useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useYTripDoc } from '../hooks/useYTripDoc'
 
 interface PlaceModalProps {
@@ -19,11 +19,10 @@ const PlaceModal = ({ onClose, place }: PlaceModalProps) => {
   const [activity, setActivity] = useState<string>('')
   const [detailAddress, setDetailAddress] = useState<string>('')
 
-  const [searchParams] = useSearchParams()
-  const planId = searchParams.get('planId')
+  const { tripId } = useParams<{ tripId: string }>()
   const roomId = useMemo(
-    () => (planId && planId.trim().length > 0 ? `trip-${planId.trim()}` : 'trip-3'),
-    [planId]
+    () => (tripId && tripId.trim().length > 0 ? `trip-${tripId.trim()}` : 'trip-default'),
+    [tripId]
   )
   const { addSchedule } = useYTripDoc(roomId)
 

@@ -2,31 +2,33 @@
 // 여행 생성 카드와 기존 여행 카드를 위한 컴포넌트
 
 import { useState } from 'react'
-import { TravelAddCardProps } from '../types/mypage'
+import { useNavigate } from 'react-router-dom'
+import { TravelAddCardProps, TravelCardProps } from '../types/mypage'
 import SolidButton from '@/components/atoms/SolidButton'
 
-const TravelCard = ({ title, date, img }: { title: string; date: string; img: string }) => {
+const TravelCard = ({ tripId, title, date, img }: TravelCardProps) => {
+  const navigate = useNavigate()
   const [isButtonHovered, setIsButtonHovered] = useState(false)
   const [imageSrc, setImageSrc] = useState(img || '/pwa-512x512.png')
 
-  // TODO: 카드 클릭 시 실행할 함수 (여행 상세 페이지로 이동)
+  // 카드 클릭 시 여행 계획 페이지로 이동
   const handleCardClick = () => {
-    console.log('카드 클릭 - 여행 상세 페이지로 이동')
-    // 여기에 여행 상세 페이지 이동 함수 추가 (예: navigate(`/trip/${id}`))
+    console.log(`카드 클릭 - 여행 계획 페이지로 이동 (tripId: ${tripId})`)
+    navigate(`/plan/${tripId}`)
   }
 
   // TODO: 정산하기 버튼 클릭 시 실행할 함수
   const handleSettlementClick = (e: React.MouseEvent) => {
     e.stopPropagation() // 카드 클릭 이벤트 전파 방지
-    console.log('정산하기 버튼 클릭 - 정산 페이지로 이동')
-    // 여기에 정산 페이지 이동 함수 추가 (예: navigate(`/settlement/${id}`))
+    console.log(`정산하기 버튼 클릭 - 정산 페이지로 이동 (tripId: ${tripId})`)
+    // 여기에 정산 페이지 이동 함수 추가 (예: navigate(`/settlement/${tripId}`))
   }
 
   // TODO: 사진 버튼 클릭 시 실행할 함수
   const handlePhotoClick = (e: React.MouseEvent) => {
     e.stopPropagation() // 카드 클릭 이벤트 전파 방지
-    console.log('사진 버튼 클릭 - 사진 갤러리로 이동')
-    // 여기에 사진 갤러리 이동 함수 추가 (예: navigate(`/gallery/${id}`))
+    console.log(`사진 버튼 클릭 - 사진 갤러리로 이동 (tripId: ${tripId})`)
+    // 여기에 사진 갤러리 이동 함수 추가 (예: navigate(`/gallery/${tripId}`))
   }
 
   // 이미지 로드 실패 시 기본 이미지로 대체

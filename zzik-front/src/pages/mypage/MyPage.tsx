@@ -70,7 +70,8 @@ const MyPage = () => {
             ) : (
               travels.map((travel) => (
                 <TravelCard
-                  key={travel.id}
+                  key={travel.tripId}
+                  tripId={travel.tripId}
                   title={travel.title}
                   date={`${travel.start_date} ~ ${travel.end_date}`}
                   img={travel.thumbnail || 'pwa-512x512.png'}

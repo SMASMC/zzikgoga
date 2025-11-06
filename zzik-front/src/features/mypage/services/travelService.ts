@@ -11,7 +11,6 @@ export class TravelService {
    */
   public static async getTravelList(): Promise<TravelListResponse> {
     const response = await apiClient.get<TravelListApiResponse>('/plan')
-    // 백엔드가 { trip: [...] } 형태로 보내므로 trip 필드 추출
     return response.trip
   }
 

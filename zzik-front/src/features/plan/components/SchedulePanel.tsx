@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useYTripDoc } from '../hooks/useYTripDoc'
 import * as Y from 'yjs'
 import YTextEditor from './YTextEditor'
@@ -9,11 +9,10 @@ const toTime = (isoLocal: string) =>
   isoLocal?.length >= 16 ? isoLocal.slice(11, 16) : isoLocal || ''
 
 const SchedulePanel = () => {
-  const [searchParams] = useSearchParams()
-  const planId = searchParams.get('planId')
+  const { tripId } = useParams<{ tripId: string }>()
   const roomId = useMemo(
-    () => (planId && planId.trim().length > 0 ? `trip-${planId.trim()}` : 'trip-3'),
-    [planId]
+    () => (tripId && tripId.trim().length > 0 ? `trip-${tripId.trim()}` : 'trip-default'),
+    [tripId]
   )
   const { schedulesByDate, tripInfo, doc } = useYTripDoc(roomId)
 

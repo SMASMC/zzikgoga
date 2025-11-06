@@ -27,7 +27,7 @@ const AppRoutes = () => {
 
       {/* 로그인 사용자만 접근 가능 */}
       <Route
-        path="/plan"
+        path="/plan/:tripId"
         element={
           <ProtectedRoute>
             <PlanPage />
