@@ -11,6 +11,7 @@ import { useSharedCursors } from '../hooks/useSharedCursors'
 import { useYTripDoc } from '../hooks/useYTripDoc'
 import * as Y from 'yjs'
 import YTextEditor from './YTextEditor'
+import YCollabEditor from './YCollabEditor'
 
 const CHAT_AUTO_HIDE_MS = 5000
 
@@ -360,14 +361,6 @@ const PlaceBoard = () => {
                           .map((it, originalIndex) => ({ it, originalIndex }))
                           .sort((a, b) => a.it.start_time.localeCompare(b.it.start_time))
                           .map(({ it, originalIndex }) => {
-                            let yMemo: Y.Text | null = null
-                            if (doc) {
-                              const yMap = doc.getMap('schedules') as Y.Map<unknown>
-                              const yArr = yMap.get(date) as Y.Array<Y.Map<unknown>> | undefined
-                              const yItem = yArr?.get(originalIndex) as Y.Map<unknown> | undefined
-                              const m = yItem?.get('memo')
-                              if (m instanceof Y.Text) yMemo = m
-                            }
                             return (
                               <li
                                 key={`${date}-${it.id ?? 'n'}-${originalIndex}`}
@@ -398,11 +391,15 @@ const PlaceBoard = () => {
                                     </button>
                                   </div>
                                 </div>
-                                {yMemo ? (
-                                  <div className="mt-1">
-                                    <YTextEditor ytext={yMemo} />
-                                  </div>
-                                ) : null}
+                                <div className="mt-1">
+                                  {doc ? (
+                                    <YCollabEditor
+                                      doc={doc}
+                                      field={`memo-${it.uid || `${date}-${originalIndex}`}`}
+                                      initialText={it.memo}
+                                    />
+                                  ) : null}
+                                </div>
                                 {it.location?.detail ? (
                                   <div className="mt-0.5 line-clamp-1 text-[11px] text-slate-400">
                                     {it.location.detail}
