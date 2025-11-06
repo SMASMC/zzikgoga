@@ -13,10 +13,8 @@ import lombok.Setter;
 @Builder
 public class CostListResponse {
 	private Long costId;
-
-	private String paidAt;   // 날짜
-
-	private String place;           // 장소명
-	private Long payerId;           // 결제자 (ID 기준)
-	private Long totalAmount;       // 금액
+	private String paidAt;
+	private String place;
+	private Long payerId;
+	private Long totalAmount;
 }

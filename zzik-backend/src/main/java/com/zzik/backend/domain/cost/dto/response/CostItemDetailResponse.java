@@ -17,13 +17,10 @@ public class CostItemDetailResponse {
 	private Long costId;
 	private Long createdBy;
 	private Long payerId;
-
 	private String paidAt;
-
 	private String place;
 	private Long totalAmount;
 	private String memo;
 	private String receiptJson;
-
 	private List<CostItemResponse> items;
 }
