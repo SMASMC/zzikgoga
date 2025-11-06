@@ -463,6 +463,16 @@ export function setupPersistence(doc: Y.Doc) {
 
     // --- schedules 감시 ---
     const schedulesMap = doc.getMap('schedules')
+    for (const [dateKey, yDayArray] of (schedulesMap.entries() as Iterable<[string,
+        Y.Array<Y.Map<any>>]>)) {
+        if (!yDayArray) continue
+        observeScheduleDayArray(yDayArray, tripId, dateKey)
+        yDayArray.toArray().forEach(schedMap => {
+            if (schedMap instanceof Y.Map) {
+                hookScheduleItemObservers(schedMap, tripId, dateKey)
+            }
+        })
+    }
 
     schedulesMap.observe((event: Y.YMapEvent<unknown>, tr: Y.Transaction) => {
         if (!isUserOrigin(tr)) return
@@ -504,6 +514,17 @@ export function setupPersistence(doc: Y.Doc) {
     // --- budgets 감시 ---
     const budgetsMap = doc.getMap('budgets')
 
+    for (const [dateKey, yDayArray] of (budgetsMap.entries() as Iterable<[string,
+        Y.Array<Y.Map<any>>]>)) {
+        if (!yDayArray) continue
+        observeBudgetDayArray(yDayArray, tripId, dateKey)
+        yDayArray.toArray().forEach(budgetMap => {
+            if (budgetMap instanceof Y.Map) {
+                hookBudgetItemObservers(budgetMap, tripId, dateKey)
+            }
+        })
+    }
+
     budgetsMap.observe((event: Y.YMapEvent<unknown>, tr: Y.Transaction) => {
         if (!isUserOrigin(tr)) return
 
@@ -528,17 +549,17 @@ export function setupPersistence(doc: Y.Doc) {
         }
     })
 
-// 새 dateKey 추가 시
-budgetsMap.observe((event: Y.YMapEvent<any>, tr: Y.Transaction) => {
-    if (!isUserOrigin(tr)) return;
+    // 새 dateKey 추가 시
+    budgetsMap.observe((event: Y.YMapEvent<any>, tr: Y.Transaction) => {
+        if (!isUserOrigin(tr)) return;
 
-    event.changes.added.forEach((key: any) => {
-        const dateKey = key as string;
-        const yDayArray = budgetsMap.get(dateKey) as Y.Array<Y.Map<any>>;
-        observeBudgetDayArray(yDayArray, tripId, dateKey);
+        event.changes.added.forEach((key: any) => {
+            const dateKey = key as string;
+            const yDayArray = budgetsMap.get(dateKey) as Y.Array<Y.Map<any>>;
+            observeBudgetDayArray(yDayArray, tripId, dateKey);
+        });
+        // budgetsMap에서 dateKey 제거 시의 동작도 정책 따라 후처리 가능
     });
-    // budgetsMap에서 dateKey 제거 시의 동작도 정책 따라 후처리 가능
-});
 
-console.log(`[Persistence] Persistence listeners attached for trip ${tripId}.`);
+    console.log(`[Persistence] Persistence listeners attached for trip ${tripId}.`);
 }
