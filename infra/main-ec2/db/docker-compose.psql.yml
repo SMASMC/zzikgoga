@@ -11,6 +11,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       DATABASE_URL: ${DATABASE_URL}
       TZ: Asia/Seoul
+      PGTZ: Asia/Seoul
     ports:
       - "5432:5432"
     volumes:
