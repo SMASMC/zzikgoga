@@ -64,7 +64,7 @@ public class Cost extends BaseEntity {
 	private String receipt;
 
 	@Column(name = "receipt_url", length = 1024)
-	private String receiptUrl;
+	private String receiptUrl; // S3 object key (presigned URL 생성에 사용)
 
 	@Builder
 	public Cost(Trip trip, Member createdBy, Member payer, String paidAt,

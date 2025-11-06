@@ -40,6 +40,8 @@ import com.zzik.backend.domain.cost.repository.CostMenuRepository;
 import com.zzik.backend.domain.cost.repository.CostRepository;
 import com.zzik.backend.domain.plan.entity.Trip;
 import com.zzik.backend.domain.plan.repository.TripRepository;
+import com.zzik.backend.global.cloud.s3.service.S3Directory;
+import com.zzik.backend.global.cloud.s3.service.S3Service;
 import com.zzik.backend.global.exception.BusinessException;
 import com.zzik.backend.global.exception.ExceptionCode;
 import com.zzik.backend.global.security.utils.SecurityUtil;
@@ -65,6 +67,8 @@ public class CostService {
 	private final TripRepository tripRepository;
 	@Autowired
 	private MemberRepository memberRepository;
+	@Autowired
+	private S3Service s3Service;
 
 	// 사진 검증
 	public void validateReceiptImage(MultipartFile file) {
@@ -117,7 +121,10 @@ public class CostService {
 
 			SaveCostRequest mapped = mapOcrToRequest(ocrResult);
 
-			Long costId = createCost(tripId, mapped);
+			// s3에 파일 실제 저장
+			String objectKeyOfFile = s3Service.uploadFile(file, S3Directory.RECEIPT);
+
+			Long costId = createCost(tripId, mapped, objectKeyOfFile);
 			log.info("[OCR->CREATE] created costId={}, items={}", costId, mapped.getItems().size());
 			return ocrResult;
 
@@ -201,7 +208,7 @@ public class CostService {
 	}
 
 	@Transactional
-	public Long createCost(Long tripId, SaveCostRequest req) {
+	public Long createCost(Long tripId, SaveCostRequest req, String s3ObjectKeyOfFile) {
 		log.debug("CreateCost IN: tripId={}, createdBy={}, payerId={}, place={}, itemsNull={}, itemsSize={}",
 			tripId, req.getCreatedBy(), req.getPayerId(), req.getPlace(),
 			req.getItems() == null, req.getItems() == null ? null : req.getItems().size());
@@ -255,6 +262,7 @@ public class CostService {
 			.totalAmount(finalTotal)
 			.memo(trimOrNull(req.getMemo()))
 			.receipt(trimOrNull(req.getReceiptJson()))
+			.receiptUrl(s3ObjectKeyOfFile)
 			.build();
 		cost = costRepository.save(cost);
 
