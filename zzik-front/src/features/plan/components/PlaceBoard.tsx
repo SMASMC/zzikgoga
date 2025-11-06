@@ -26,12 +26,58 @@ const formatTimestamp = (timestamp: number) =>
 const toTime = (isoLocal: string) =>
   isoLocal?.length >= 16 ? isoLocal.slice(11, 16) : isoLocal || ''
 
+const isoToInputStart = (isoLocal: string) => {
+  if (!isoLocal) return ''
+  const date = isoLocal.slice(0, 10)
+  const time = isoLocal.slice(11, 16)
+  const [hh, mm] = time.split(':')
+  return `${date}-${hh}-${mm}`
+}
+
+const inputStartToIso = (input: string): string | null => {
+  const parts = input.split('-')
+  if (parts.length !== 5) return null
+  const [y, mo, d, h, mi] = parts
+  if (
+    !/^\d{4}$/.test(y) ||
+    !/^\d{2}$/.test(mo) ||
+    !/^\d{2}$/.test(d) ||
+    !/^\d{2}$/.test(h) ||
+    !/^\d{2}$/.test(mi)
+  )
+    return null
+  return `${y}-${mo}-${d}T${h}:${mi}`
+}
+
+const normalizeOffsetToHHMM = (raw: string | null | undefined): string => {
+  if (!raw) return ''
+  const s = String(raw)
+  const m = s.match(/^(\d{1,3}):(\d{2})$/)
+  if (m) {
+    const hh = String(Math.max(0, Number(m[1]) || 0)).padStart(2, '0')
+    const mm = String(Math.min(59, Math.max(0, Number(m[2]) || 0))).padStart(2, '0')
+    return `${hh}:${mm}`
+  }
+  let hours = 0
+  let minutes = 0
+  const hr = s.match(/(\d+)\s*hour/)
+  const mn = s.match(/(\d+)\s*minute/)
+  if (hr) hours = Number(hr[1]) || 0
+  if (mn) minutes = Number(mn[1]) || 0
+  const totalMinutes = hours * 60 + minutes
+  const hh = String(Math.floor(totalMinutes / 60)).padStart(2, '0')
+  const mm = String(totalMinutes % 60).padStart(2, '0')
+  return `${hh}:${mm}`
+}
+
+const isValidHHMM = (v: string) => /^\d{2}:\d{2}$/.test(v)
+
 const PlaceBoard = () => {
   const { tripId } = useParams<{ tripId: string }>()
   const roomId = useMemo(() => getRoomId(tripId), [tripId])
 
   // Schedules/Trip info (merged from SchedulePanel)
-  const { schedulesByDate, tripInfo, doc } = useYTripDoc(roomId)
+  const { schedulesByDate, tripInfo, doc, updateScheduleTime } = useYTripDoc(roomId)
   let titleYText: Y.Text | null = null
   if (doc) {
     const t = (doc.getMap('tripInfo') as Y.Map<unknown>).get('title')
@@ -45,6 +91,9 @@ const PlaceBoard = () => {
   const [selfCursor, setSelfCursor] = useState<{ x: number; y: number } | null>(null)
   const [isChatOpen, setIsChatOpen] = useState(false)
   const [chatValue, setChatValue] = useState('')
+  const [editingKey, setEditingKey] = useState<string | null>(null)
+  const [editStart, setEditStart] = useState('')
+  const [editOffset, setEditOffset] = useState('')
 
   const {
     remoteCursors,
@@ -308,29 +357,46 @@ const PlaceBoard = () => {
                     ) : (
                       <ul className="space-y-1 text-sm">
                         {items
-                          .slice()
-                          .sort((a, b) => a.start_time.localeCompare(b.start_time))
-                          .map((it, idx) => {
+                          .map((it, originalIndex) => ({ it, originalIndex }))
+                          .sort((a, b) => a.it.start_time.localeCompare(b.it.start_time))
+                          .map(({ it, originalIndex }) => {
                             let yMemo: Y.Text | null = null
                             if (doc) {
                               const yMap = doc.getMap('schedules') as Y.Map<unknown>
                               const yArr = yMap.get(date) as Y.Array<Y.Map<unknown>> | undefined
-                              const yItem = yArr?.get(idx) as Y.Map<unknown> | undefined
+                              const yItem = yArr?.get(originalIndex) as Y.Map<unknown> | undefined
                               const m = yItem?.get('memo')
                               if (m instanceof Y.Text) yMemo = m
                             }
                             return (
                               <li
-                                key={`${date}-${it.id ?? 'n'}-${idx}`}
+                                key={`${date}-${it.id ?? 'n'}-${originalIndex}`}
                                 className="rounded border border-slate-100 bg-white p-2"
                               >
                                 <div className="flex items-center justify-between">
                                   <span className="font-medium text-slate-800">
                                     {it.location?.name || '일정'}
                                   </span>
-                                  <span className="text-xs text-slate-500">
-                                    {toTime(it.start_time)}
-                                  </span>
+                                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                                    <span>{toTime(it.start_time)}</span>
+                                    {it.offset_time ? (
+                                      <span className="text-[11px] text-slate-400">
+                                        (+{normalizeOffsetToHHMM(it.offset_time)})
+                                      </span>
+                                    ) : null}
+                                    <button
+                                      type="button"
+                                      className="hidden ml-2 rounded border border-slate-200 px-2 py-0.5 text-[11px] text-slate-500 hover:bg-slate-50"
+                                      onClick={() => {
+                                        const key = `${date}:${originalIndex}`
+                                        setEditingKey(key)
+                                        setEditStart(isoToInputStart(it.start_time))
+                                        setEditOffset(normalizeOffsetToHHMM(it.offset_time))
+                                      }}
+                                    >
+                                      시간 수정
+                                    </button>
+                                  </div>
                                 </div>
                                 {yMemo ? (
                                   <div className="mt-1">
@@ -340,6 +406,115 @@ const PlaceBoard = () => {
                                 {it.location?.detail ? (
                                   <div className="mt-0.5 line-clamp-1 text-[11px] text-slate-400">
                                     {it.location.detail}
+                                  </div>
+                                ) : null}
+                                <div className="mt-2 flex w-full gap-3">
+                                  <div className="w-1/2 min-w-0">
+                                    <div className="text-[12px] mb-1 text-text-600">시간</div>
+                                    <div className="bg-white rounded-2xl p-3 shadow-sm border border-slate-100">
+                                      <input
+                                        type="datetime-local"
+                                        defaultValue={it.start_time}
+                                        onBlur={(e) => {
+                                          const iso = e.currentTarget.value
+                                          if (!iso) return
+                                          updateScheduleTime(date, originalIndex, {
+                                            startTimeLocal: iso,
+                                          })
+                                        }}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') e.currentTarget.blur()
+                                        }}
+                                        className="w-full bg-transparent text-text-500 text-xs focus:outline-none"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="w-1/2 min-w-0">
+                                    <div className="text-[12px] mb-1 text-text-600">
+                                      예정소요시간
+                                    </div>
+                                    <div className="bg-white rounded-2xl p-3 shadow-sm border border-slate-100">
+                                      <input
+                                        type="text"
+                                        placeholder="HH:MM"
+                                        defaultValue={normalizeOffsetToHHMM(it.offset_time)}
+                                        onBlur={(e) => {
+                                          const v = e.currentTarget.value.trim()
+                                          if (v === '') {
+                                            updateScheduleTime(date, originalIndex, {
+                                              offsetHHMM: null,
+                                            })
+                                            return
+                                          }
+                                          const off = normalizeOffsetToHHMM(v)
+                                          if (!isValidHHMM(off)) {
+                                            alert('offset_time 형식은 HH:MM 입니다.')
+                                            return
+                                          }
+                                          updateScheduleTime(date, originalIndex, {
+                                            offsetHHMM: off,
+                                          })
+                                        }}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') e.currentTarget.blur()
+                                        }}
+                                        className="w-full bg-transparent text-text-500 text-xs focus:outline-none"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                                {editingKey === `${date}:${originalIndex}` ? (
+                                  <div className="mt-2 flex flex-wrap items-center gap-2 rounded border border-slate-100 bg-slate-50/60 p-2">
+                                    <label className="text-[11px] text-slate-500">start_time</label>
+                                    <input
+                                      value={editStart}
+                                      onChange={(e) => setEditStart(e.target.value)}
+                                      placeholder="YYYY-MM-DD-HH-MM"
+                                      className="w-44 rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 focus:border-blue-400 focus:outline-none"
+                                    />
+                                    <label className="text-[11px] text-slate-500">
+                                      offset_time
+                                    </label>
+                                    <input
+                                      value={editOffset}
+                                      onChange={(e) => setEditOffset(e.target.value)}
+                                      placeholder="HH:MM"
+                                      className="w-24 rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 focus:border-blue-400 focus:outline-none"
+                                    />
+                                    <div className="ml-auto flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        className="rounded bg-blue-500 px-3 py-1 text-[11px] font-semibold text-white hover:bg-blue-600"
+                                        onClick={() => {
+                                          const iso = inputStartToIso(editStart)
+                                          const off = editOffset
+                                            ? normalizeOffsetToHHMM(editOffset)
+                                            : ''
+                                          if (!iso) {
+                                            alert('start_time 형식은 YYYY-MM-DD-HH-MM 입니다.')
+                                            return
+                                          }
+                                          if (editOffset && !isValidHHMM(off)) {
+                                            alert('offset_time 형식은 HH:MM 입니다.')
+                                            return
+                                          }
+                                          updateScheduleTime(date, originalIndex, {
+                                            startTimeLocal: iso,
+                                            offsetHHMM: editOffset ? off : null,
+                                          })
+                                          setEditingKey(null)
+                                        }}
+                                      >
+                                        저장
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="rounded border border-slate-200 px-3 py-1 text-[11px] text-slate-600 hover:bg-slate-50"
+                                        onClick={() => setEditingKey(null)}
+                                      >
+                                        취소
+                                      </button>
+                                    </div>
                                   </div>
                                 ) : null}
                               </li>
