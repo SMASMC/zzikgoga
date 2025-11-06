@@ -233,10 +233,10 @@ const PlaceBoard = () => {
   const hasSchedules = useMemo(() => Object.keys(schedulesByDate).length > 0, [schedulesByDate])
 
   return (
-    <section className="relative flex flex-1 flex-col overflow-hidden border-x border-slate-200 bg-slate-50">
+    <section className="relative flex flex-1 min-h-0 flex-col overflow-hidden border-x border-slate-200 bg-slate-50">
       <div
         ref={boardRef}
-        className="relative flex-1 cursor-crosshair outline-none"
+        className="relative flex min-h-0 flex-1 cursor-crosshair flex-col outline-none"
         onPointerMove={handlePointerMove}
         onPointerLeave={handlePointerLeave}
         onPointerDown={handlePointerDown}
@@ -286,7 +286,7 @@ const PlaceBoard = () => {
         </div>
 
         {hasSchedules ? (
-          <div className="flex h-full flex-col gap-4 p-4">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 p-4">
             <header className="flex items-center justify-between gap-3">
               <h2 className="text-lg font-semibold text-slate-800">여행 일정</h2>
               <div className="min-w-0 flex-1">
@@ -297,7 +297,7 @@ const PlaceBoard = () => {
                 )}
               </div>
             </header>
-            <div className="flex h-0 min-h-[60%] flex-1 flex-col gap-3 overflow-y-auto rounded-lg border border-slate-200 p-3 bg-white/80">
+            <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto rounded-lg border border-slate-200 p-3 bg-white/80">
               {Object.entries(schedulesByDate)
                 .sort(([a], [b]) => a.localeCompare(b))
                 .map(([date, items]) => (
