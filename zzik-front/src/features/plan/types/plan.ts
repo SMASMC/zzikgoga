@@ -1,17 +1,17 @@
 export interface FriendInviteResponse {
-    inviteurl: string
+  inviteurl: string
 }
 export interface TripMemberResponse {
-    members: Members[]
-    tripId: number
+  members: Members[]
+  tripId: number
 }
 export interface Members {
-    memberId: number
-    memberName: string
-    thumbnailUrl: string
-    joinedAt: string
+  memberId: number
+  memberName: string
+  thumbnailUrl: string
+  joinedAt: string
 }
 export interface InviteResponse {
-    joined: boolean
-    trip_id: number
+  joined: boolean
+  trip_id: number
 }

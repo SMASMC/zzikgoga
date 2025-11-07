@@ -130,12 +130,6 @@ const PlaceBoard = () => {
     setIsFriendModalOpen(false)
   }
 
-  const handleInviteFriends = (friendIds: string[]) => {
-    console.log('초대할 친구 IDs:', friendIds)
-    // TODO: API 호출로 친구 초대
-    // await InviteService.inviteFriends(tripId, friendIds)
-  } 
-
   const clearAutoHideTimer = useCallback(() => {
     if (autoHideTimerRef.current !== null) {
       window.clearTimeout(autoHideTimerRef.current)
@@ -324,10 +318,7 @@ const PlaceBoard = () => {
         tabIndex={0}
       >
         <div className="absolute left-4 top-4 z-10">
-          <SolidButton 
-            onClick={openFriendModal}
-            className="px-3 py-1.5 text-sm"
-          >
+          <SolidButton onClick={openFriendModal} className="px-3 py-1.5 text-sm">
             친구 초대하기
           </SolidButton>
         </div>
@@ -670,7 +661,6 @@ const PlaceBoard = () => {
         isOpen={isFriendModalOpen}
         onClose={closeFriendModal}
         tripId={tripId || ''}
-        onInvite={handleInviteFriends}
       />
     </section>
   )

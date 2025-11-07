@@ -32,7 +32,7 @@ export function InviteCallbackPage() {
 
       // 로그인 상태이지만 모달이 열려있으면 닫기
       setIsLoginModalOpen(false)
-      
+
       // 이미 처리 완료했으면 중복 실행 방지
       if (isProcessing) {
         console.log('이미 처리 중입니다')
@@ -48,7 +48,7 @@ export function InviteCallbackPage() {
         console.log('초대 수락 API 응답:', response)
         console.log('joined:', response.joined)
         console.log('tripId:', response.trip_id)
-        
+
         // 초대 수락 성공 여부 확인
         if (!response.joined) {
           console.warn('⚠️ 초대 수락이 실패했습니다 (joined: false)')
@@ -56,7 +56,7 @@ export function InviteCallbackPage() {
           setIsProcessing(false)
           return
         }
-        
+
         // 성공 시 해당 여행 페이지로 리다이렉트
         if (response.trip_id) {
           console.log('여행 페이지로 이동:', `/plan/${response.trip_id}`)
@@ -71,7 +71,7 @@ export function InviteCallbackPage() {
       } catch (error) {
         console.error('초대 수락 실패:', error)
         const errorMessage = error instanceof Error ? error.message : '초대 수락에 실패했습니다'
-        
+
         // 로그인 필요 에러인 경우
         if (errorMessage.includes('로그인') || errorMessage.includes('인증')) {
           console.log('로그인 필요 에러, 모달 띄우기')
@@ -93,13 +93,21 @@ export function InviteCallbackPage() {
         {error ? (
           <>
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-8 h-8 text-red-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-text-500 font-bmjua mb-4">
-              초대 수락 실패
-            </h1>
+            <h1 className="text-2xl font-bold text-text-500 font-bmjua mb-4">초대 수락 실패</h1>
             <p className="text-red-600 mb-4">{error}</p>
             <button
               onClick={() => navigate('/')}
@@ -111,26 +119,30 @@ export function InviteCallbackPage() {
         ) : (
           <>
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-              <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              <svg
+                className="w-8 h-8 text-blue-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-text-500 font-bmjua mb-4">
-              초대 처리 중...
-            </h1>
+            <h1 className="text-2xl font-bold text-text-500 font-bmjua mb-4">초대 처리 중...</h1>
             <p className="text-gray-600">
-              {isLoginModalOpen 
-                ? '로그인 후 초대를 수락하세요' 
-                : '잠시만 기다려주세요'}
+              {isLoginModalOpen ? '로그인 후 초대를 수락하세요' : '잠시만 기다려주세요'}
             </p>
           </>
         )}
       </div>
 
       {/* 로그인 모달 */}
-      {isLoginModalOpen && (
-        <LoginModal onClose={() => setIsLoginModalOpen(false)} />
-      )}
+      {isLoginModalOpen && <LoginModal onClose={() => setIsLoginModalOpen(false)} />}
     </div>
   )
 }

@@ -6,10 +6,9 @@ interface FriendInviteModalProps {
   isOpen: boolean
   onClose: () => void
   tripId: string
-  onInvite: (friendIds: string[]) => void
 }
 
-const FriendInviteModal = ({ isOpen, onClose, tripId, onInvite }: FriendInviteModalProps) => {
+const FriendInviteModal = ({ isOpen, onClose, tripId }: FriendInviteModalProps) => {
   const [friends, setFriends] = useState<User[]>([])
   const [selectedFriends, setSelectedFriends] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(false)
@@ -22,7 +21,7 @@ const FriendInviteModal = ({ isOpen, onClose, tripId, onInvite }: FriendInviteMo
       // 지금 여기 API 호출이 안됨(왜냐하면 아직 백 코드가 없기 때문)
       const response = await PlanService.getTripMembers(Number(tripId))
       console.log('멤버 목록:', response)
-      
+
       // Members 타입을 User 타입으로 변환
       const friendsList: User[] = response.members.map((member) => ({
         id: String(member.memberId),
@@ -30,7 +29,7 @@ const FriendInviteModal = ({ isOpen, onClose, tripId, onInvite }: FriendInviteMo
         email: '', // API에서 이메일 정보가 없음
         picture: member.thumbnailUrl,
       }))
-      
+
       setFriends(friendsList)
     } catch (error) {
       console.error('친구 목록 불러오기 실패:', error)
@@ -74,24 +73,6 @@ const FriendInviteModal = ({ isOpen, onClose, tripId, onInvite }: FriendInviteMo
     }
   }
 
-
-
-  const toggleFriend = (friendId: string) => {
-    const newSelected = new Set(selectedFriends)
-    if (newSelected.has(friendId)) {
-      newSelected.delete(friendId)
-    } else {
-      newSelected.add(friendId)
-    }
-    setSelectedFriends(newSelected)
-  }
-
-  const handleInvite = () => {
-    onInvite(Array.from(selectedFriends))
-    setSelectedFriends(new Set())
-    onClose()
-  }
-
   if (!isOpen) return null
 
   return (
@@ -104,10 +85,7 @@ const FriendInviteModal = ({ isOpen, onClose, tripId, onInvite }: FriendInviteMo
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-text-500 font-bmjua">친구 초대하기</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
@@ -136,12 +114,6 @@ const FriendInviteModal = ({ isOpen, onClose, tripId, onInvite }: FriendInviteMo
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
-                <input
-                  type="checkbox"
-                  checked={selectedFriends.has(friend.id)}
-                  onChange={() => toggleFriend(friend.id)}
-                  className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
-                />
                 <div className="flex-shrink-0">
                   {friend.picture ? (
                     <img
@@ -151,9 +123,7 @@ const FriendInviteModal = ({ isOpen, onClose, tripId, onInvite }: FriendInviteMo
                     />
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                      <span className="text-white font-bold">
-                        {friend.name.charAt(0)}
-                      </span>
+                      <span className="text-white font-bold">{friend.name.charAt(0)}</span>
                     </div>
                   )}
                 </div>
@@ -178,7 +148,9 @@ const FriendInviteModal = ({ isOpen, onClose, tripId, onInvite }: FriendInviteMo
               value={inviteUrl}
               readOnly
               className="flex-1 px-3 py-2 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm text-gray-700 focus:outline-none"
-              placeholder={inviteUrl === '' && !isLoading ? '링크 생성 실패' : '초대 링크 생성 중...'}
+              placeholder={
+                inviteUrl === '' && !isLoading ? '링크 생성 실패' : '초대 링크 생성 중...'
+              }
             />
             <button
               onClick={copyToClipboard}
@@ -193,32 +165,27 @@ const FriendInviteModal = ({ isOpen, onClose, tripId, onInvite }: FriendInviteMo
             </button>
           </div>
           {inviteUrl ? (
-            <p className="text-xs text-gray-500">이 링크를 공유하여 친구를 초대하세요</p>
+            <p className="text-xs text-text-500">이 링크를 공유하여 친구를 초대하세요</p>
           ) : (
             <div className="flex items-start gap-1 text-xs text-red-600">
-              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                className="w-4 h-4 flex-shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
-              <span>초대 링크 생성에 실패했습니다. 페이지를 새로고침하거나 권한을 확인해주세요.</span>
+              <span>
+                초대 링크 생성에 실패했습니다. 페이지를 새로고침하거나 권한을 확인해주세요.
+              </span>
             </div>
           )}
-        </div>
-
-        {/* Footer */}
-        <div className="mt-6 flex gap-2">
-          <button
-            onClick={onClose}
-            className="flex-1 py-2.5 border-2 border-gray-300 rounded-xl hover:bg-gray-50 transition-colors font-bold"
-          >
-            취소
-          </button>
-          <button
-            onClick={handleInvite}
-            disabled={selectedFriends.size === 0}
-            className="flex-1 py-2.5 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl hover:shadow-lg transition-all font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            초대하기 ({selectedFriends.size})
-          </button>
         </div>
       </div>
     </div>
@@ -226,4 +193,3 @@ const FriendInviteModal = ({ isOpen, onClose, tripId, onInvite }: FriendInviteMo
 }
 
 export default FriendInviteModal
-
