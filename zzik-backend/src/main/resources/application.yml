@@ -21,7 +21,7 @@ spring:
     default-schema: public
 jwt:
   expiration-time:
-    access-token: 1_800_000
+    access-token: 10_800_000
     refresh-token: 604_800_000
     invite-token: 86_400_000
 springdoc:
