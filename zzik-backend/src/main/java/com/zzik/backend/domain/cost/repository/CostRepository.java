@@ -23,6 +23,7 @@ public interface CostRepository extends JpaRepository<Cost, Long> {
 		    left join fetch c.payer
 		    left join fetch c.costMenus m
 		    where c.trip.id = :tripId
+		    order by c.paidAt
 		""")
 	List<Cost> findAllWithMenusByTripId(Long tripId);
 

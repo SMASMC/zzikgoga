@@ -61,7 +61,7 @@ public class PlanService {
 
 	@Transactional(readOnly = true)
 	public TripListResponse getTripList(Long memberId) {
-		List<Trip> trips = tripRepository.findAllByOwnerIdOrderByCreatedAtDesc(memberId);
+		List<Trip> trips = tripRepository.findDistinctByTripMembersMemberIdOrderByCreatedAtDesc(memberId);
 
 		List<TripSummaryResponse> items = new ArrayList<>();
 		for (Trip t : trips) {
