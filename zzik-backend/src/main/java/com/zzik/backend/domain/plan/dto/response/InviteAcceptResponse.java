@@ -17,6 +17,6 @@ public class InviteAcceptResponse {
 
 	private boolean joined;
 
-	@JsonProperty("trip_id")
+	@JsonProperty("tripId")
 	private Long tripId;
 }

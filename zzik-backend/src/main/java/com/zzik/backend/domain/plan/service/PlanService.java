@@ -154,8 +154,7 @@ public class PlanService {
 			.orElseThrow(() -> BusinessException.from(ExceptionCode.TRIP_NOT_FOUND));
 
 		// 해당 여행의 멤버가 맞는지 확인
-		boolean isMember = trip.getOwner().getId().equals(requesterId)
-			|| tripCompanionRepository.existsByTripIdAndCompanionId(tripId, requesterId);
+		boolean isMember = tripMemberRepository.existsByTripIdAndMemberId(tripId, requesterId);
 		if (!isMember) {
 			throw BusinessException.from(ExceptionCode.FORBIDDEN_TRIP);
 		}
