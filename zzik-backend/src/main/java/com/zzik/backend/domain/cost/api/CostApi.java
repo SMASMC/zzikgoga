@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.zzik.backend.domain.cost.dto.request.SaveCostRequest;
 import com.zzik.backend.domain.cost.dto.response.CostCalculateResponse;
 import com.zzik.backend.domain.cost.dto.response.CostItemDetailResponse;
+import com.zzik.backend.domain.cost.dto.response.CostListResponse;
 import com.zzik.backend.domain.cost.dto.response.ReceiptOcrResponse;
 import com.zzik.backend.global.annotation.swagger.ApiErrorResponseExplanation;
 import com.zzik.backend.global.annotation.swagger.ApiResponseExplanations;
@@ -75,6 +76,25 @@ public interface CostApi {
 		@PathVariable Long tripId,
 		@RequestBody SaveCostRequest request
 	);
+
+	@Operation(
+		summary = "정산 목록 전체 조회",
+		description = "여행의 모든 정산 내역 목록을 조회합니다."
+	)
+	@ApiResponseExplanations(
+		success = @ApiSuccessResponseExplanation(
+			description = "정산 목록 조회 성공",
+			responseClass = CostListResponse.class
+		),
+		errors = {
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.INVALID_TRIP),
+		}
+	)
+	@GetMapping(
+		value = "/{tripId}",
+		produces = MediaType.APPLICATION_JSON_VALUE
+	)
+	ResponseEntity<ApiResponse<CostListResponse>> getCostList(@PathVariable Long tripId);
 
 	@Operation(
 		summary = "정산 내역 상세 조회",
