@@ -8,11 +8,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -29,9 +27,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zzik.backend.domain.auth.entity.Member;
 import com.zzik.backend.domain.auth.repository.MemberRepository;
 import com.zzik.backend.domain.cost.config.ClovaOcrProperties;
+import com.zzik.backend.domain.cost.config.ReceiptFileUploadProperties;
 import com.zzik.backend.domain.cost.dto.request.SaveCostMenuItem;
 import com.zzik.backend.domain.cost.dto.request.SaveCostRequest;
 import com.zzik.backend.domain.cost.dto.response.CostItemDetailResponse;
+import com.zzik.backend.domain.cost.dto.response.CostListResponse;
 import com.zzik.backend.domain.cost.dto.response.ReceiptItemDto;
 import com.zzik.backend.domain.cost.dto.response.ReceiptOcrResponse;
 import com.zzik.backend.domain.cost.entity.Cost;
@@ -40,6 +40,7 @@ import com.zzik.backend.domain.cost.repository.CostMenuRepository;
 import com.zzik.backend.domain.cost.repository.CostRepository;
 import com.zzik.backend.domain.plan.entity.Trip;
 import com.zzik.backend.domain.plan.repository.TripRepository;
+import com.zzik.backend.domain.plan.service.TripMemberService;
 import com.zzik.backend.global.cloud.s3.service.S3Directory;
 import com.zzik.backend.global.cloud.s3.service.S3Service;
 import com.zzik.backend.global.exception.BusinessException;
@@ -55,9 +56,7 @@ import lombok.extern.slf4j.Slf4j;
 public class CostService {
 
 	private final ClovaOcrProperties props;
-
-	private static final long MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-	private static final Set<String> ALLOWED_EXT = Set.of("jpg", "jpeg", "png", "pdf", "tif", "tiff");
+	private final ReceiptFileUploadProperties receiptFileUploadProperties;
 
 	private final ObjectMapper objectMapper = new ObjectMapper();
 	private final RestTemplate restTemplate = new RestTemplate();
@@ -65,19 +64,18 @@ public class CostService {
 	private final CostRepository costRepository;
 	private final CostMenuRepository costMenuRepository;
 	private final TripRepository tripRepository;
-	@Autowired
-	private MemberRepository memberRepository;
-	@Autowired
-	private S3Service s3Service;
+	private final MemberRepository memberRepository;
+	private final S3Service s3Service;
+	private final TripMemberService tripMemberService;
 
 	// 사진 검증
 	public void validateReceiptImage(MultipartFile file) {
 		if (file == null || file.isEmpty())
 			throw BusinessException.from(ExceptionCode.UNSUPPORTED_IMAGE_TYPE);
-		if (file.getSize() > MAX_FILE_SIZE)
+		if (file.getSize() > receiptFileUploadProperties.getMaxFileSize())
 			throw BusinessException.from(ExceptionCode.UPLOAD_SIZE_EXCEEDED);
 		String ext = getExt(file.getOriginalFilename());
-		if (!ALLOWED_EXT.contains(ext))
+		if (!receiptFileUploadProperties.getAllowedExtensions().contains(ext))
 			throw BusinessException.from(ExceptionCode.UNSUPPORTED_IMAGE_TYPE);
 	}
 
@@ -401,6 +399,46 @@ public class CostService {
 			.memo(cost.getMemo())
 			.receiptJson(cost.getReceipt())
 			.items(items)
+			.build();
+	}
+
+	@Transactional(readOnly = true)
+	public CostListResponse readCostList(Long tripId) {
+		// 0) 유저 존재 확인
+		var memberId = SecurityUtil.getCurrentMemberId();
+
+		// 1) Trip 존재 여부 확인
+		Trip trip = tripRepository.findById(tripId)
+			.orElseThrow(() -> BusinessException.from(ExceptionCode.INVALID_TRIP));
+		// 2) 해당 멤버가 Trip에 속해있는지 확인
+		tripMemberService.validateMembershipAndGet(memberId, tripId);
+
+		// 3) tripId에 해당하는 cost 전체 가져옴
+		var fetchedCosts = costRepository.findAllWithMenusByTripId(tripId);
+
+		// 4) 응답DTO에 맞게 적용
+
+		var totalCosts = 0L;
+		var costSummaries = new ArrayList<CostListResponse.CostSummary>();
+		for (Cost cost : fetchedCosts) {
+			costSummaries.add(
+				CostListResponse.CostSummary.builder()
+					.costId(cost.getId())
+					.paidAt(cost.getPaidAt())
+					.place(cost.getPlace())
+					.payerName(cost.getPayer().getName())
+					.payerId(cost.getPayer().getId())
+					.payerThumbnailUrl(cost.getPayer().getThumbnailUrl())
+					.totalAmount(cost.getTotalAmount())
+					.build()
+			);
+			totalCosts += cost.getTotalAmount();
+		}
+
+		return CostListResponse.builder()
+			.costs(costSummaries)
+			.totalCost(totalCosts)
+			.totalCostCount(costSummaries.size())
 			.build();
 	}
 }

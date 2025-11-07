@@ -1,8 +1,11 @@
 package com.zzik.backend.domain.plan.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.zzik.backend.domain.plan.entity.TripMember;
@@ -17,4 +20,9 @@ public interface TripMemberRepository extends JpaRepository<TripMember, Long> {
 	void deleteByTripId(Long tripId);
 
 	void deleteByTripIdAndMemberId(Long tripId, Long memberId);
+
+	List<TripMember> findAllByTripId(Long tripId);
+
+	@Query("SELECT tm FROM TripMember tm JOIN FETCH tm.member m WHERE tm.trip.id = :tripId ORDER BY tm.createdAt ASC")
+	List<TripMember> findAllByTripIdWithMemberFetch(@Param("tripId") Long tripId);
 }

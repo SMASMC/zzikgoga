@@ -55,6 +55,8 @@ public enum ExceptionCode {
 	ZERO_TOTAL_AMOUNT(HttpStatus.CONFLICT, 40306, "영수증 총액이 0원으로 인식되었습니다. 사진을 다시 찍어주세요.", "cost - 총액 0원 인식"),
 	RECEIPT_CONTEXT_INVALID(HttpStatus.CONFLICT, 40307, "영수증 필수 입력 사항이 입력되지 않았습니다.", "cost - 입력 사항 미기재"),
 	INVALID_COST(HttpStatus.NOT_FOUND, 40308, "존재하지 않는 결제 항목입니다.", "cost - 비용 항목 not found"),
+	NO_COSTS(HttpStatus.CONFLICT, 40308, "정산할 결제 내역이 없습니다.", "cost - 비용 없음"),
+	SHARE_MISSING(HttpStatus.CONFLICT, 40309, "일부 결제 항목에 분담자 설정이 누락되었습니다.", "cost - 분담자 누락/유효하지 않음"),
 
 	/* 4032x - cost - accept */
 	ALREADY_ACCEPTED_COST(HttpStatus.CONFLICT, 40320, "이미 정산에 수락 하셨습니다.", "cost - approval 이미 정산을 수락함"),

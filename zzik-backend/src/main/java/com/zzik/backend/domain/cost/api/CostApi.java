@@ -12,7 +12,9 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.zzik.backend.domain.cost.dto.request.SaveCostRequest;
+import com.zzik.backend.domain.cost.dto.response.CostCalculateResponse;
 import com.zzik.backend.domain.cost.dto.response.CostItemDetailResponse;
+import com.zzik.backend.domain.cost.dto.response.CostListResponse;
 import com.zzik.backend.domain.cost.dto.response.ReceiptOcrResponse;
 import com.zzik.backend.global.annotation.swagger.ApiErrorResponseExplanation;
 import com.zzik.backend.global.annotation.swagger.ApiResponseExplanations;
@@ -76,6 +78,25 @@ public interface CostApi {
 	);
 
 	@Operation(
+		summary = "정산 목록 전체 조회",
+		description = "여행의 모든 정산 내역 목록을 조회합니다."
+	)
+	@ApiResponseExplanations(
+		success = @ApiSuccessResponseExplanation(
+			description = "정산 목록 조회 성공",
+			responseClass = CostListResponse.class
+		),
+		errors = {
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.INVALID_TRIP),
+		}
+	)
+	@GetMapping(
+		value = "/{tripId}",
+		produces = MediaType.APPLICATION_JSON_VALUE
+	)
+	ResponseEntity<ApiResponse<CostListResponse>> getCostList(@PathVariable Long tripId);
+
+	@Operation(
 		summary = "정산 내역 상세 조회",
 		description = "정산 내역에 대해서 상세 내역을 조회합니다."
 	)
@@ -96,4 +117,19 @@ public interface CostApi {
 		@PathVariable Long tripId,
 		@PathVariable Long costId
 	);
+
+	@ApiResponseExplanations(
+		success = @ApiSuccessResponseExplanation(
+			description = "정산 계산(미리보기)",
+			responseClass = CostCalculateResponse.class
+		),
+		errors = {
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.TRIP_NOT_FOUND),
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.NOT_TRIP_MEMBER),
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.NO_COSTS),
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.SHARE_MISSING)
+		}
+	)
+	@GetMapping("/{tripId}/calculate")
+	ResponseEntity<ApiResponse<CostCalculateResponse>> calculate(@PathVariable Long tripId);
 }

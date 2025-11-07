@@ -3,6 +3,9 @@ server:
   servlet:
     context-path: /api
 spring:
+  servlet:
+    multipart:
+      max-file-size: 50MB
   datasource:
     driver-class-name: org.postgresql.Driver
   jpa:
@@ -18,7 +21,7 @@ spring:
     default-schema: public
 jwt:
   expiration-time:
-    access-token: 1_800_000
+    access-token: 10_800_000
     refresh-token: 604_800_000
     invite-token: 86_400_000
 springdoc:
@@ -43,3 +46,8 @@ cloud:
       credentials:
         access-key: ${S3_ACCESS_KEY}
         secret-key: ${S3_SECRET_ACCESS_KEY}
+
+receipt:
+  upload:
+    max-file-size: 52428800  # 50MB (50 * 1024 * 1024 bytes)
+    allowed-extensions: jpg,jpeg,png,pdf,tif,tiff
