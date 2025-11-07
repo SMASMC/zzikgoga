@@ -29,6 +29,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zzik.backend.domain.auth.entity.Member;
 import com.zzik.backend.domain.auth.repository.MemberRepository;
 import com.zzik.backend.domain.cost.config.ClovaOcrProperties;
+import com.zzik.backend.domain.cost.config.ReceiptFileUploadProperties;
 import com.zzik.backend.domain.cost.dto.request.SaveCostMenuItem;
 import com.zzik.backend.domain.cost.dto.request.SaveCostRequest;
 import com.zzik.backend.domain.cost.dto.response.CostItemDetailResponse;
@@ -55,9 +56,7 @@ import lombok.extern.slf4j.Slf4j;
 public class CostService {
 
 	private final ClovaOcrProperties props;
-
-	private static final long MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-	private static final Set<String> ALLOWED_EXT = Set.of("jpg", "jpeg", "png", "pdf", "tif", "tiff");
+	private final ReceiptFileUploadProperties receiptFileUploadProperties;
 
 	private final ObjectMapper objectMapper = new ObjectMapper();
 	private final RestTemplate restTemplate = new RestTemplate();
@@ -74,10 +73,10 @@ public class CostService {
 	public void validateReceiptImage(MultipartFile file) {
 		if (file == null || file.isEmpty())
 			throw BusinessException.from(ExceptionCode.UNSUPPORTED_IMAGE_TYPE);
-		if (file.getSize() > MAX_FILE_SIZE)
+		if (file.getSize() > receiptFileUploadProperties.getMaxFileSize())
 			throw BusinessException.from(ExceptionCode.UPLOAD_SIZE_EXCEEDED);
 		String ext = getExt(file.getOriginalFilename());
-		if (!ALLOWED_EXT.contains(ext))
+		if (!receiptFileUploadProperties.getAllowedExtensions().contains(ext))
 			throw BusinessException.from(ExceptionCode.UNSUPPORTED_IMAGE_TYPE);
 	}
 
