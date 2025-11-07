@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.zzik.backend.domain.cost.dto.request.SaveCostRequest;
+import com.zzik.backend.domain.cost.dto.response.CostCalculateResponse;
 import com.zzik.backend.domain.cost.dto.response.CostItemDetailResponse;
 import com.zzik.backend.domain.cost.dto.response.ReceiptOcrResponse;
 import com.zzik.backend.global.annotation.swagger.ApiErrorResponseExplanation;
@@ -96,4 +97,19 @@ public interface CostApi {
 		@PathVariable Long tripId,
 		@PathVariable Long costId
 	);
+
+	@ApiResponseExplanations(
+		success = @ApiSuccessResponseExplanation(
+			description = "정산 계산(미리보기)",
+			responseClass = CostCalculateResponse.class
+		),
+		errors = {
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.TRIP_NOT_FOUND),
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.NOT_TRIP_MEMBER),
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.NO_COSTS),
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.SHARE_MISSING)
+		}
+	)
+	@GetMapping("/{tripId}/calculate")
+	ResponseEntity<ApiResponse<CostCalculateResponse>> calculate(@PathVariable Long tripId);
 }

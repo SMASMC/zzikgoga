@@ -1,9 +1,12 @@
 package com.zzik.backend.domain.cost.entity;
 
+import java.util.List;
+
 import com.zzik.backend.domain.auth.entity.Member;
 import com.zzik.backend.domain.plan.entity.Trip;
 import com.zzik.backend.global.base.entity.BaseEntity;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -13,6 +16,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -66,9 +70,13 @@ public class Cost extends BaseEntity {
 	@Column(name = "receipt_url", length = 1024)
 	private String receiptUrl; // S3 object key (presigned URL 생성에 사용)
 
+	// costMenu와의 양방향 매핑
+	@OneToMany(mappedBy = "cost", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<CostMenu> costMenus;
+
 	@Builder
 	public Cost(Trip trip, Member createdBy, Member payer, String paidAt,
-				String place, Long totalAmount, String memo, String receipt, String receiptUrl) {
+		String place, Long totalAmount, String memo, String receipt, String receiptUrl) {
 		this.trip = trip;
 		this.createdBy = createdBy;
 		this.payer = payer;
