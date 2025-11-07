@@ -1,5 +1,6 @@
 package com.zzik.backend.domain.plan.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,4 +18,6 @@ public interface TripMemberRepository extends JpaRepository<TripMember, Long> {
 	void deleteByTripId(Long tripId);
 
 	void deleteByTripIdAndMemberId(Long tripId, Long memberId);
+
+	List<TripMember> findAllByTripId(Long tripId);
 }

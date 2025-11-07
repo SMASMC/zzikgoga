@@ -1,12 +1,17 @@
 package com.zzik.backend.domain.cost.service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.zzik.backend.domain.cost.dto.request.CostApprovalRequest;
 import com.zzik.backend.domain.cost.dto.response.CostApprovalResponse;
+import com.zzik.backend.domain.cost.dto.response.CostApprovalStatusResponse;
+import com.zzik.backend.domain.cost.dto.response.CostApprovalStatusResponse.AcceptedMemberDto;
+import com.zzik.backend.domain.cost.dto.response.CostApprovalStatusResponse.NotAcceptedMemberDto;
 import com.zzik.backend.domain.plan.entity.TripMember;
 import com.zzik.backend.domain.plan.repository.TripMemberRepository;
 import com.zzik.backend.domain.plan.repository.TripRepository;
@@ -30,9 +35,6 @@ public class CostApprovalService {
 		long memberId = SecurityUtil.getCurrentMemberId();
 		if (!tripRepository.existsById(tripId))
 			throw BusinessException.from(ExceptionCode.TRIP_NOT_FOUND);
-		// TripMember tripMember = tripMemberRepository.findByMember_IdAndTrip_Id(memberId, tripId).orElseThrow(
-		// 	() -> BusinessException.from(ExceptionCode.NOT_TRIP_MEMBER)
-		// );
 		TripMember tripMember = tripMemberService.validateMembershipAndGet(memberId, tripId);
 		//2. 이미 true면 에러
 		if (tripMember.getIsCostAccepted())
@@ -44,6 +46,54 @@ public class CostApprovalService {
 			.isAccepted(tripMember.getIsCostAccepted())
 			.acceptedAt(LocalDateTime.now().toString())
 			.memberId(memberId)
+			.build();
+	}
+
+	@Transactional(readOnly = true)
+	public CostApprovalStatusResponse getCostApproveStatuses(Long tripId) {
+		// 0. 해당 멤버가 여행에 속해있는지 검증
+		// 1. 여행에 해당하는 TripMember행 전체 조회
+		Long memberId = SecurityUtil.getCurrentMemberId();
+		var tripMembers = tripMemberService.validateMembershipAndGetAll(memberId, tripId);
+
+		// 2. 수락한 멤버와 수락하지 않은 멤버 분류
+		List<AcceptedMemberDto> acceptedMembers = new ArrayList<>();
+		List<NotAcceptedMemberDto> notAcceptedMembers = new ArrayList<>();
+
+		for (TripMember tm : tripMembers) {
+			if (tm.getIsCostAccepted()) {
+				// 수락한 멤버
+				acceptedMembers.add(new AcceptedMemberDto(
+					tm.getMember().getId(),
+					tm.getMember().getName(),
+					tm.getMember().getThumbnailUrl(),
+					tm.getUpdatedAt().toString()
+				));
+			} else {
+				// 수락하지 않은 멤버
+				notAcceptedMembers.add(new NotAcceptedMemberDto(
+					tm.getMember().getId(),
+					tm.getMember().getName(),
+					tm.getMember().getThumbnailUrl()
+				));
+			}
+		}
+
+		// 3. 통계 계산
+		int acceptedCount = acceptedMembers.size();
+		int totalMemberCount = tripMembers.size();
+		double acceptanceRate = totalMemberCount > 0
+			? (acceptedCount * 100.0) / totalMemberCount
+			: 0.0;
+
+		// 4. 응답 생성
+		return CostApprovalStatusResponse.builder()
+			.tripId(tripId)
+			.acceptedMembers(acceptedMembers)
+			.notAcceptedMembers(notAcceptedMembers)
+			.acceptedCount(acceptedCount)
+			.totalMemberCount(totalMemberCount)
+			.acceptanceRate(acceptanceRate)
 			.build();
 	}
 }
