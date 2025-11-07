@@ -25,7 +25,6 @@ const MyPage = () => {
       setError(null)
       const data = await TravelService.getTravelList()
       setTravels(data)
-      console.log('여행 목록 조회 성공:', data)
     } catch (error) {
       console.error('여행 목록 조회 실패:', error)
       setError(error instanceof Error ? error.message : '여행 목록을 불러오는데 실패했습니다.')
@@ -42,7 +41,6 @@ const MyPage = () => {
     // 페이지가 보일 때마다 여행 목록 새로고침 (탭 전환, 다른 앱에서 돌아올 때)
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        console.log('페이지가 다시 보임 (탭 전환) - 여행 목록 새로고침')
         loadTravels()
       }
     }
@@ -51,7 +49,6 @@ const MyPage = () => {
     const handleFocus = () => {
       // 첫 렌더링에서는 실행하지 않음 (이미 loadTravels()가 실행되었으므로)
       if (!isFirstRender.current) {
-        console.log('🔄 MyPage로 돌아옴 - 여행 목록 새로고침')
         loadTravels()
       } else {
         isFirstRender.current = false

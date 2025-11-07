@@ -23,7 +23,6 @@ export function InviteCallbackPage() {
 
       // 로그인 확인
       if (!isAuthenticated) {
-        console.log('🔐 로그인이 필요합니다. 로그인 모달 띄우기...')
         // 로그인 후 돌아올 URL 저장
         sessionStorage.setItem('redirectAfterLogin', location.pathname + location.search)
         setIsLoginModalOpen(true)
@@ -35,7 +34,6 @@ export function InviteCallbackPage() {
 
       // 이미 처리 완료했으면 중복 실행 방지
       if (isProcessing) {
-        console.log('이미 처리 중입니다')
         return
       }
 
@@ -43,25 +41,19 @@ export function InviteCallbackPage() {
       setError('') // 이전 에러 초기화
 
       try {
-        console.log('초대 수락 요청 시작:', token)
         const response = await PlanService.acceptInvite(token)
-        console.log('초대 수락 API 응답:', response)
-        console.log('joined:', response.joined)
-        console.log('tripId:', response.trip_id)
 
         // 초대 수락 성공 여부 확인
         if (!response.joined) {
-          console.warn('⚠️ 초대 수락이 실패했습니다 (joined: false)')
           setError('초대 수락에 실패했습니다. 이미 참여중이거나 유효하지 않은 초대입니다.')
           setIsProcessing(false)
           return
         }
 
         // 성공 시 해당 여행 페이지로 리다이렉트
-        if (response.trip_id) {
-          console.log('여행 페이지로 이동:', `/plan/${response.trip_id}`)
+        if (response.tripId) {
           setTimeout(() => {
-            navigate(`/plan/${response.trip_id}`)
+            navigate(`/plan/${response.tripId}`)
           }, 1000)
         } else {
           console.error('tripId가 없습니다:', response)
@@ -74,7 +66,6 @@ export function InviteCallbackPage() {
 
         // 로그인 필요 에러인 경우
         if (errorMessage.includes('로그인') || errorMessage.includes('인증')) {
-          console.log('로그인 필요 에러, 모달 띄우기')
           sessionStorage.setItem('redirectAfterLogin', location.pathname + location.search)
           setIsLoginModalOpen(true)
         } else {

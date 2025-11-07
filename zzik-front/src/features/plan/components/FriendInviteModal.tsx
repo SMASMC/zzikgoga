@@ -18,9 +18,7 @@ const FriendInviteModal = ({ isOpen, onClose, tripId }: FriendInviteModalProps) 
   const loadFriends = useCallback(async () => {
     setIsLoading(true)
     try {
-      // 지금 여기 API 호출이 안됨(왜냐하면 아직 백 코드가 없기 때문)
       const response = await PlanService.getTripMembers(Number(tripId))
-      console.log('멤버 목록:', response)
 
       // Members 타입을 User 타입으로 변환
       const friendsList: User[] = response.members.map((member) => ({
@@ -42,11 +40,9 @@ const FriendInviteModal = ({ isOpen, onClose, tripId }: FriendInviteModalProps) 
   const loadInviteUrl = useCallback(async () => {
     try {
       const response = await PlanService.inviteFriend(Number(tripId))
-      console.log('초대 URL 생성 성공:', response.inviteurl)
       setInviteUrl(response.inviteurl)
     } catch (error) {
       console.error('초대 URL 생성 실패:', error)
-      console.error('에러 상세:', error instanceof Error ? error.message : error)
       // 에러가 발생해도 모달은 계속 표시하되, URL 없이 표시
       setInviteUrl('')
     }
@@ -167,23 +163,29 @@ const FriendInviteModal = ({ isOpen, onClose, tripId }: FriendInviteModalProps) 
           {inviteUrl ? (
             <p className="text-xs text-text-500">이 링크를 공유하여 친구를 초대하세요</p>
           ) : (
-            <div className="flex items-start gap-1 text-xs text-red-600">
-              <svg
-                className="w-4 h-4 flex-shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <span>
-                초대 링크 생성에 실패했습니다. 페이지를 새로고침하거나 권한을 확인해주세요.
-              </span>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-2">
+              <div className="flex items-start gap-2">
+                <svg
+                  className="w-5 h-5 flex-shrink-0 text-red-600 mt-0.5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-red-900 mb-1">초대 링크 생성 실패</p>
+                  <p className="text-xs text-red-700">
+                    여행 멤버만 초대 링크를 생성할 수 있습니다. 여행 방장에게 문의하거나, 페이지를
+                    새로고침 후 다시 시도해주세요.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>

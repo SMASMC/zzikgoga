@@ -13,5 +13,5 @@ export interface Members {
 }
 export interface InviteResponse {
   joined: boolean
-  trip_id: number
+  tripId: number
 }
