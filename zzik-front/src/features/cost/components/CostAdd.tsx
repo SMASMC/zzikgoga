@@ -1,7 +1,7 @@
 // CostAdd.tsx
 // 정산 추가 컴포넌트
 // 영수증 모달과 사진 직접 추가 모달을 위함
-import SolidButton from '@/components/atoms/SolidButton'
+
 import CostPlusModal from './CostPlusModal'
 import { useState } from 'react'
 
