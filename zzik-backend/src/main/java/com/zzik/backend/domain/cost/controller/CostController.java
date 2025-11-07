@@ -15,6 +15,7 @@ import com.zzik.backend.domain.cost.api.CostApi;
 import com.zzik.backend.domain.cost.dto.request.SaveCostRequest;
 import com.zzik.backend.domain.cost.dto.response.CostCalculateResponse;
 import com.zzik.backend.domain.cost.dto.response.CostItemDetailResponse;
+import com.zzik.backend.domain.cost.dto.response.CostListResponse;
 import com.zzik.backend.domain.cost.dto.response.ReceiptOcrResponse;
 import com.zzik.backend.domain.cost.service.CostCalculateService;
 import com.zzik.backend.domain.cost.service.CostService;
@@ -49,6 +50,12 @@ public class CostController implements CostApi {
 		Long id = costService.createCost(tripId, request, null);
 		Map<String, Long> content = Map.of("costId", id);
 		return ResponseEntity.ok(ApiResponse.createSuccess(content));
+	}
+
+	@Override
+	public ResponseEntity<ApiResponse<CostListResponse>> getCostList(Long tripId) {
+		CostListResponse response = costService.readCostList(tripId);
+		return ResponseEntity.ok(ApiResponse.createSuccess(response));
 	}
 
 	@Override

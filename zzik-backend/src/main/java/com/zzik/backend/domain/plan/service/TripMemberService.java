@@ -23,7 +23,7 @@ public class TripMemberService {
 	 * @param memberId 검증할 멤버 ID
 	 * @param tripId   여행 ID
 	 * @return 해당 멤버의 TripMember 객체
-	 * @throws BusinessException 멤버가 여행에 속해있지 않은 경우
+	 * @throws BusinessException 멤버가 여행에 속해있지 않은 경우(NOT_TRIP_MEMBER)
 	 */
 	public TripMember validateMembershipAndGet(long memberId, Long tripId) throws BusinessException {
 		var fetchedTripMembers = tripMemberRepository.findAllByTripId(tripId);
