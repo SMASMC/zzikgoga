@@ -11,7 +11,8 @@ import { useSharedCursors } from '../hooks/useSharedCursors'
 import { useYTripDoc } from '../hooks/useYTripDoc'
 import * as Y from 'yjs'
 import YTextEditor from './YTextEditor'
-import YCollabEditor from './YCollabEditor'
+// import YCollabEditor from './YCollabEditor'
+import ScheduleMemoEditor from './ScheduleMemoEditor'
 
 const CHAT_AUTO_HIDE_MS = 5000
 
@@ -78,7 +79,7 @@ const PlaceBoard = () => {
   const roomId = useMemo(() => getRoomId(tripId), [tripId])
 
   // Schedules/Trip info (merged from SchedulePanel)
-  const { schedulesByDate, tripInfo, doc, updateScheduleTime } = useYTripDoc(roomId)
+  const { schedulesByDate, tripInfo, doc, awareness, updateScheduleTime } = useYTripDoc(roomId)
   let titleYText: Y.Text | null = null
   if (doc) {
     const t = (doc.getMap('tripInfo') as Y.Map<unknown>).get('title')
@@ -361,12 +362,6 @@ const PlaceBoard = () => {
                           .map((it, originalIndex) => ({ it, originalIndex }))
                           .sort((a, b) => a.it.start_time.localeCompare(b.it.start_time))
                           .map(({ it, originalIndex }) => {
-                            let yItem: Y.Map<unknown> | undefined
-                            if (doc) {
-                              const yMap = doc.getMap('schedules') as Y.Map<unknown>
-                              const yArr = yMap.get(date) as Y.Array<Y.Map<unknown>> | undefined
-                              yItem = yArr?.get(originalIndex) as Y.Map<unknown> | undefined
-                            }
                             return (
                               <li
                                 key={`${date}-${it.id ?? 'n'}-${originalIndex}`}
@@ -399,22 +394,13 @@ const PlaceBoard = () => {
                                 </div>
                                 <div className="mt-1">
                                   {doc ? (
-                                    <YCollabEditor
+                                    <ScheduleMemoEditor
                                       doc={doc}
-                                      field={`memo-${it.uid || `${date}-${originalIndex}`}`}
+                                      awareness={awareness}
+                                      dateKey={date}
+                                      index={originalIndex}
+                                      fieldKey={`memo-${it.uid || `${date}-${originalIndex}`}`}
                                       initialText={it.memo}
-                                      onPlainTextChange={(text) => {
-                                        if (!doc || !yItem) return
-                                        doc.transact(() => {
-                                          const m = yItem!.get('memo') as unknown
-                                          if (m instanceof Y.Text) {
-                                            m.delete(0, (m as Y.Text).length)
-                                            m.insert(0, text)
-                                          } else {
-                                            yItem!.set('memo', new Y.Text(text))
-                                          }
-                                        }, 'mirror-memo')
-                                      }}
                                     />
                                   ) : null}
                                 </div>
