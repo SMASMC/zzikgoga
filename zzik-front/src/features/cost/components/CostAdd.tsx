@@ -1,6 +1,7 @@
 // CostAdd.tsx
 // 정산 추가 컴포넌트
 // 영수증 모달과 사진 직접 추가 모달을 위함
+import SolidButton from '@/components/atoms/SolidButton'
 import CostPlusModal from './CostPlusModal'
 import { useState } from 'react'
 
@@ -67,7 +68,7 @@ const CostAdd = () => {
           </button>
 
           {/* 직접 추가하기 */}
-          <button
+          <div
             onClick={handleModalOpen}
             className="w-full group bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-blue-200 hover:border-blue-400 active:scale-[0.98]"
           >
@@ -96,20 +97,7 @@ const CostAdd = () => {
                 </p>
               </div>
             </div>
-            <div>
-              <h3 className="text-lg font-bold text-text-500 font-bmjua mb-1">직접 추가하기</h3>
-              <p className="text-xs text-text-600">
-                카테고리, 금액, 설명 등을
-                <br />
-                직접 입력하여 추가합니다
-              </p>
-            </div>
-            <SolidButton
-              onClick={() => console.log('직접 입력')}
-              className="w-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-white py-2.5 rounded-full hover:scale-105 transition-transform font-bold text-sm"
-            >
-              ✏️ 직접 입력
-            </SolidButton>
+
           </div>
         </div>
       </div>

@@ -1,18 +1,18 @@
 // cost.ts
 
 export interface CostItem {
-    menuName: string
-    amount: number
-    memberIds: string[]
-    count: number
+  menuName: string
+  amount: number
+  memberIds: string[]
+  count: number
 }
 
 export interface CostRequest {
-    payerId: string
-    paidAt: string
-    place: string
-    totalAmount: number
-    memo: string
-    receiptJson: string | null
-    items: CostItem[]
+  payerId: string
+  paidAt: string
+  place: string
+  totalAmount: number
+  memo: string
+  receiptJson: string | null
+  items: CostItem[]
 }
