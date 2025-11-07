@@ -6,7 +6,7 @@ import { CostItem, CostRequest } from '@/features/cost/types/cost'
 const CostPlusForm = () => {
   const { user } = useAuthStore()
   const [payer] = useState<User | null>(user)
-  
+
   // 폼 데이터 상태
   const [formData, setFormData] = useState<CostRequest>({
     payerId: user?.id || '',
@@ -38,12 +38,12 @@ const CostPlusForm = () => {
   const updateItem = (index: number, field: keyof CostItem, value: string | number | string[]) => {
     const newItems = [...formData.items]
     newItems[index] = { ...newItems[index], [field]: value }
-    
+
     // memberIds가 업데이트되면 count도 자동으로 계산
     if (field === 'memberIds' && Array.isArray(value)) {
       newItems[index].count = value.length
     }
-    
+
     setFormData({ ...formData, items: newItems })
   }
 
@@ -70,9 +70,7 @@ const CostPlusForm = () => {
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* 결제자 선택 */}
       <div>
-        <label className="block text-sm font-bold text-text-500 mb-2 font-bmjua">
-          결제자
-        </label>
+        <label className="block text-sm font-bold text-text-500 mb-2 font-bmjua">결제자</label>
         <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl border-2 border-gray-200">
           <div className="flex-shrink-0">
             {payer?.picture ? (
@@ -83,9 +81,7 @@ const CostPlusForm = () => {
               />
             ) : (
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center border-2 border-blue-400">
-                <span className="text-white font-bold text-lg">
-                  {payer?.name.charAt(0) || 'U'}
-                </span>
+                <span className="text-white font-bold text-lg">{payer?.name.charAt(0) || 'U'}</span>
               </div>
             )}
           </div>
@@ -105,9 +101,7 @@ const CostPlusForm = () => {
 
       {/* 결제 일시 */}
       <div>
-        <label className="block text-sm font-bold text-text-500 mb-2 font-bmjua">
-          결제 일시
-        </label>
+        <label className="block text-sm font-bold text-text-500 mb-2 font-bmjua">결제 일시</label>
         <input
           type="datetime-local"
           value={formData.paidAt.replace(' ', 'T').slice(0, 16)}
@@ -120,9 +114,7 @@ const CostPlusForm = () => {
 
       {/* 결제 장소 */}
       <div>
-        <label className="block text-sm font-bold text-text-500 mb-2 font-bmjua">
-          결제 장소
-        </label>
+        <label className="block text-sm font-bold text-text-500 mb-2 font-bmjua">결제 장소</label>
         <input
           type="text"
           value={formData.place}
@@ -134,9 +126,7 @@ const CostPlusForm = () => {
 
       {/* 총 금액 */}
       <div>
-        <label className="block text-sm font-bold text-text-500 mb-2 font-bmjua">
-          총 금액
-        </label>
+        <label className="block text-sm font-bold text-text-500 mb-2 font-bmjua">총 금액</label>
         <input
           type="number"
           value={formData.totalAmount || ''}
@@ -148,9 +138,7 @@ const CostPlusForm = () => {
 
       {/* 메모 */}
       <div>
-        <label className="block text-sm font-bold text-text-500 mb-2 font-bmjua">
-          메모
-        </label>
+        <label className="block text-sm font-bold text-text-500 mb-2 font-bmjua">메모</label>
         <textarea
           value={formData.memo}
           onChange={(e) => setFormData({ ...formData, memo: e.target.value })}
@@ -162,9 +150,7 @@ const CostPlusForm = () => {
 
       {/* 증빙 자료 */}
       <div>
-        <label className="block text-sm font-bold text-text-500 mb-2 font-bmjua">
-          증빙 자료
-        </label>
+        <label className="block text-sm font-bold text-text-500 mb-2 font-bmjua">증빙 자료</label>
         <div className="space-y-2">
           <input
             type="file"
@@ -177,8 +163,18 @@ const CostPlusForm = () => {
             htmlFor="receipt-upload"
             className="flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl hover:border-blue-400 cursor-pointer transition-colors"
           >
-            <svg className="w-6 h-6 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            <svg
+              className="w-6 h-6 text-gray-400 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
             </svg>
             <span className="text-sm text-gray-600">이미지 업로드</span>
           </label>
@@ -195,7 +191,12 @@ const CostPlusForm = () => {
                 className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -217,7 +218,10 @@ const CostPlusForm = () => {
         </div>
         <div className="space-y-3">
           {formData.items.map((item, index) => (
-            <div key={index} className="p-3 bg-gray-50 rounded-xl border-2 border-gray-200 space-y-2">
+            <div
+              key={index}
+              className="p-3 bg-gray-50 rounded-xl border-2 border-gray-200 space-y-2"
+            >
               <div className="flex justify-between items-center">
                 <span className="text-xs font-bold text-blue-600">품목 {index + 1}</span>
                 {formData.items.length > 1 && (
@@ -255,7 +259,10 @@ const CostPlusForm = () => {
                     updateItem(
                       index,
                       'memberIds',
-                      e.target.value.split(',').map((id) => id.trim()).filter(Boolean)
+                      e.target.value
+                        .split(',')
+                        .map((id) => id.trim())
+                        .filter(Boolean)
                     )
                   }
                   placeholder="예: user1, user2, user3"

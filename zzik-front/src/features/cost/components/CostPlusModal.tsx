@@ -1,4 +1,4 @@
-import CostPlusForm from "./CostPlusForm"
+import CostPlusForm from './CostPlusForm'
 
 interface CostPlusModalProps {
   isOpen: boolean
