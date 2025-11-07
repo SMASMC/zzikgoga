@@ -15,7 +15,7 @@ import com.zzik.backend.domain.plan.entity.Trip;
 @Repository
 public interface TripRepository extends JpaRepository<Trip, Long> {
 
-	List<Trip> findAllByOwnerIdOrderByCreatedAtDesc(Long ownerId);
+	List<Trip> findDistinctByTripMembersMemberIdOrderByCreatedAtDesc(Long memberId);
 
 	@Query("""
 		    select distinct m.id
