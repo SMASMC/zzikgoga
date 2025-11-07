@@ -1,6 +1,7 @@
 package com.zzik.backend.domain.cost.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -25,4 +26,6 @@ public interface CostRepository extends JpaRepository<Cost, Long> {
 		    order by c.paidAt
 		""")
 	List<Cost> findAllWithMenusByTripId(Long tripId);
+
+	Optional<Cost> findByIdAndTripId(Long costId, Long tripId);
 }
