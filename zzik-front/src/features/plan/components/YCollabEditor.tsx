@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import * as Y from 'yjs'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
@@ -10,6 +10,7 @@ interface YCollabEditorProps {
   initialText?: string
   className?: string
   onPlainTextChange?: (text: string) => void
+  canSeed?: boolean
 }
 
 const YCollabEditor = ({
@@ -18,7 +19,9 @@ const YCollabEditor = ({
   initialText,
   className,
   onPlainTextChange,
+  canSeed,
 }: YCollabEditorProps) => {
+  const normalizingRef = useRef(false)
   const editor = useEditor({
     extensions: [
       StarterKit.configure({}),
@@ -32,38 +35,48 @@ const YCollabEditor = ({
         }`,
       },
     },
+    onUpdate: ({ editor, transaction }) => {
+      if (!transaction?.docChanged) return
+      let text = editor.getText({ blockSeparator: '\n' })
+      text = text.replace(/\r\n/g, '\n').replace(/\n+$/, '')
+      // Always normalize duplicates even on remote updates (no focus needed)
+      const m = /^([\s\S]+)\n\1$/.exec(text)
+      if (m && m[1] && !normalizingRef.current) {
+        normalizingRef.current = true
+        try {
+          editor.commands.setContent(m[1])
+        } finally {
+          normalizingRef.current = false
+        }
+        return
+      }
+      // Mirror to Y.Text only for local edits (focused editor)
+      if (!onPlainTextChange) return
+      if (!editor.view?.hasFocus?.()) return
+      onPlainTextChange(text)
+    },
   })
 
   useEffect(() => {
-    if (!editor) return
-    // Seed initial content once if fragment is empty
+    if (!editor || !canSeed) return
     try {
       const frag = doc.getXmlFragment(field)
       const isEmpty = (frag as unknown as { length: number }).length === 0
-      if (isEmpty && initialText && initialText.trim().length > 0) {
+      const currentText = editor.getText({ blockSeparator: '\n' })
+      if (
+        isEmpty &&
+        (!currentText || currentText.trim().length === 0) &&
+        initialText &&
+        initialText.trim().length > 0
+      ) {
         editor.commands.setContent(initialText)
       }
     } catch {
-      //
+      // ignore
     }
-  }, [doc, editor, field, initialText])
+  }, [canSeed, doc, editor, field, initialText])
 
-  // Mirror plain text to caller (used to keep legacy Y.Text memo in sync)
-  useEffect(() => {
-    if (!editor || !onPlainTextChange) return
-    let last = ''
-    const handler = () => {
-      const text = editor.getText({ blockSeparator: '\n' })
-      if (text !== last) {
-        last = text
-        onPlainTextChange(text)
-      }
-    }
-    editor.on('update', handler)
-    return () => {
-      editor.off('update', handler)
-    }
-  }, [editor, onPlainTextChange])
+  // update mirror now handled by onUpdate option above
 
   useEffect(() => () => editor?.destroy(), [editor])
 
