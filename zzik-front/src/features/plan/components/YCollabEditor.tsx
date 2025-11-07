@@ -12,7 +12,13 @@ interface YCollabEditorProps {
   onPlainTextChange?: (text: string) => void
 }
 
-const YCollabEditor = ({ doc, field, initialText, className, onPlainTextChange }: YCollabEditorProps) => {
+const YCollabEditor = ({
+  doc,
+  field,
+  initialText,
+  className,
+  onPlainTextChange,
+}: YCollabEditorProps) => {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({}),

@@ -1,4 +1,4 @@
-import GradientBackground from '@/features/mypage/components/GradientBackground'
+import GradientBackground from '@/components/blocks/GradientBackground'
 import MyPageHeader from '@/features/mypage/components/MyPageHeader'
 import { TravelCard, TravelAddCard } from '@/features/mypage/components/TravelCard'
 import CreateTravelModal from '@/features/mypage/components/CreateTravelModal'
