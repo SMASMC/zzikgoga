@@ -38,8 +38,7 @@ public class CostCalculateService {
 	private final StringRedisTemplate redis;
 
 	private static final String PFX = "settle";
-	private static final String IDX = "settle:index";
-	private static final Duration TTL = Duration.ofHours(24);
+	private static final Duration TTL = Duration.ofDays(3);
 
 	/*
 	Redis 관련
@@ -48,18 +47,12 @@ public class CostCalculateService {
 		return PFX + ":" + tripId + ":" + senderId;
 	}
 
-	private String tripIndexKey(long tripId) {
-		return IDX + ":" + tripId;
-	}
-
 	private void saveSendMapToRedis(long tripId, long senderId, Map<Long, Long> sendMap) {
 		final String key = senderKey(tripId, senderId);
-		final String idxKey = tripIndexKey(tripId);
 
 		// 0) 비었으면 정리 후 종료
 		if (sendMap == null || sendMap.isEmpty()) {
 			redis.delete(key);
-			redis.opsForSet().remove(idxKey, String.valueOf(senderId));
 			return;
 		}
 
@@ -75,7 +68,6 @@ public class CostCalculateService {
 		if (strMap.isEmpty()) {
 			// 보낼 게 없으면 키 제거 + 인덱스에서 제거
 			redis.delete(key);
-			redis.opsForSet().remove(idxKey, String.valueOf(senderId));
 			return;
 		}
 
@@ -83,10 +75,6 @@ public class CostCalculateService {
 		redis.delete(key);                       // 기존 값 제거
 		redis.opsForHash().putAll(key, strMap); // 일괄 저장
 		redis.expire(key, TTL);                  // TTL
-
-		// 3) 트립 인덱스 갱신 (일괄 무효화용)
-		redis.opsForSet().add(idxKey, String.valueOf(senderId));
-		redis.expire(idxKey, TTL);
 	}
 
 	public Map<Long, Long> getSendMapFromRedis(long tripId, long senderId) {
@@ -99,13 +87,11 @@ public class CostCalculateService {
 	}
 
 	public void clearTripSettlement(long tripId) {
-		final String idxKey = tripIndexKey(tripId);
-		Set<String> senders = redis.opsForSet().members(idxKey);
-		if (senders != null && !senders.isEmpty()) {
-			List<String> keys = senders.stream().map(s -> senderKey(tripId, Long.parseLong(s))).toList();
+		String pattern = PFX + ":" + tripId + ":*";
+		Set<String> keys = redis.keys(pattern);
+		if (!keys.isEmpty()) {
 			redis.delete(keys);
 		}
-		redis.delete(idxKey);
 	}
 
 	private static long nz(Long v) {
