@@ -72,9 +72,7 @@ const CostAdd = () => {
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-bold text-text-500 font-bmjua mb-1">
-                직접 추가하기
-              </h3>
+              <h3 className="text-lg font-bold text-text-500 font-bmjua mb-1">직접 추가하기</h3>
               <p className="text-xs text-text-600">
                 카테고리, 금액, 설명 등을
                 <br />
