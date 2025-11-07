@@ -7,6 +7,7 @@ import { SignupPage } from '@/pages/auth/SignUpPage'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { PublicOnlyRoute } from '@/components/auth/PublicOnlyRoute'
 import CostPage from '@/pages/cost/CostPage'
+import { InviteCallbackPage } from '@/pages/plan/InviteCallbackPage'
 
 const AppRoutes = () => {
   return (
@@ -16,6 +17,8 @@ const AppRoutes = () => {
       <Route path="/" element={<HomePage />} />
       {/* 2. OAuth 콜백 */}
       <Route path="/auth/callback" element={<OAuthCallbackPage />} />
+      {/* 3. 초대 링크 (query parameter 방식) */}
+      <Route path="/invite" element={<InviteCallbackPage />} />
 
       {/* 비로그인 사용자만 접근 가능 */}
       {/* 3. 회원가입 */}

@@ -13,6 +13,8 @@ import * as Y from 'yjs'
 import YTextEditor from './YTextEditor'
 // import YCollabEditor from './YCollabEditor'
 import ScheduleMemoEditor from './ScheduleMemoEditor'
+import SolidButton from '@/components/atoms/SolidButton'
+import FriendInviteModal from './FriendInviteModal'
 
 const CHAT_AUTO_HIDE_MS = 5000
 
@@ -106,6 +108,33 @@ const PlaceBoard = () => {
     selfMessage,
     chatMessages,
   } = useSharedCursors(roomId)
+
+  // 친구 초대 모달
+  const [isFriendModalOpen, setIsFriendModalOpen] = useState(false)
+  const [friendsCache, setFriendsCache] = useState<Record<string, boolean>>({})
+
+  const openFriendModal = () => {
+    setIsFriendModalOpen(true)
+    // tripId별로 처음 열었는지 확인
+    if (tripId && !friendsCache[tripId]) {
+      // 처음 열었다면 캐시에 기록
+      setFriendsCache((prev) => ({ ...prev, [tripId]: true }))
+      console.log(`${tripId}에서 친구 목록 API 호출 (최초)`)
+      // 여기서 API 호출이 FriendInviteModal에서 이루어집니다
+    } else {
+      console.log(`${tripId}의 캐시된 친구 목록 사용`)
+    }
+  }
+
+  const closeFriendModal = () => {
+    setIsFriendModalOpen(false)
+  }
+
+  const handleInviteFriends = (friendIds: string[]) => {
+    console.log('초대할 친구 IDs:', friendIds)
+    // TODO: API 호출로 친구 초대
+    // await InviteService.inviteFriends(tripId, friendIds)
+  } 
 
   const clearAutoHideTimer = useCallback(() => {
     if (autoHideTimerRef.current !== null) {
@@ -294,6 +323,14 @@ const PlaceBoard = () => {
         onKeyDown={handleBoardKeyDown}
         tabIndex={0}
       >
+        <div className="absolute left-4 top-4 z-10">
+          <SolidButton 
+            onClick={openFriendModal}
+            className="px-3 py-1.5 text-sm"
+          >
+            친구 초대하기
+          </SolidButton>
+        </div>
         <RemoteCursors cursors={remoteCursors} />
 
         <div className="pointer-events-none absolute right-4 top-4 flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-xs text-slate-600 shadow-sm backdrop-blur">
@@ -627,6 +664,14 @@ const PlaceBoard = () => {
           </div>
         </div>
       </div>
+
+      {/* 친구 초대 모달 */}
+      <FriendInviteModal
+        isOpen={isFriendModalOpen}
+        onClose={closeFriendModal}
+        tripId={tripId || ''}
+        onInvite={handleInviteFriends}
+      />
     </section>
   )
 }

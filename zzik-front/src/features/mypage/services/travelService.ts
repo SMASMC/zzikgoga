@@ -11,6 +11,8 @@ export class TravelService {
    */
   public static async getTravelList(): Promise<TravelListResponse> {
     const response = await apiClient.get<TravelListApiResponse>('/plan')
+    console.log('여행 목록 조회 완료:', response.trip?.length || 0, '개')
+    console.log('여행 목록:', response.trip)
     return response.trip
   }
 
