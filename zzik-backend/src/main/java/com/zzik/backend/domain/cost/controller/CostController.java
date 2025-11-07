@@ -16,6 +16,7 @@ import com.zzik.backend.domain.cost.dto.request.SaveCostRequest;
 import com.zzik.backend.domain.cost.dto.response.CostCalculateResponse;
 import com.zzik.backend.domain.cost.dto.response.CostItemDetailResponse;
 import com.zzik.backend.domain.cost.dto.response.ReceiptOcrResponse;
+import com.zzik.backend.domain.cost.service.CostCalculateService;
 import com.zzik.backend.domain.cost.service.CostService;
 import com.zzik.backend.global.presentation.ApiResponse;
 import com.zzik.backend.global.security.utils.SecurityUtil;
@@ -28,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 public class CostController implements CostApi {
 
 	private final CostService costService;
+	private final CostCalculateService costCalculateService;
 
 	@Override
 	public ResponseEntity<ApiResponse<ReceiptOcrResponse>> uploadReceiptAndSave(
@@ -61,7 +63,7 @@ public class CostController implements CostApi {
 	@Override
 	public ResponseEntity<ApiResponse<CostCalculateResponse>> calculate(Long tripId) {
 		Long userId = SecurityUtil.getCurrentMemberId();
-		CostCalculateResponse content = costService.calculate(tripId, userId);
+		CostCalculateResponse content = costCalculateService.calculate(tripId, userId);
 		return ResponseEntity.ok(ApiResponse.createSuccess(content));
 	}
 }

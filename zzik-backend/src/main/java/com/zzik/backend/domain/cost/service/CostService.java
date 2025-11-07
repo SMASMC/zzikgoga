@@ -5,11 +5,9 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -33,7 +31,6 @@ import com.zzik.backend.domain.auth.repository.MemberRepository;
 import com.zzik.backend.domain.cost.config.ClovaOcrProperties;
 import com.zzik.backend.domain.cost.dto.request.SaveCostMenuItem;
 import com.zzik.backend.domain.cost.dto.request.SaveCostRequest;
-import com.zzik.backend.domain.cost.dto.response.CostCalculateResponse;
 import com.zzik.backend.domain.cost.dto.response.CostItemDetailResponse;
 import com.zzik.backend.domain.cost.dto.response.ReceiptItemDto;
 import com.zzik.backend.domain.cost.dto.response.ReceiptOcrResponse;
@@ -367,19 +364,6 @@ public class CostService {
 		}
 	}
 
-	private static long nz(Long v) {
-		return (v == null) ? 0L : v;
-	}
-
-	private static List<Long> resolveBeneficiaries(List<Long> must, Set<Long> tripMemberIds) {
-		if (must == null || must.isEmpty())
-			return new ArrayList<>(tripMemberIds);
-		for (Long id : must)
-			if (id == null || !tripMemberIds.contains(id))
-				throw BusinessException.from(ExceptionCode.SHARE_MISSING);
-		return must.stream().distinct().sorted().toList();
-	}
-
 	@Transactional(readOnly = true)
 	public CostItemDetailResponse getCostDetail(Long tripId, Long costId) {
 		// 1) Trip 존재 여부 확인
@@ -417,110 +401,6 @@ public class CostService {
 			.memo(cost.getMemo())
 			.receiptJson(cost.getReceipt())
 			.items(items)
-			.build();
-	}
-
-	@Transactional(readOnly = true)
-	public CostCalculateResponse calculate(Long tripId, Long userId) {
-		Trip trip = tripRepository.findById(tripId)
-			.orElseThrow(() -> BusinessException.from(ExceptionCode.INVALID_TRIP));
-
-		// 이름도 리턴해야 하므로 초기에 memberId와 Name으로 Map으로 저장
-		Map<Long, String> memberNameMap = trip.getTripMembers().stream()
-			.collect(Collectors.toMap(
-				tm -> tm.getMember().getId(),
-				tm -> tm.getMember().getName()
-			));
-
-		Set<Long> memberIds = memberNameMap.keySet();
-		if (!memberIds.contains(userId)) {
-			throw BusinessException.from(ExceptionCode.NOT_TRIP_MEMBER);
-		}
-
-		List<Cost> costs = costRepository.findAllWithMenusByTripId(tripId);
-		if (costs.isEmpty()) {
-			throw BusinessException.from(ExceptionCode.NO_COSTS);
-		}
-
-		Map<Long, Map<Long, Long>> ledger = new HashMap<>();
-
-		for (Cost cost : costs) {
-			Long payerId = cost.getPayer().getId();
-
-			for (CostMenu m : Optional.ofNullable(cost.getCostMenus()).orElse(List.of())) {
-				long menuTotal = nz(m.getAmount()) * m.getCount();
-				List<Long> bens = resolveBeneficiaries(m.getMustPayerIds(), memberIds);
-				if (bens.isEmpty())
-					throw BusinessException.from(ExceptionCode.SHARE_MISSING);
-
-				int n = bens.size();
-				long base = menuTotal / n;
-				// 나머지는 고려하지 않음. 우리 서비스에서 제공.
-
-				for (Long benId : bens) {
-					if (Objects.equals(benId, payerId))
-						continue; // 자기 자신에게 청구 X
-					ledger.computeIfAbsent(benId, k -> new HashMap<>())
-						.merge(payerId, base, Long::sum);
-				}
-			}
-		}
-
-		Map<Long, Long> sendMap = new HashMap<>(); // 본인이 줘야 하는 것
-		Map<Long, Long> recvMap = new HashMap<>(); // 본인이 받아야 하는 것
-
-		Map<Long, Long> meRow = ledger.getOrDefault(userId, Map.of());
-		for (Long otherId : memberIds) {
-			if (Objects.equals(otherId, userId))
-				continue;
-
-			long meToOther = meRow.getOrDefault(otherId, 0L);
-			long otherToMe = ledger.getOrDefault(otherId, Map.of()).getOrDefault(userId, 0L);
-
-			if (meToOther > otherToMe) {
-				sendMap.put(otherId, meToOther - otherToMe);
-			} else if (otherToMe > meToOther) {
-				recvMap.put(otherId, otherToMe - meToOther);
-			}
-		}
-
-		Set<Long> relatedMemberIds = new HashSet<>();
-		relatedMemberIds.addAll(sendMap.keySet());
-		relatedMemberIds.addAll(recvMap.keySet());
-		int relatedCount = relatedMemberIds.size();
-
-		List<CostCalculateResponse.ToSend> toSend = sendMap.entrySet().stream()
-			.filter(e -> e.getValue() > 0)
-			.map(e -> CostCalculateResponse.ToSend.builder()
-				.targetMemberId(e.getKey())
-				.targetMemberName(memberNameMap.get(e.getKey()))
-				.amount(e.getValue())
-				.build())
-			.toList();
-
-		List<CostCalculateResponse.ToReceive> toReceive = recvMap.entrySet().stream()
-			.filter(e -> e.getValue() > 0)
-			.map(e -> CostCalculateResponse.ToReceive.builder()
-				.fromMemberId(e.getKey())
-				.fromMemberName(memberNameMap.get(e.getKey()))
-				.amount(e.getValue())
-				.build())
-			.toList();
-
-		long netAmount = toReceive.stream().mapToLong(CostCalculateResponse.ToReceive::getAmount).sum()
-			- toSend.stream().mapToLong(CostCalculateResponse.ToSend::getAmount).sum();
-
-		return CostCalculateResponse.builder()
-			.combinedSettlement(
-				CostCalculateResponse.CombinedSettlement.builder()
-					.memberId(userId)
-					.memberName(memberNameMap.get(userId))
-					.memberCount(relatedCount)
-					.toSend(toSend)
-					.toReceive(toReceive)
-					.netAmount(netAmount)
-					.build()
-			)
 			.build();
 	}
 }
