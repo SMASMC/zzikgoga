@@ -31,6 +31,7 @@ import com.zzik.backend.domain.auth.repository.MemberRepository;
 import com.zzik.backend.domain.cost.config.ClovaOcrProperties;
 import com.zzik.backend.domain.cost.dto.request.SaveCostMenuItem;
 import com.zzik.backend.domain.cost.dto.request.SaveCostRequest;
+import com.zzik.backend.domain.cost.dto.response.CostItemDetailResponse;
 import com.zzik.backend.domain.cost.dto.response.ReceiptItemDto;
 import com.zzik.backend.domain.cost.dto.response.ReceiptOcrResponse;
 import com.zzik.backend.domain.cost.entity.Cost;
@@ -39,6 +40,8 @@ import com.zzik.backend.domain.cost.repository.CostMenuRepository;
 import com.zzik.backend.domain.cost.repository.CostRepository;
 import com.zzik.backend.domain.plan.entity.Trip;
 import com.zzik.backend.domain.plan.repository.TripRepository;
+import com.zzik.backend.global.cloud.s3.service.S3Directory;
+import com.zzik.backend.global.cloud.s3.service.S3Service;
 import com.zzik.backend.global.exception.BusinessException;
 import com.zzik.backend.global.exception.ExceptionCode;
 import com.zzik.backend.global.security.utils.SecurityUtil;
@@ -64,6 +67,8 @@ public class CostService {
 	private final TripRepository tripRepository;
 	@Autowired
 	private MemberRepository memberRepository;
+	@Autowired
+	private S3Service s3Service;
 
 	// 사진 검증
 	public void validateReceiptImage(MultipartFile file) {
@@ -116,7 +121,10 @@ public class CostService {
 
 			SaveCostRequest mapped = mapOcrToRequest(ocrResult);
 
-			Long costId = createCost(tripId, mapped);
+			// s3에 파일 실제 저장
+			String objectKeyOfFile = s3Service.uploadFile(file, S3Directory.RECEIPT);
+
+			Long costId = createCost(tripId, mapped, objectKeyOfFile);
 			log.info("[OCR->CREATE] created costId={}, items={}", costId, mapped.getItems().size());
 			return ocrResult;
 
@@ -200,7 +208,7 @@ public class CostService {
 	}
 
 	@Transactional
-	public Long createCost(Long tripId, SaveCostRequest req) {
+	public Long createCost(Long tripId, SaveCostRequest req, String s3ObjectKeyOfFile) {
 		log.debug("CreateCost IN: tripId={}, createdBy={}, payerId={}, place={}, itemsNull={}, itemsSize={}",
 			tripId, req.getCreatedBy(), req.getPayerId(), req.getPlace(),
 			req.getItems() == null, req.getItems() == null ? null : req.getItems().size());
@@ -254,6 +262,7 @@ public class CostService {
 			.totalAmount(finalTotal)
 			.memo(trimOrNull(req.getMemo()))
 			.receipt(trimOrNull(req.getReceiptJson()))
+			.receiptUrl(s3ObjectKeyOfFile)
 			.build();
 		cost = costRepository.save(cost);
 
@@ -280,7 +289,6 @@ public class CostService {
 				.mustPayerIds(mustJson)
 				.build();
 			menus.add(m);
-			// costMenuRepository.save(m);
 		}
 		costMenuRepository.saveAll(menus);
 
@@ -294,19 +302,6 @@ public class CostService {
 
 	private String trimOrNull(String s) {
 		return (s == null || s.isBlank()) ? null : s.trim();
-	}
-
-	@Transactional
-	public void replaceMembers(Long costMenuId, List<Long> memberIds) {
-		CostMenu menu = costMenuRepository.findById(costMenuId)
-			.orElseThrow(() -> new IllegalArgumentException("cost_menu not found: " + costMenuId));
-		if (memberIds == null || memberIds.isEmpty()) {
-			menu.setMustPayerIds(null);
-		} else {
-			List<Long> uniq = memberIds.stream().filter(Objects::nonNull).distinct().sorted().toList();
-			menu.setMustPayerIds(uniq);
-		}
-		costMenuRepository.save(menu);
 	}
 
 	private SaveCostRequest mapOcrToRequest(ReceiptOcrResponse ocr) {
@@ -367,5 +362,45 @@ public class CostService {
 		} catch (Exception ignore) {
 			return null;
 		}
+	}
+
+	@Transactional(readOnly = true)
+	public CostItemDetailResponse getCostDetail(Long tripId, Long costId) {
+		// 1) Trip 존재 여부 확인
+		Trip trip = tripRepository.findById(tripId)
+			.orElseThrow(() -> BusinessException.from(ExceptionCode.INVALID_TRIP));
+
+		// 2) Cost 조회 및 Trip 매칭 검증
+		Cost cost = costRepository.findById(costId)
+			.orElseThrow(() -> BusinessException.from(ExceptionCode.INVALID_TRIP));
+		if (!cost.getTrip().getId().equals(trip.getId())) {
+			throw BusinessException.from(ExceptionCode.INVALID_TRIP);
+		}
+
+		// 3) CostMenu 항목 조회
+		List<CostMenu> menus = costMenuRepository.findAllByCost_Id(costId);
+
+		// 4) 응답 변환
+		List<com.zzik.backend.domain.cost.dto.response.CostItemResponse> items = new ArrayList<>();
+		for (CostMenu m : menus) {
+			items.add(com.zzik.backend.domain.cost.dto.response.CostItemResponse.builder()
+				.menuName(m.getMenuName())
+				.count(m.getCount())
+				.amount(m.getAmount())
+				.memberIds(m.getMustPayerIds())
+				.build());
+		}
+
+		return CostItemDetailResponse.builder()
+			.costId(cost.getId())
+			.createdBy(cost.getCreatedBy() != null ? cost.getCreatedBy().getId() : null)
+			.payerId(cost.getPayer() != null ? cost.getPayer().getId() : null)
+			.paidAt(cost.getPaidAt())
+			.place(cost.getPlace())
+			.totalAmount(cost.getTotalAmount())
+			.memo(cost.getMemo())
+			.receiptJson(cost.getReceipt())
+			.items(items)
+			.build();
 	}
 }

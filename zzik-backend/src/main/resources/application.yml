@@ -33,3 +33,13 @@ clova-ocr:
 
 kakao:
   client-id: ${KAKAO_CLIENT_ID}
+
+cloud:
+  aws:
+    s3:
+      bucket: ${S3_BUCKET_NAME}
+      region:
+        static: ${S3_REGION}
+      credentials:
+        access-key: ${S3_ACCESS_KEY}
+        secret-key: ${S3_SECRET_ACCESS_KEY}

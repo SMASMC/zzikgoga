@@ -54,6 +54,7 @@ public enum ExceptionCode {
 	UPLOAD_SIZE_EXCEEDED(HttpStatus.PAYLOAD_TOO_LARGE, 40305, "이미지 용량이 제한을 초과했습니다. (최대 50MB)", "cost - 이미지 사이즈 초과"),
 	ZERO_TOTAL_AMOUNT(HttpStatus.CONFLICT, 40306, "영수증 총액이 0원으로 인식되었습니다. 사진을 다시 찍어주세요.", "cost - 총액 0원 인식"),
 	RECEIPT_CONTEXT_INVALID(HttpStatus.CONFLICT, 40307, "영수증 필수 입력 사항이 입력되지 않았습니다.", "cost - 입력 사항 미기재"),
+	INVALID_COST(HttpStatus.NOT_FOUND, 40308, "존재하지 않는 결제 항목입니다.", "cost - 비용 항목 not found"),
 
 	/* 4032x - cost - accept */
 	ALREADY_ACCEPTED_COST(HttpStatus.CONFLICT, 40320, "이미 정산에 수락 하셨습니다.", "cost - approval 이미 정산을 수락함"),
@@ -87,7 +88,11 @@ public enum ExceptionCode {
 	METHOD_FORBIDDEN(HttpStatus.METHOD_NOT_ALLOWED, 49902, "지원하지 않는 HTTP 메서드를 사용합니다."),
 	INVALID_IMAGE_EXTENSION(HttpStatus.BAD_REQUEST, 49903, "지원되지 않는 이미지 파일 확장자입니다.",
 		"이미지 파일 업로드에 허용되지 않는 파일 형식입니다."),
-	SMS_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, 49904, "외부 SMS 통신중 에러가 났습니다.");
+	/* 4992x 외부 서비스 */
+	S3_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 49920, "이미지 서버 내부 오류로 인해 현재 파일을 업로드할 수 없습니다.",
+		"S3 SDK에서 익셉션 발생"),
+	S3_DELETE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 49921, "파일 삭제에 실패했습니다.", "S3 삭제 중 오류 발생"),
+	S3_URL_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 49922, "파일 URL 생성에 실패했습니다.", "Presigned URL 생성 중 오류 발생");
 
 	private final HttpStatus httpStatus;
 	private final int errorCode;

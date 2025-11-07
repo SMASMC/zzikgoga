@@ -22,7 +22,7 @@ public class TripMemberService {
 	 * @return 해당하는 TripMember객체
 	 */
 	public TripMember validateMembershipAndGet(long memberId, Long tripId) throws BusinessException {
-		TripMember tripMember = tripMemberRepository.findByMember_IdAndTrip_Id(memberId, tripId).orElseThrow(
+		TripMember tripMember = tripMemberRepository.findByTripIdAndMemberId(tripId, memberId).orElseThrow(
 			() -> BusinessException.from(ExceptionCode.NOT_TRIP_MEMBER)
 		);
 		return tripMember;

@@ -16,5 +16,5 @@ public interface TripMemberRepository extends JpaRepository<TripMember, Long> {
 
 	void deleteByTripId(Long tripId);
 
-	Optional<TripMember> findByMember_IdAndTrip_Id(long memberId, Long tripId);
+	void deleteByTripIdAndMemberId(Long tripId, Long memberId);
 }
