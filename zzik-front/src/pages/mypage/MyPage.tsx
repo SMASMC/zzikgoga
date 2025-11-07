@@ -2,7 +2,7 @@ import GradientBackground from '@/components/blocks/GradientBackground'
 import MyPageHeader from '@/features/mypage/components/MyPageHeader'
 import { TravelCard, TravelAddCard } from '@/features/mypage/components/TravelCard'
 import CreateTravelModal from '@/features/mypage/components/CreateTravelModal'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { TravelService } from '@/features/mypage/services/travelService'
 import { Travel } from '@/features/mypage/types/mypage'
 
@@ -11,6 +11,7 @@ const MyPage = () => {
   const [travels, setTravels] = useState<Travel[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const isFirstRender = useRef(true)
 
   const handleOpenTravelModal = () => setIsModalOpen(true)
   const handleCloseTravelModal = () => {
@@ -24,7 +25,6 @@ const MyPage = () => {
       setError(null)
       const data = await TravelService.getTravelList()
       setTravels(data)
-      console.log('여행 목록 조회 성공:', data)
     } catch (error) {
       console.error('여행 목록 조회 실패:', error)
       setError(error instanceof Error ? error.message : '여행 목록을 불러오는데 실패했습니다.')
@@ -35,7 +35,35 @@ const MyPage = () => {
   }
 
   useEffect(() => {
+    // 초기 로드
     loadTravels()
+
+    // 페이지가 보일 때마다 여행 목록 새로고침 (탭 전환, 다른 앱에서 돌아올 때)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadTravels()
+      }
+    }
+
+    // 윈도우 포커스 이벤트 (다른 페이지에서 MyPage로 돌아올 때)
+    const handleFocus = () => {
+      // 첫 렌더링에서는 실행하지 않음 (이미 loadTravels()가 실행되었으므로)
+      if (!isFirstRender.current) {
+        loadTravels()
+      } else {
+        isFirstRender.current = false
+      }
+    }
+
+    // 이벤트 리스너 등록
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+
+    // cleanup 함수
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
   }, [])
 
   return (
