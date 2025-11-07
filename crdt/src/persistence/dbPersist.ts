@@ -19,6 +19,24 @@ function debounce(id: string, func: () => void, delay: number = 2000) {
     );
 }
 
+// Normalize memo text to avoid accidental duplication
+function normalizeMemo(text: string): string {
+    let s = (text || '').replace(/\r\n/g, '\n')
+    // drop trailing newlines/spaces
+    s = s.replace(/[\s\n]+$/, '')
+    // If content is duplicated with a single newline in between, collapse
+    // Examples: "A\nA", "Hello\nHello"
+    const idx = s.indexOf('\n')
+    if (idx > 0) {
+        const left = s.slice(0, idx).trimEnd()
+        const right = s.slice(idx + 1).trimEnd()
+        if (left.length > 0 && left === right) {
+            return left
+        }
+    }
+    return s
+}
+
 // dbPersist.ts 상단 유틸 근처에 추가
 function fromAnyToIntervalString(v: any): string | null {
     if (v == null) return null;
@@ -94,7 +112,8 @@ async function upsertScheduleItem(
     const rawOffset = scheduleItem.get('offset_time');
     const offset_time = fromAnyToIntervalString(rawOffset);
     const memoVal = scheduleItem.get('memo');
-    const memo = memoVal instanceof Y.Text ? memoVal.toString() : (memoVal ?? '');
+    const rawMemo = memoVal instanceof Y.Text ? memoVal.toString() : (memoVal ?? '');
+    const memo = normalizeMemo(String(rawMemo))
     const has_location = !!scheduleItem.get('has_location');
     const locationObj = scheduleItem.get('location') || null;
 
@@ -294,9 +313,11 @@ function observeScheduleDayArray(
             for (const addedVal of item.content.getContent()) {
                 if (addedVal instanceof Y.Map) {
                     // DB 반영 (INSERT or UPDATE)
-                    debounce(`schedule_upsert:${tripId}:${dateKey}:${Math.random()}`, () => {
+                    { const keyId = (addedVal.get('id') ?? addedVal.get('uid') ?? Math.random()) as string | number;
+                      debounce(`schedule_upsert:${tripId}:${dateKey}:${keyId}`, () => {
                         upsertScheduleItem(tripId, addedVal, dateKey);
-                    });
+                      });
+                    }
 
                     // 하위 필드 감시 연결
                     hookScheduleItemObservers(addedVal, tripId, dateKey);
@@ -325,12 +346,12 @@ function hookScheduleItemObservers(
     // Map 변경 시
     scheduleItem.observe((evt: Y.YMapEvent<any>, tr: Y.Transaction) => {
         if (!isUserOrigin(tr)) return;
-        debounce(
-            `schedule_item:${tripId}:${dateKey}:${scheduleItem.get('id') ?? 'new'}`,
-            () => {
+        {
+            const keyId = (scheduleItem.get('id') ?? scheduleItem.get('uid') ?? 'new') as string | number
+            debounce(`schedule_item:${tripId}:${dateKey}:${keyId}`, () => {
                 upsertScheduleItem(tripId, scheduleItem, dateKey);
-            }
-        );
+            });
+        }
     });
 
     // memo(Y.Text) 변경 시
@@ -338,12 +359,12 @@ function hookScheduleItemObservers(
     if (memoVal instanceof Y.Text) {
         memoVal.observe((_textEvt: Y.YTextEvent, tr: Y.Transaction) => {
             if (!isUserOrigin(tr)) return;
-            debounce(
-                `schedule_item_memo:${tripId}:${dateKey}:${scheduleItem.get('id') ?? 'new'}`,
-                () => {
+            {
+                const keyId = (scheduleItem.get('id') ?? scheduleItem.get('uid') ?? 'new') as string | number
+                debounce(`schedule_item_memo:${tripId}:${dateKey}:${keyId}`, () => {
                     upsertScheduleItem(tripId, scheduleItem, dateKey);
-                }
-            );
+                });
+            }
         });
     }
 }
