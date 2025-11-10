@@ -6,8 +6,7 @@ import type {
 } from 'react'
 import { useParams } from 'react-router-dom'
 import { cn } from '@/shared/utils/cn'
-import RemoteCursors from './RemoteCursors'
-import { useSharedCursors } from '../hooks/useSharedCursors'
+import type { SharedCursorSession } from '../hooks/useSharedCursors'
 import { useYTripDoc } from '../hooks/useYTripDoc'
 import * as Y from 'yjs'
 import YTextEditor from './YTextEditor'
@@ -20,12 +19,6 @@ const CHAT_AUTO_HIDE_MS = 5000
 
 const getRoomId = (tripId: string | undefined) =>
   tripId && tripId.trim().length > 0 ? `trip-${tripId.trim()}` : 'trip-default'
-
-const formatTimestamp = (timestamp: number) =>
-  new Date(timestamp).toLocaleTimeString('ko-KR', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 
 const toTime = (isoLocal: string) =>
   isoLocal?.length >= 16 ? isoLocal.slice(11, 16) : isoLocal || ''
@@ -76,7 +69,11 @@ const normalizeOffsetToHHMM = (raw: string | null | undefined): string => {
 
 const isValidHHMM = (v: string) => /^\d{2}:\d{2}$/.test(v)
 
-const PlaceBoard = () => {
+interface PlaceBoardProps {
+  cursorSession: SharedCursorSession
+}
+
+const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
   const { tripId } = useParams<{ tripId: string }>()
   const roomId = useMemo(() => getRoomId(tripId), [tripId])
 
@@ -99,15 +96,7 @@ const PlaceBoard = () => {
   const [editStart, setEditStart] = useState('')
   const [editOffset, setEditOffset] = useState('')
 
-  const {
-    remoteCursors,
-    publishCursor,
-    clearCursor,
-    self,
-    sendMessage,
-    selfMessage,
-    chatMessages,
-  } = useSharedCursors(roomId)
+  const { self, sendMessage, selfMessage } = cursorSession
 
   // 친구 초대 모달
   const [isFriendModalOpen, setIsFriendModalOpen] = useState(false)
@@ -160,33 +149,28 @@ const PlaceBoard = () => {
     }, CHAT_AUTO_HIDE_MS)
   }, [clearAutoHideTimer])
 
-  const handlePointerMove = useCallback(
-    (event: ReactPointerEvent<HTMLDivElement>) => {
-      const board = boardRef.current
-      if (!board) {
-        return
-      }
+  const handlePointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    const board = boardRef.current
+    if (!board) {
+      return
+    }
 
-      const rect = board.getBoundingClientRect()
-      if (rect.width === 0 || rect.height === 0) {
-        return
-      }
+    const rect = board.getBoundingClientRect()
+    if (rect.width === 0 || rect.height === 0) {
+      return
+    }
 
-      const x = ((event.clientX - rect.left) / rect.width) * 100
-      const y = ((event.clientY - rect.top) / rect.height) * 100
+    const x = ((event.clientX - rect.left) / rect.width) * 100
+    const y = ((event.clientY - rect.top) / rect.height) * 100
 
-      publishCursor({ x, y })
-      setSelfCursor({ x, y })
-    },
-    [publishCursor]
-  )
+    setSelfCursor({ x, y })
+  }, [])
 
   const handlePointerLeave = useCallback(() => {
     if (!isChatOpen && !selfMessage?.text) {
-      clearCursor()
       setSelfCursor(null)
     }
-  }, [clearCursor, isChatOpen, selfMessage])
+  }, [isChatOpen, selfMessage])
 
   const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement | null
@@ -259,7 +243,8 @@ const PlaceBoard = () => {
 
   const handleChatInputChange = useCallback(
     (value: string) => {
-      setChatValue(value)
+      const limited = value.slice(0, 200)
+      setChatValue(limited)
       if (isChatOpen) {
         resetAutoHideTimer()
       }
@@ -291,12 +276,6 @@ const PlaceBoard = () => {
     }
   }, [clearAutoHideTimer, isChatOpen, resetAutoHideTimer])
 
-  useEffect(() => {
-    if (isChatOpen && chatMessages.length > 0) {
-      resetAutoHideTimer()
-    }
-  }, [chatMessages, isChatOpen, resetAutoHideTimer])
-
   useEffect(
     () => () => {
       clearAutoHideTimer()
@@ -310,20 +289,18 @@ const PlaceBoard = () => {
     <section className="relative flex flex-1 min-h-0 flex-col overflow-hidden border-x border-slate-200 bg-slate-50">
       <div
         ref={boardRef}
-        className="relative flex min-h-0 flex-1 cursor-crosshair flex-col outline-none"
+        className="relative flex min-h-0 flex-1 flex-col outline-none"
         onPointerMove={handlePointerMove}
         onPointerLeave={handlePointerLeave}
         onPointerDown={handlePointerDown}
         onKeyDown={handleBoardKeyDown}
         tabIndex={0}
       >
-        <div className="absolute left-4 top-4 z-10">
-          <SolidButton onClick={openFriendModal} className="px-3 py-1.5 text-sm">
+        <div className="pointer-events-auto absolute bottom-6 right-6 z-10">
+          <SolidButton onClick={openFriendModal} className="px-4 py-2 text-sm shadow-lg">
             친구 초대하기
           </SolidButton>
         </div>
-        <RemoteCursors cursors={remoteCursors} />
-
         <div className="pointer-events-none absolute right-4 top-4 flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-xs text-slate-600 shadow-sm backdrop-blur">
           <span
             className="inline-flex h-2.5 w-2.5 rounded-full"
@@ -331,24 +308,6 @@ const PlaceBoard = () => {
           />
           <span className="font-medium">{self.name}</span>
         </div>
-
-        {selfCursor ? (
-          <div
-            className="pointer-events-none absolute"
-            style={{
-              left: `${selfCursor.x}%`,
-              top: `${selfCursor.y}%`,
-            }}
-          >
-            <div className="relative -translate-x-2 -translate-y-2">
-              {selfMessage?.text ? (
-                <div className="pointer-events-none absolute bottom-full left-0 mb-1 max-w-[220px] rounded-lg bg-blue-500/95 px-3 py-1 text-xs font-medium text-white shadow-lg backdrop-blur">
-                  {selfMessage.text}
-                </div>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
 
         <div
           className={cn(
@@ -560,7 +519,7 @@ const PlaceBoard = () => {
         <button
           type="button"
           onClick={openChatInput}
-          className="group absolute bottom-6 right-6 flex items-center gap-2 rounded-full border border-blue-100 bg-white/90 px-4 py-2 text-xs font-medium text-slate-600 shadow-lg backdrop-blur transition hover:-translate-y-0.5 hover:border-blue-300 hover:text-blue-600 hover:shadow-xl"
+          className="group absolute bottom-24 right-6 flex items-center gap-2 rounded-full border border-blue-100 bg-white/90 px-4 py-2 text-xs font-medium text-slate-600 shadow-lg backdrop-blur transition hover:-translate-y-0.5 hover:border-blue-300 hover:text-blue-600 hover:shadow-xl"
         >
           <span className="text-[11px] uppercase tracking-wide text-slate-400">Chat</span>
           <span className="rounded-md bg-slate-900/90 px-2 py-0.5 text-[11px] font-semibold text-white shadow-sm">
@@ -571,66 +530,18 @@ const PlaceBoard = () => {
 
         <div
           className={cn(
-            'absolute right-6 top-6 w-80 max-w-[88vw] rounded-2xl border border-white/60 bg-white/95 shadow-2xl backdrop-blur transition-all duration-300',
+            'absolute right-6 top-6 z-40 w-72 max-w-[86vw] rounded-2xl border border-white/60 bg-white/95 shadow-2xl backdrop-blur transition-all duration-300',
             isChatOpen
               ? 'pointer-events-auto translate-y-0 opacity-100'
               : 'pointer-events-none -translate-y-2 opacity-0'
           )}
         >
           <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
-            <div className="text-sm font-semibold text-slate-700">실시간 커서 채팅</div>
+            <div className="text-sm font-semibold text-slate-700">커서 메시지 보내기</div>
             <span className="text-xs text-slate-400">ESC로 닫기</span>
           </div>
-          <div className="max-h-60 overflow-y-auto px-5 py-3">
-            {chatMessages.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-slate-200 bg-white/70 px-4 py-6 text-center text-xs text-slate-400">
-                아직 메시지가 없어요 '/' 키를 눌러 첫 메시지를 남겨보세요.
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {chatMessages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={cn('flex gap-2', message.isSelf ? 'justify-end' : 'justify-start')}
-                  >
-                    {!message.isSelf ? (
-                      <div
-                        className="mt-1 h-2.5 w-2.5 rounded-full"
-                        style={{ backgroundColor: message.color }}
-                      />
-                    ) : null}
-                    <div
-                      className={cn(
-                        'max-w-[220px] rounded-2xl px-3 py-2 text-sm leading-snug shadow-sm',
-                        message.isSelf
-                          ? 'rounded-br-sm bg-blue-500 text-white'
-                          : 'rounded-bl-sm border border-slate-100 bg-white text-slate-700'
-                      )}
-                    >
-                      <div className="mb-1 flex items-center justify-between text-[11px] uppercase tracking-wide">
-                        <span
-                          className={cn(
-                            'font-semibold',
-                            message.isSelf ? 'text-blue-100' : 'text-slate-400'
-                          )}
-                        >
-                          {message.isSelf ? '나' : message.name}
-                        </span>
-                        <span
-                          className={cn(
-                            'font-medium',
-                            message.isSelf ? 'text-blue-100/80' : 'text-slate-300'
-                          )}
-                        >
-                          {formatTimestamp(message.timestamp)}
-                        </span>
-                      </div>
-                      <p className="whitespace-pre-wrap break-words">{message.text}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+          <div className="px-5 py-3 text-xs text-slate-500">
+            입력한 내용은 내 커서 풍선으로만 표시됩니다.
           </div>
           <div className="border-t border-slate-100 px-5 py-3">
             <form className="flex items-center gap-2" onSubmit={handleChatSubmit}>

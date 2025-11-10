@@ -32,12 +32,35 @@ const YTextEditor = ({ ytext, className, placeholder }: YTextEditorProps) => {
       transaction: { docChanged?: boolean }
     }) => {
       if (isRemoteRef.current || !transaction.docChanged) return
-      const text = editor.getText({ blockSeparator: '\n' })
+      const newText = editor.getText({ blockSeparator: '\n' })
       const current = ytext.toString()
-      if (text !== current) {
+      if (newText !== current) {
+        // 델타 계산: 공통 접두사/접미사를 찾아 변경된 부분만 적용
+        let commonPrefix = 0
+        const minLen = Math.min(current.length, newText.length)
+        while (commonPrefix < minLen && current[commonPrefix] === newText[commonPrefix]) {
+          commonPrefix++
+        }
+
+        let commonSuffix = 0
+        while (
+          commonSuffix < minLen - commonPrefix &&
+          current[current.length - 1 - commonSuffix] === newText[newText.length - 1 - commonSuffix]
+        ) {
+          commonSuffix++
+        }
+
+        const deleteFrom = commonPrefix
+        const deleteLength = current.length - commonPrefix - commonSuffix
+        const insertText = newText.slice(commonPrefix, newText.length - commonSuffix)
+
         ytext.doc?.transact(() => {
-          ytext.delete(0, ytext.length)
-          ytext.insert(0, text)
+          if (deleteLength > 0) {
+            ytext.delete(deleteFrom, deleteLength)
+          }
+          if (insertText.length > 0) {
+            ytext.insert(deleteFrom, insertText)
+          }
         }, 'tiptap-edit')
       }
     },
