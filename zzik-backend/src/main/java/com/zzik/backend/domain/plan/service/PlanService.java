@@ -56,6 +56,14 @@ public class PlanService {
 	private final InviteTokenProvider inviteTokenProvider;
 	private final StringRedisTemplate redisTemplate;
 
+	private String tokenKey(Long tripId) {
+		return "invite:trip:%d:token".formatted(tripId);
+	}
+
+	private String jtiKey(Long tripId) {
+		return "invite:trip:%d:jti".formatted(tripId);
+	}
+
 	@Value("${invite.base-url}")
 	private String inviteBaseUrl;
 
@@ -172,6 +180,13 @@ public class PlanService {
 			throw BusinessException.from(ExceptionCode.PLAN_INVALID_DATE_RANGE);
 		}
 
+		// 기존 토큰 있으면 그대로 반환
+		String tKey = tokenKey(tripId);
+		String existing = redisTemplate.opsForValue().get(tKey);
+		if (existing != null) {
+			return inviteBaseUrl + "?token=" + existing;
+		}
+
 		// 초대 토큰 생성
 		String jti = UUID.randomUUID().toString();
 		Map<String, Object> claims = new HashMap<>();
@@ -242,16 +257,9 @@ public class PlanService {
 	}
 
 	private void assertLatestJti(Long tripId, String jti) {
-		String key = "invite:trip:" + tripId + ":jti";
-		String saved = redisTemplate.opsForValue().get(key);
-
-		if (saved == null) {
-			// 처음 쓰는 링크라면 기록해둔다
-			redisTemplate.opsForValue().set(key, jti);
-			return;
-		}
-
-		if (!saved.equals(jti)) {
+		String saved = redisTemplate.opsForValue().get(jtiKey(tripId));
+		if (saved == null || !saved.equals(jti)) {
+			// 저장된 최신 JTI가 없거나 다르면 거부
 			throw BusinessException.from(ExceptionCode.INVITE_INVALID);
 		}
 	}
