@@ -34,8 +34,12 @@ class ApiClient {
     // 쿠키에서 accessToken 가져오기
     const accessToken = getCookie('accessToken')
 
+    // FormData인지 확인
+    const isFormData = config.body instanceof FormData
+
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      // FormData일 때는 Content-Type을 설정하지 않음 (브라우저가 자동으로 boundary 설정)
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(accessToken && { Authorization: `Bearer ${accessToken}` }), // 토큰이 있으면 Authorization 헤더 추가
       ...config.headers,
     }
@@ -80,10 +84,12 @@ class ApiClient {
   }
 
   async post<T>(endpoint: string, data?: unknown, config?: RequestConfig): Promise<T> {
+    // FormData인 경우 그대로 전송, 아닌 경우 JSON.stringify
+    const body = data instanceof FormData ? data : JSON.stringify(data)
     return this.request<T>(endpoint, {
       ...config,
       method: 'POST',
-      body: JSON.stringify(data),
+      body,
     })
   }
 

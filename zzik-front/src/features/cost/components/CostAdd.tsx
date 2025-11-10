@@ -3,15 +3,45 @@
 // 영수증 모달과 사진 직접 추가 모달을 위함
 
 import CostPlusModal from './CostPlusModal'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useParams } from 'react-router-dom'
+import { CostReciptService } from '../services/costService'
 
 const CostAdd = () => {
   const { tripId } = useParams<{ tripId: string }>()
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleReceiptUpload = () => {
-    console.log('영수증 업로드')
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !tripId) return
+
+    setIsUploading(true)
+
+    try {
+      // 파일을 FormData로 감싸서 그대로 전송
+      const response = await CostReciptService.uploadReceipt(tripId, { file })
+
+      console.log('영수증 업로드 성공:', response)
+      alert('영수증이 성공적으로 업로드되었습니다.')
+
+      // 파일 input 초기화
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+
+      // TODO: 목록 새로고침 (CostList 컴포넌트에 새로고침 함수 전달 필요)
+    } catch (error) {
+      console.error('영수증 업로드 실패:', error)
+      alert('영수증 업로드에 실패했습니다. 내역이 잘 보일 수 있도록 찍어주세요.')
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   const handleModalOpen = () => {
@@ -28,11 +58,23 @@ const CostAdd = () => {
       <div className="bg-white rounded-3xl shadow-lg p-6 h-full">
         <h2 className="text-xl font-bold text-text-500 mb-6 font-bmjua">비용 추가하기</h2>
 
+        {/* 파일 입력 (숨김) */}
+        <input
+          type="file"
+          accept="image/*"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          className="hidden"
+        />
+
         <div className="space-y-4">
           {/* 영수증으로 추가하기 */}
           <button
             onClick={handleReceiptUpload}
-            className="w-full group bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-blue-200 hover:border-blue-400 active:scale-[0.98]"
+            disabled={isUploading || !tripId}
+            className={`w-full group bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-blue-200 hover:border-blue-400 active:scale-[0.98] ${
+              isUploading || !tripId ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
             <div className="flex flex-col items-center text-center space-y-3">
               <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -58,12 +100,12 @@ const CostAdd = () => {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-text-500 font-bmjua mb-1">
-                  영수증으로 추가하기
+                  {isUploading ? '업로드 중...' : '영수증으로 추가하기'}
                 </h3>
                 <p className="text-xs text-text-600">
-                  영수증 사진을 업로드하면
-                  <br />
-                  자동으로 정보가 입력됩니다
+                  {isUploading
+                    ? '영수증을 처리하고 있습니다...'
+                    : '영수증 사진을 업로드하면 자동으로 정보가 입력됩니다'}
                 </p>
               </div>
             </div>

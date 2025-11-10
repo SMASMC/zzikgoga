@@ -110,7 +110,9 @@ const CostList = ({ tripId }: CostListProps) => {
                   </div>
                 </div>
                 <div className="flex-shrink-0 ml-4">
-                  <p className="text-lg font-bold text-blue-600">{formatAmount(cost.totalAmount)}원</p>
+                  <p className="text-lg font-bold text-blue-600">
+                    {formatAmount(cost.totalAmount)}원
+                  </p>
                 </div>
               </div>
             </div>

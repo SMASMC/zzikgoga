@@ -10,7 +10,7 @@ const CostPage = () => {
   if (!tripId) {
     return (
       <GradientBackground>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center">
           <p className="text-text-500">여행 ID가 없습니다.</p>
         </div>
       </GradientBackground>
@@ -19,25 +19,23 @@ const CostPage = () => {
 
   return (
     <GradientBackground>
-      <div className="min-h-screen bg-gray-50">
-        <NewHeader />
-        <main className="container mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold text-text-500 mb-8 font-bmjua">여행 정산</h1>
+      <NewHeader />
+      <main className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-12 mt-6 sm:mt-8 md:mt-10 pb-10">
+        <h1 className="text-3xl font-bold text-text-500 mb-8 font-bmjua">여행 정산</h1>
 
-          {/* 1:2 비율 레이아웃 (CostAdd : CostList) */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* CostAdd - 1/3 너비 */}
-            <div className="lg:col-span-1">
-              <CostAdd />
-            </div>
-
-            {/* CostList - 2/3 너비 */}
-            <div className="lg:col-span-2">
-              <CostList tripId={tripId} />
-            </div>
+        {/* 1:2 비율 레이아웃 (CostAdd : CostList) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* CostAdd - 1/3 너비 */}
+          <div className="lg:col-span-1">
+            <CostAdd />
           </div>
-        </main>
-      </div>
+
+          {/* CostList - 2/3 너비 */}
+          <div className="lg:col-span-2">
+            <CostList tripId={tripId} />
+          </div>
+        </div>
+      </main>
     </GradientBackground>
   )
 }
