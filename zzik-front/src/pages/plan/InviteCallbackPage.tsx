@@ -45,7 +45,7 @@ export function InviteCallbackPage() {
 
         // 초대 수락 성공 여부 확인
         if (!response.joined) {
-          setError('초대 수락에 실패했습니다. 이미 참여중이거나 유효하지 않은 초대입니다.')
+          setError('이미 참여중인 여행입니다.')
           setIsProcessing(false)
           return
         }

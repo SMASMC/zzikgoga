@@ -39,7 +39,6 @@ const CostPlusForm = () => {
     const newItems = [...formData.items]
     newItems[index] = { ...newItems[index], [field]: value }
 
-    // memberIds가 업데이트되면 count도 자동으로 계산
     if (field === 'memberIds' && Array.isArray(value)) {
       newItems[index].count = value.length
     }
@@ -87,7 +86,6 @@ const CostPlusForm = () => {
           </div>
           <div className="flex-1">
             <p className="font-bold text-text-500">{payer?.name || '사용자'}</p>
-            <p className="text-xs text-text-600">{payer?.email || ''}</p>
           </div>
           <button
             type="button"
@@ -120,7 +118,7 @@ const CostPlusForm = () => {
           value={formData.place}
           onChange={(e) => setFormData({ ...formData, place: e.target.value })}
           placeholder="예: 스타벅스 강남점"
-          className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-blue-400 focus:outline-none transition-colors"
+          className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-blue-400 focus:outline-none transition-colors placeholder:text-gray-400"
         />
       </div>
 
@@ -132,7 +130,7 @@ const CostPlusForm = () => {
           value={formData.totalAmount || ''}
           onChange={(e) => setFormData({ ...formData, totalAmount: Number(e.target.value) })}
           placeholder="0"
-          className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-blue-400 focus:outline-none transition-colors"
+          className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-blue-400 focus:outline-none transition-colors placeholder:text-gray-400"
         />
       </div>
 
@@ -144,13 +142,13 @@ const CostPlusForm = () => {
           onChange={(e) => setFormData({ ...formData, memo: e.target.value })}
           placeholder="메모를 입력하세요"
           rows={3}
-          className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-blue-400 focus:outline-none transition-colors resize-none"
+          className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-blue-400 focus:outline-none transition-colors resize-none placeholder:text-gray-400"
         />
       </div>
 
       {/* 증빙 자료 */}
       <div>
-        <label className="block text-sm font-bold text-text-500 mb-2 font-bmjua">증빙 자료</label>
+        <label className="block text-sm font-bold text-text-500 mb-2 font-bmjua">증빙 자료 ( ex : 영수증, 기념 사진 )</label>
         <div className="space-y-2">
           <input
             type="file"
@@ -207,7 +205,7 @@ const CostPlusForm = () => {
       {/* 품목 */}
       <div>
         <div className="flex justify-between items-center mb-2">
-          <label className="block text-sm font-bold text-text-500 font-bmjua">품목</label>
+          <label className="block text-sm font-bold text-text-500 font-bmjua">결제 품목</label>
           <button
             type="button"
             onClick={addItem}
@@ -234,22 +232,26 @@ const CostPlusForm = () => {
                   </button>
                 )}
               </div>
+              <label className="text-xs text-text-500 mb-1 block">
+                품목명
+              </label>
               <input
                 type="text"
                 value={item.menuName}
                 onChange={(e) => updateItem(index, 'menuName', e.target.value)}
-                placeholder="메뉴 이름"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-400 focus:outline-none text-sm"
               />
+              <label className="text-xs text-text-500 mb-1 block">
+                금액
+              </label>
               <input
                 type="number"
                 value={item.amount || ''}
                 onChange={(e) => updateItem(index, 'amount', Number(e.target.value))}
-                placeholder="금액"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-400 focus:outline-none text-sm"
               />
               <div>
-                <label className="text-xs text-gray-600 mb-1 block">
+                <label className="text-xs text-text-500 mb-1 block">
                   결제 참여자 (총 {item.count}명)
                 </label>
                 <input
@@ -265,7 +267,6 @@ const CostPlusForm = () => {
                         .filter(Boolean)
                     )
                   }
-                  placeholder="예: user1, user2, user3"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-400 focus:outline-none text-sm"
                 />
               </div>
