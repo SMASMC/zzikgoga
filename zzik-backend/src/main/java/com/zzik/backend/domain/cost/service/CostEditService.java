@@ -64,7 +64,7 @@ public class CostEditService {
 
 		// 5) upsert (INSERT/UPDATE)
 		for (var m : safe(req.menus())) {
-			int cnt = (m.count() == null ? 1 : m.count());
+			int cnt = m.count();
 			List<Long> mustPayerIds = safe(m.payerIds()).stream().distinct().toList();
 
 			if (m.costMenuId() == null) {
@@ -126,7 +126,7 @@ public class CostEditService {
 					.amount(menu.getAmount())
 					.payers(safe(menu.getMustPayerIds()).stream()
 						.distinct()
-						.map(pid -> CostEditResponse.PayerDto.builder()
+						.map(pid -> CostEditResponse.MenuDto.PayerDto.builder()
 							.memberId(pid)
 							.memberName(nameMap.get(pid))
 							.build())
