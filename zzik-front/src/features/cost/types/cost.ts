@@ -16,3 +16,19 @@ export interface CostPlusRequest {
   receiptJson: string | null
   items: CostItem[]
 }
+
+export interface CostListResponse {
+  costId: number
+  paidAt: string
+  place: string
+  payerName: string
+  payerId: string
+  payerThumbnailUrl: string
+  totalAmount: number
+}
+
+export interface CostListApiResponse {
+  costs: CostListResponse[]
+  totalCostCount: number
+  totalCost: number
+}

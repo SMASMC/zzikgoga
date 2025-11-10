@@ -2,8 +2,21 @@ import NewHeader from '@/components/blocks/NewHeader'
 import CostAdd from '@/features/cost/components/CostAdd'
 import CostList from '@/features/cost/components/CostList'
 import GradientBackground from '@/components/blocks/GradientBackground'
+import { useParams } from 'react-router-dom'
 
 const CostPage = () => {
+  const { tripId } = useParams<{ tripId: string }>()
+
+  if (!tripId) {
+    return (
+      <GradientBackground>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <p className="text-text-500">여행 ID가 없습니다.</p>
+        </div>
+      </GradientBackground>
+    )
+  }
+
   return (
     <GradientBackground>
       <div className="min-h-screen bg-gray-50">
@@ -20,7 +33,7 @@ const CostPage = () => {
 
             {/* CostList - 2/3 너비 */}
             <div className="lg:col-span-2">
-              <CostList />
+              <CostList tripId={tripId} />
             </div>
           </div>
         </main>

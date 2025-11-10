@@ -179,26 +179,26 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
     } else {
       // 각 품목별 상세 검증
       const itemErrors: string[] = []
-      
+
       formData.items.forEach((item, index) => {
         // 품목명 검증
         if (!item.menuName || item.menuName.trim() === '') {
           itemErrors.push(`품목 ${index + 1}: 품목명을 입력해주세요.`)
         }
-        
+
         // 금액 검증
         if (item.amount < 0) {
           itemErrors.push(`품목 ${index + 1}: 음수값은 입력할 수 없습니다.`)
         } else if (!item.amount || item.amount < 1) {
           itemErrors.push(`품목 ${index + 1}: 금액은 1원 이상이어야 합니다.`)
         }
-        
+
         // 결제 참여자 검증
         if (!item.memberIds || item.memberIds.length === 0) {
           itemErrors.push(`품목 ${index + 1}: 결제 참여자를 최소 1명 이상 선택해주세요.`)
         }
       })
-      
+
       // 품목별 에러가 있으면 표시
       if (itemErrors.length > 0) {
         newErrors.items = itemErrors.join(' ')
@@ -241,9 +241,9 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
 
       // API 호출: /cost/{tripId} POST 요청
       await CostPlusService.addCost(tripId, submitData)
-      
+
       console.log('비용 추가 성공')
-      
+
       // 성공 시 콜백 호출 (모달 닫기 등)
       if (onSuccess) {
         onSuccess()
@@ -482,37 +482,37 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
                 </button>
               )}
             </div>
-              <label className="text-xs text-text-500 mb-1 block">품목명</label>
-              <input
-                type="text"
-                value={item.menuName}
-                onChange={(e) => {
-                  updateItem(index, 'menuName', e.target.value)
+            <label className="text-xs text-text-500 mb-1 block">품목명</label>
+            <input
+              type="text"
+              value={item.menuName}
+              onChange={(e) => {
+                updateItem(index, 'menuName', e.target.value)
+                // 에러 제거
+                if (errors.items && errors.items.includes(`품목 ${index + 1}: 품목명`)) {
+                  setErrors({ ...errors, items: undefined })
+                }
+              }}
+              className="w-full px-3 py-2 bg-gray-50 border border-blue-300 rounded-lg text-sm outline-none focus:outline-none focus:ring-0 focus:border-blue-400"
+            />
+            <label className="text-xs text-text-500 mb-1 block">금액</label>
+            <input
+              type="number"
+              min="0"
+              value={item.amount || ''}
+              onChange={(e) => {
+                const value = e.target.value === '' ? 0 : Number(e.target.value)
+                // 음수값 방지
+                if (value >= 0) {
+                  updateItem(index, 'amount', value)
                   // 에러 제거
-                  if (errors.items && errors.items.includes(`품목 ${index + 1}: 품목명`)) {
+                  if (errors.items && errors.items.includes(`품목 ${index + 1}: 금액`)) {
                     setErrors({ ...errors, items: undefined })
                   }
-                }}
-                className="w-full px-3 py-2 bg-gray-50 border border-blue-300 rounded-lg text-sm outline-none focus:outline-none focus:ring-0 focus:border-blue-400"
-              />
-              <label className="text-xs text-text-500 mb-1 block">금액</label>
-              <input
-                type="number"
-                min="0"
-                value={item.amount || ''}
-                onChange={(e) => {
-                  const value = e.target.value === '' ? 0 : Number(e.target.value)
-                  // 음수값 방지
-                  if (value >= 0) {
-                    updateItem(index, 'amount', value)
-                    // 에러 제거
-                    if (errors.items && errors.items.includes(`품목 ${index + 1}: 금액`)) {
-                      setErrors({ ...errors, items: undefined })
-                    }
-                  }
-                }}
-                className="w-full px-3 py-2 bg-gray-50 border border-blue-300 rounded-lg text-sm outline-none focus:outline-none focus:ring-0 focus:border-blue-400"
-              />
+                }
+              }}
+              className="w-full px-3 py-2 bg-gray-50 border border-blue-300 rounded-lg text-sm outline-none focus:outline-none focus:ring-0 focus:border-blue-400"
+            />
             <div>
               <label className="text-xs text-text-500 mb-1 block">결제 참여자</label>
               {/* 선택된 멤버 표시 */}
