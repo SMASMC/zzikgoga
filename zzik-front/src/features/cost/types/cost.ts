@@ -7,7 +7,7 @@ export interface CostItem {
   count: number
 }
 
-export interface CostRequest {
+export interface CostPlusRequest {
   payerId: string
   paidAt: string
   place: string

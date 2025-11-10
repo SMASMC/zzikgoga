@@ -29,7 +29,7 @@ const CostPlusModal = ({ isOpen, onClose, tripId }: CostPlusModalProps): JSX.Ele
 
         {/* Modal Body */}
         <div className="space-y-4">
-          <CostPlusForm tripId={tripId} />
+          <CostPlusForm tripId={tripId} onSuccess={onClose} />
         </div>
       </div>
     </div>
