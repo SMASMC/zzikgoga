@@ -5,8 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +19,7 @@ import com.zzik.backend.domain.cost.repository.CostRepository;
 import com.zzik.backend.domain.plan.repository.TripMemberRepository;
 import com.zzik.backend.global.exception.BusinessException;
 import com.zzik.backend.global.exception.ExceptionCode;
+import com.zzik.backend.global.security.utils.SecurityUtil;
 
 import lombok.RequiredArgsConstructor;
 
@@ -36,11 +35,11 @@ public class CostEditService {
 
 	@Transactional
 	public CostEditResponse edit(Long tripId, Long costId, CostEditRequest req) {
-		Long requesterId = currentMemberId();
+		final Long requesterId = SecurityUtil.getCurrentMemberId();
 
 		// 1) 기본 검증
 		Cost cost = costRepository.findByIdAndTripId(costId, tripId)
-			.orElseThrow(() -> BusinessException.from(ExceptionCode.TRIP_NOT_FOUND)); // or COST_NOT_FOUND 분리 시 소속 검증 추가
+			.orElseThrow(() -> BusinessException.from(ExceptionCode.TRIP_NOT_FOUND));
 		assertTripMember(tripId, requesterId);
 		assertTripMember(tripId, req.payerId());
 		for (var m : safe(req.menus()))
@@ -52,7 +51,7 @@ public class CostEditService {
 
 		// 2) 락 소유 확인
 		if (!costEditLockService.isOwnedBy(tripId, costId, requesterId))
-			throw BusinessException.from(ExceptionCode.EDIT_LOCK_HELD_BY_OTHERS);
+			throw BusinessException.from(ExceptionCode.EDIT_LOCK_NOT_FOUND);
 
 		// 3) 부모 필드 업데이트
 		Member payer = memberRepository.findById(req.payerId())
@@ -68,7 +67,7 @@ public class CostEditService {
 			int cnt = (m.count() == null ? 1 : m.count());
 			List<Long> mustPayerIds = safe(m.payerIds()).stream().distinct().toList();
 
-			if (m.costMenuId() == null) { // INSERT
+			if (m.costMenuId() == null) {
 				CostMenu created = CostMenu.builder()
 					.cost(cost)
 					.menuName(m.menuName())
@@ -77,20 +76,17 @@ public class CostEditService {
 					.mustPayerIds(mustPayerIds)
 					.build();
 				costMenuRepository.save(created);
-			} else {                      // UPDATE
+			} else {
 				CostMenu exist = costMenuRepository.findByIdAndCostId(m.costMenuId(), costId)
 					.orElseThrow(() -> BusinessException.from(ExceptionCode.COST_MENU_NOT_FOUND));
 				exist.apply(m.menuName(), m.amount(), cnt, mustPayerIds);
-				current.remove(m.costMenuId()); // 요청에서 살아남은 기존 메뉴는 map에서 제거
+				current.remove(m.costMenuId());
 			}
 		}
 
-		// 6) 삭제 자동 감지: current에 남아있는 기존 메뉴 = 요청에서 사라진 메뉴
+		// 6) 삭제: current에 남아있는 기존 메뉴 = 요청에서 사라진 메뉴
 		if (!current.isEmpty()) {
-			// orphanRemoval=true라면 컬렉션에서 제거해도 삭제됨
 			cost.getCostMenus().removeIf(cm -> current.containsKey(cm.getId()));
-			// 레포 직접 삭제를 선호하면 아래 사용:
-			// costMenuRepository.deleteAll(current.values());
 		}
 
 		// 7) 합계 재계산
@@ -108,23 +104,6 @@ public class CostEditService {
 
 	private static <T> List<T> safe(List<T> list) {
 		return list == null ? List.of() : list;
-	}
-
-	private static List<Long> distinct(List<Long> ids) {
-		return ids.stream().distinct().toList();
-	}
-
-	private Long currentMemberId() {
-		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-		Object principal = auth == null ? null : auth.getPrincipal();
-		if (principal == null)
-			throw BusinessException.from(ExceptionCode.NOT_TRIP_MEMBER);
-		// 네 프로젝트의 Principal 타입에 맞게 바꿔라 (예: CustomUserPrincipal#getId()).
-		try {
-			return (Long)principal.getClass().getMethod("getId").invoke(principal);
-		} catch (Exception ignore) {
-			throw BusinessException.from(ExceptionCode.NOT_TRIP_MEMBER);
-		}
 	}
 
 	private CostEditResponse toResponse(Cost cost) {
