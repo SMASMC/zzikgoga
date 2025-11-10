@@ -110,4 +110,3 @@ const PayerSelectModal = ({ isOpen, onClose, tripId, onSelect }: PayerSelectModa
 }
 
 export default PayerSelectModal
-

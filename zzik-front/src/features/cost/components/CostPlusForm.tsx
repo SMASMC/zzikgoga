@@ -16,7 +16,7 @@ const CostPlusForm = ({ tripId }: CostPlusFormProps) => {
   const [isPayerModalOpen, setIsPayerModalOpen] = useState(false)
   const [members, setMembers] = useState<User[]>([])
   const [openMemberModalIndex, setOpenMemberModalIndex] = useState<number | null>(null)
-  
+
   // 에러 상태 관리
   const [errors, setErrors] = useState<{
     payerId?: string
@@ -110,7 +110,7 @@ const CostPlusForm = ({ tripId }: CostPlusFormProps) => {
     }
 
     setFormData({ ...formData, items: newItems })
-    
+
     // 품목 금액이 변경되면 items 에러 제거 (금액 합계 재검증을 위해)
     if (field === 'amount' && errors.items) {
       setErrors({ ...errors, items: undefined })
@@ -172,7 +172,7 @@ const CostPlusForm = ({ tripId }: CostPlusFormProps) => {
     } else {
       // 품목별 금액 합계 계산
       const itemsTotal = formData.items.reduce((sum, item) => sum + (item.amount || 0), 0)
-      
+
       // 품목별 금액 합계가 총 금액과 일치하는지 검증
       if (itemsTotal !== formData.totalAmount) {
         newErrors.items = `품목별 금액 합계(${itemsTotal.toLocaleString()}원)가 총 금액(${formData.totalAmount.toLocaleString()}원)과 일치하지 않습니다.`
@@ -186,12 +186,12 @@ const CostPlusForm = ({ tripId }: CostPlusFormProps) => {
   // 폼 제출
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     // 유효성 검사
     if (!validateForm()) {
       return
     }
-    
+
     // memberIds를 string[]에서 number[]로 변환하여 API 요청 형식에 맞춤
     const submitData = {
       ...formData,
@@ -200,20 +200,22 @@ const CostPlusForm = ({ tripId }: CostPlusFormProps) => {
         memberIds: item.memberIds.map((id) => Number(id)), // string[] -> number[] 변환
       })),
     }
-    
+
     console.log('제출된 데이터:', submitData)
     // TODO: API 호출 시 submitData 사용
     // memberIds는 number[] 형식으로 전송됨: "memberIds": [1, 2]
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
       {/* 결제자 선택 */}
-      <div>
-        <label className="block text-sm font-bold text-text-500 mb-2 font-bmjua">결제자</label>
+      <div className="mb-4 sm:mb-6">
+        <label className="block text-base sm:text-lg mb-2 sm:mb-3 text-text-600 font-bmjua">
+          결제자
+        </label>
         <div
-          className={`flex items-center space-x-3 p-3 bg-gray-50 rounded-xl border-2 ${
-            errors.payerId ? 'border-red-400' : 'border-gray-200'
+          className={`bg-white rounded-2xl p-3 sm:p-4 shadow-sm flex items-center space-x-3 ${
+            errors.payerId ? 'ring-2 ring-red-400' : ''
           }`}
         >
           <div className="flex-shrink-0">
@@ -240,27 +242,29 @@ const CostPlusForm = ({ tripId }: CostPlusFormProps) => {
             변경
           </button>
         </div>
-        {errors.payerId && (
-          <p className="mt-1 text-sm text-red-500 font-bmjua">{errors.payerId}</p>
-        )}
+        {errors.payerId && <p className="mt-1 text-sm text-red-500 font-bmjua">{errors.payerId}</p>}
       </div>
 
       {/* 결제 일시 */}
-      <div>
-        <label className="block text-sm font-bold text-text-500 mb-2 font-bmjua">결제 일시</label>
+      <div className="mb-4 sm:mb-6">
+        <label className="block text-base sm:text-lg mb-2 sm:mb-3 text-text-600 font-bmjua">
+          결제 일시
+        </label>
         <input
           type="datetime-local"
           value={formData.paidAt.replace(' ', 'T').slice(0, 16)}
           onChange={(e) =>
             setFormData({ ...formData, paidAt: e.target.value.replace('T', ' ') + ':00' })
           }
-          className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-blue-400 focus:outline-none transition-colors"
+          className="w-full px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md hover:scale-[1.02]"
         />
       </div>
 
       {/* 결제 장소 */}
-      <div>
-        <label className="block text-sm font-bold text-text-500 mb-2 font-bmjua">결제 장소</label>
+      <div className="mb-4 sm:mb-6">
+        <label className="block text-base sm:text-lg mb-2 sm:mb-3 text-text-600 font-bmjua">
+          결제 장소
+        </label>
         <input
           type="text"
           value={formData.place}
@@ -272,20 +276,18 @@ const CostPlusForm = ({ tripId }: CostPlusFormProps) => {
             }
           }}
           placeholder="예: 스타벅스 강남점"
-          className={`w-full px-4 py-2.5 border-2 rounded-xl focus:outline-none transition-colors placeholder:text-gray-400 ${
-            errors.place
-              ? 'border-red-400 focus:border-red-500'
-              : 'border-gray-200 focus:border-blue-400'
+          className={`w-full px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md hover:scale-[1.02] placeholder:text-gray-400 ${
+            errors.place ? 'ring-2 ring-red-400' : ''
           }`}
         />
-        {errors.place && (
-          <p className="mt-1 text-sm text-red-500 font-bmjua">{errors.place}</p>
-        )}
+        {errors.place && <p className="mt-1 text-sm text-red-500 font-bmjua">{errors.place}</p>}
       </div>
 
       {/* 총 금액 */}
-      <div>
-        <label className="block text-sm font-bold text-text-500 mb-2 font-bmjua">총 금액</label>
+      <div className="mb-4 sm:mb-6">
+        <label className="block text-base sm:text-lg mb-2 sm:mb-3 text-text-600 font-bmjua">
+          총 금액
+        </label>
         <input
           type="number"
           value={formData.totalAmount || ''}
@@ -301,10 +303,8 @@ const CostPlusForm = ({ tripId }: CostPlusFormProps) => {
             }
           }}
           placeholder="0"
-          className={`w-full px-4 py-2.5 border-2 rounded-xl focus:outline-none transition-colors placeholder:text-gray-400 ${
-            errors.totalAmount
-              ? 'border-red-400 focus:border-red-500'
-              : 'border-gray-200 focus:border-blue-400'
+          className={`w-full px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md hover:scale-[1.02] placeholder:text-gray-400 ${
+            errors.totalAmount ? 'ring-2 ring-red-400' : ''
           }`}
         />
         {errors.totalAmount && (
@@ -313,8 +313,10 @@ const CostPlusForm = ({ tripId }: CostPlusFormProps) => {
       </div>
 
       {/* 메모 */}
-      <div>
-        <label className="block text-sm font-bold text-text-500 mb-2 font-bmjua">메모</label>
+      <div className="mb-4 sm:mb-6">
+        <label className="block text-base sm:text-lg mb-2 sm:mb-3 text-text-600 font-bmjua">
+          메모
+        </label>
         <textarea
           value={formData.memo}
           onChange={(e) => {
@@ -326,23 +328,18 @@ const CostPlusForm = ({ tripId }: CostPlusFormProps) => {
           }}
           placeholder="메모를 입력하세요"
           rows={3}
-          className={`w-full px-4 py-2.5 border-2 rounded-xl focus:outline-none transition-colors resize-none placeholder:text-gray-400 ${
-            errors.memo
-              ? 'border-red-400 focus:border-red-500'
-              : 'border-gray-200 focus:border-blue-400'
+          className={`w-full px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md hover:scale-[1.02] resize-none placeholder:text-gray-400 ${
+            errors.memo ? 'ring-2 ring-red-400' : ''
           }`}
         />
-        {errors.memo && (
-          <p className="mt-1 text-sm text-red-500 font-bmjua">{errors.memo}</p>
-        )}
+        {errors.memo && <p className="mt-1 text-sm text-red-500 font-bmjua">{errors.memo}</p>}
       </div>
 
       {/* 증빙 자료 */}
-      <div>
-        <label className="block text-sm font-bold text-text-500 mb-2 font-bmjua">
+      <div className="mb-4 sm:mb-6">
+        <label className="block text-base sm:text-lg mb-2 sm:mb-3 text-text-600 font-bmjua">
           증빙 자료 ( ex : 영수증, 기념 사진 )
         </label>
-        <div className="space-y-2">
           <input
             type="file"
             accept="image/*"
@@ -352,7 +349,7 @@ const CostPlusForm = ({ tripId }: CostPlusFormProps) => {
           />
           <label
             htmlFor="receipt-upload"
-            className={`flex items-center justify-center w-full px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${
+            className={`flex items-center justify-center w-full px-4 py-3 bg-white border-2 border-dashed rounded-xl cursor-pointer transition-colors ${
               errors.receiptJson
                 ? 'border-red-400 hover:border-red-500'
                 : 'border-gray-300 hover:border-blue-400'
@@ -406,12 +403,12 @@ const CostPlusForm = ({ tripId }: CostPlusFormProps) => {
         {errors.receiptJson && (
           <p className="mt-1 text-sm text-red-500 font-bmjua">{errors.receiptJson}</p>
         )}
-      </div>
+    
 
       {/* 품목 */}
-      <div>
-        <div className="flex justify-between items-center mb-2">
-          <label className="block text-sm font-bold text-text-500 font-bmjua">결제 품목</label>
+      <div className="mb-4 sm:mb-6">
+        <div className="flex justify-between items-center mb-2 sm:mb-3">
+          <label className="block text-base sm:text-lg text-text-600 font-bmjua">결제 품목</label>
           <button
             type="button"
             onClick={() => {
@@ -426,15 +423,9 @@ const CostPlusForm = ({ tripId }: CostPlusFormProps) => {
             + 추가
           </button>
         </div>
-        {errors.items && (
-          <p className="mb-2 text-sm text-red-500 font-bmjua">{errors.items}</p>
-        )}
-        <div className="space-y-3">
-          {formData.items.map((item, index) => (
-            <div
-              key={index}
-              className="p-3 bg-gray-50 rounded-xl border-2 border-gray-200 space-y-2"
-            >
+        {errors.items && <p className="mb-2 text-sm text-red-500 font-bmjua">{errors.items}</p>}
+        {formData.items.map((item, index) => (
+            <div key={index} className="p-3 bg-white rounded-xl border border-gray-200 space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-xs font-bold text-blue-600">품목 {index + 1}</span>
                 {formData.items.length > 1 && (
@@ -452,19 +443,17 @@ const CostPlusForm = ({ tripId }: CostPlusFormProps) => {
                 type="text"
                 value={item.menuName}
                 onChange={(e) => updateItem(index, 'menuName', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-400 focus:outline-none text-sm"
+                className="w-full px-3 py-2 bg-gray-50 border border-blue-300 rounded-lg text-sm outline-none focus:outline-none focus:ring-0 focus:border-blue-400"
               />
               <label className="text-xs text-text-500 mb-1 block">금액</label>
               <input
                 type="number"
                 value={item.amount || ''}
                 onChange={(e) => updateItem(index, 'amount', Number(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-400 focus:outline-none text-sm"
+                className="w-full px-3 py-2 bg-gray-50 border border-blue-300 rounded-lg text-sm outline-none focus:outline-none focus:ring-0 focus:border-blue-400"
               />
               <div>
-                <label className="text-xs text-text-500 mb-1 block">
-                  결제 참여자 (총 {item.memberIds.length}명)
-                </label>
+                <label className="text-xs text-text-500 mb-1 block">결제 참여자</label>
                 {/* 선택된 멤버 표시 */}
                 {item.memberIds.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-2">
@@ -498,7 +487,12 @@ const CostPlusForm = ({ tripId }: CostPlusFormProps) => {
                             }}
                             className="text-blue-600 hover:text-blue-800"
                           >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg
+                              className="w-3 h-3"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
                               <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
@@ -541,15 +535,16 @@ const CostPlusForm = ({ tripId }: CostPlusFormProps) => {
             </div>
           ))}
         </div>
-      </div>
 
       {/* 제출 버튼 */}
-      <button
-        type="submit"
-        className="w-full bg-gradient-to-br from-blue-500 to-blue-600 text-white py-3 rounded-xl hover:shadow-lg transition-all font-bold font-bmjua"
-      >
-        추가하기
-      </button>
+      <div className="flex justify-center mt-6 sm:mt-8">
+        <button
+          type="submit"
+          className="w-full sm:w-auto bg-gradient-to-br from-hover-600 to-point-600 text-white text-base sm:text-lg px-8 sm:px-12 py-2.5 sm:py-3 rounded-full shadow-lg hover:scale-105 hover:from-point-600 hover:to-main-800 transition-all font-bold font-bmjua"
+        >
+          추가하기
+        </button>
+      </div>
 
       {/* 결제자 선택 모달 */}
       <PayerSelectModal
