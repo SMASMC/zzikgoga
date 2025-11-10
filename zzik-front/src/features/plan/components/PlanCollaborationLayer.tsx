@@ -134,7 +134,7 @@ const PlanCollaborationLayer = ({
     <div
       ref={containerRef}
       className={cn(
-        'relative flex min-h-0 flex-col cursor-none [&_*]:cursor-none md:h-screen md:min-h-0 md:flex-row',
+        'relative flex min-h-0 flex-col cursor-none overflow-hidden [&_*]:cursor-none md:h-screen md:min-h-0 md:flex-row',
         className
       )}
       onPointerMove={handlePointerMove}
@@ -144,7 +144,7 @@ const PlanCollaborationLayer = ({
     >
       {children}
 
-      <div className="pointer-events-none absolute inset-0">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <RemoteCursors cursors={cursorFeed} />
       </div>
     </div>

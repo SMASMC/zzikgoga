@@ -151,7 +151,7 @@ const FriendInviteModal = ({ isOpen, onClose, tripId }: FriendInviteModalProps) 
             <button
               onClick={copyToClipboard}
               disabled={!inviteUrl}
-              className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${
+              className={`px-4 py-2 rounded-full font-bold text-sm transition-all ${
                 isCopied
                   ? 'bg-green-500 text-white'
                   : 'bg-blue-500 text-white hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed'

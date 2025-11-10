@@ -164,7 +164,7 @@ const PlaceSearchPanel = () => {
         />
         <SolidButton
           onClick={handleSearch}
-          className="w-full whitespace-nowrap bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 sm:w-auto"
+          className="w-full whitespace-nowrap bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 sm:w-auto rounded-full"
         >
           검색
         </SolidButton>
@@ -203,7 +203,7 @@ const PlaceSearchPanel = () => {
       {selectedPlace ? (
         <SolidButton
           onClick={handleAddPlace}
-          className="w-full bg-emerald-500 px-4 py-2 text-white hover:bg-emerald-600"
+          className="w-full bg-emerald-500 px-4 py-2 text-white hover:bg-emerald-600 rounded-full"
         >
           선택한 장소 추가
         </SolidButton>

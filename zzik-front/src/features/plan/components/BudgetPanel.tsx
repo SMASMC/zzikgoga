@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import SolidButton from '@/components/atoms/SolidButton'
 import Input from '@/components/atoms/Input'
+import { ToastDock } from '@/components/blocks/ToastDock'
 import { useYTripDoc } from '../hooks/useYTripDoc'
 import YTextEditor from './YTextEditor'
 import * as Y from 'yjs'
@@ -15,16 +16,42 @@ const BudgetPanel = () => {
     [tripId]
   )
 
-  const { budgetsByDate, addBudget, doc } = useYTripDoc(roomId)
+  const { budgetsByDate, addBudget, doc, tripInfo } = useYTripDoc(roomId)
 
   const [date, setDate] = useState<string>(todayKey())
   const [category, setCategory] = useState<string>('카테고리')
   const [amount, setAmount] = useState<string>('')
   const [description, setDescription] = useState<string>('')
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
+
+  const isWithinTripRange = useCallback(
+    (targetDate: string) => {
+      if (!tripInfo.start_date || !tripInfo.end_date) {
+        return true
+      }
+      return tripInfo.start_date <= targetDate && targetDate <= tripInfo.end_date
+    },
+    [tripInfo.end_date, tripInfo.start_date]
+  )
+
+  const buildRangeMessage = useCallback(() => {
+    if (tripInfo.start_date && tripInfo.end_date) {
+      return `여행 기간은 ${tripInfo.start_date} ~ ${tripInfo.end_date} 입니다.`
+    }
+    return '여행 일정 날짜를 확인해주세요.'
+  }, [tripInfo.end_date, tripInfo.start_date])
+
+  const notifyOutOfRange = useCallback(() => {
+    setToastMessage(buildRangeMessage())
+  }, [buildRangeMessage])
 
   const handleAdd = () => {
     const amt = Number(amount)
     if (!date || !category.trim() || !Number.isFinite(amt)) {
+      return
+    }
+    if (!isWithinTripRange(date)) {
+      notifyOutOfRange()
       return
     }
     addBudget(date, { category: category.trim(), amount: amt, description: description.trim() })
@@ -34,6 +61,15 @@ const BudgetPanel = () => {
 
   return (
     <aside className="flex w-full flex-col gap-4 border-l border-slate-200 bg-white p-4 md:w-1/4">
+      <ToastDock
+        open={Boolean(toastMessage)}
+        variant="warning"
+        title="날짜 범위를 벗어났어요"
+        message={toastMessage ?? ''}
+        autoCloseMs={3000}
+        offsetPx={16}
+        onClose={() => setToastMessage(null)}
+      />
       <header>
         <h2 className="text-lg font-semibold text-slate-800">예산</h2>
         <p className="mt-1 text-xs text-slate-400">예산을 입력할 수 있습니다.</p>
@@ -61,7 +97,10 @@ const BudgetPanel = () => {
             onChange={(e) => setDescription(e.target.value)}
           />
         </div>
-        <SolidButton onClick={handleAdd} className="bg-emerald-500 text-white hover:bg-emerald-600">
+        <SolidButton
+          onClick={handleAdd}
+          className="bg-emerald-500 text-white hover:bg-emerald-600 rounded-full"
+        >
           추가하기
         </SolidButton>
       </div>

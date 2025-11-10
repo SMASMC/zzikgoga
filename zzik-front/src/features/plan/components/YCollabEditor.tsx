@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import * as Y from 'yjs'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
@@ -22,6 +22,17 @@ const YCollabEditor = ({
   canSeed,
 }: YCollabEditorProps) => {
   const normalizingRef = useRef(false)
+  const isComposingRef = useRef(false)
+  const pendingMirrorUpdateRef = useRef<string | null>(null)
+
+  const applyMirrorUpdate = useCallback(
+    (text: string) => {
+      if (!onPlainTextChange) return
+      onPlainTextChange(text)
+    },
+    [onPlainTextChange]
+  )
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({}),
@@ -33,6 +44,21 @@ const YCollabEditor = ({
         class: `prose prose-sm max-w-none focus:outline-none min-h-[2.25rem] border border-slate-200 rounded-md px-2 py-1 ${
           className || ''
         }`,
+      },
+      handleDOMEvents: {
+        compositionstart: () => {
+          isComposingRef.current = true
+          return false
+        },
+        compositionend: () => {
+          isComposingRef.current = false
+          // composition이 끝났을 때 보류된 미러 업데이트 적용
+          if (pendingMirrorUpdateRef.current !== null) {
+            applyMirrorUpdate(pendingMirrorUpdateRef.current)
+            pendingMirrorUpdateRef.current = null
+          }
+          return false
+        },
       },
     },
     onUpdate: ({ editor, transaction }) => {
@@ -53,7 +79,14 @@ const YCollabEditor = ({
       // Mirror to Y.Text only for local edits (focused editor)
       if (!onPlainTextChange) return
       if (!editor.view?.hasFocus?.()) return
-      onPlainTextChange(text)
+
+      // IME composition 중이면 업데이트를 보류
+      if (isComposingRef.current) {
+        pendingMirrorUpdateRef.current = text
+        return
+      }
+
+      applyMirrorUpdate(text)
     },
   })
 

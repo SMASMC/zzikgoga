@@ -1,6 +1,7 @@
 import SolidButton from '@/components/atoms/SolidButton'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
+import { ToastDock } from '@/components/blocks/ToastDock'
 import { useYTripDoc } from '../hooks/useYTripDoc'
 
 interface PlaceModalProps {
@@ -24,11 +25,38 @@ const PlaceModal = ({ onClose, place }: PlaceModalProps) => {
     () => (tripId && tripId.trim().length > 0 ? `trip-${tripId.trim()}` : 'trip-default'),
     [tripId]
   )
-  const { addSchedule } = useYTripDoc(roomId)
+  const { addSchedule, tripInfo } = useYTripDoc(roomId)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
+
+  const isWithinTripRange = useCallback(
+    (isoDateTime: string) => {
+      if (!tripInfo.start_date || !tripInfo.end_date) {
+        return true
+      }
+      const dateOnly = isoDateTime.slice(0, 10)
+      return tripInfo.start_date <= dateOnly && dateOnly <= tripInfo.end_date
+    },
+    [tripInfo.end_date, tripInfo.start_date]
+  )
+
+  const buildRangeMessage = useCallback(() => {
+    if (tripInfo.start_date && tripInfo.end_date) {
+      return `여행 기간은 ${tripInfo.start_date} ~ ${tripInfo.end_date} 입니다.`
+    }
+    return '여행 일정 날짜를 확인해주세요.'
+  }, [tripInfo.end_date, tripInfo.start_date])
+
+  const notifyOutOfRange = useCallback(() => {
+    setToastMessage(buildRangeMessage())
+  }, [buildRangeMessage])
 
   const handleSubmit = () => {
     if (!startDateTime || !endDateTime) {
       alert('날짜와 시간을 선택해주세요.')
+      return
+    }
+    if (!isWithinTripRange(startDateTime) || (endDateTime && !isWithinTripRange(endDateTime))) {
+      notifyOutOfRange()
       return
     }
     addSchedule({
@@ -48,6 +76,15 @@ const PlaceModal = ({ onClose, place }: PlaceModalProps) => {
 
   return (
     <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4">
+      <ToastDock
+        open={Boolean(toastMessage)}
+        variant="warning"
+        title="날짜 범위 확인"
+        message={toastMessage ?? ''}
+        autoCloseMs={3000}
+        offsetPx={24}
+        onClose={() => setToastMessage(null)}
+      />
       <div className="w-full max-w-md sm:max-w-lg bg-gradient-to-br from-white via-background-500 to-background-600 rounded-3xl shadow-xl p-6 sm:p-8 font-bmjua relative max-h-[90vh] overflow-y-auto custom-scrollbar">
         <button
           onClick={onClose}

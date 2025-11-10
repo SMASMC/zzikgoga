@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   PointerEvent as ReactPointerEvent,
   KeyboardEvent as ReactKeyboardEvent,
@@ -84,6 +84,14 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
     const t = (doc.getMap('tripInfo') as Y.Map<unknown>).get('title')
     if (t instanceof Y.Text) titleYText = t
   }
+
+  // 테스트용: window에 titleYText 노출
+  useEffect(() => {
+    if (titleYText) {
+      ;(window as Window & { titleYText?: Y.Text }).titleYText = titleYText
+      console.log('[PlaceBoard] titleYText를 window.titleYText에 노출했습니다.')
+    }
+  }, [titleYText])
 
   const boardRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -297,7 +305,10 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
         tabIndex={0}
       >
         <div className="pointer-events-auto absolute bottom-6 right-6 z-10">
-          <SolidButton onClick={openFriendModal} className="px-4 py-2 text-sm shadow-lg">
+          <SolidButton
+            onClick={openFriendModal}
+            className="px-4 py-2 text-sm shadow-lg rounded-full"
+          >
             친구 초대하기
           </SolidButton>
         </div>
