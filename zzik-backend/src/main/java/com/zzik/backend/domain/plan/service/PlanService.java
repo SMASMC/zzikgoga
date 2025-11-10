@@ -196,8 +196,12 @@ public class PlanService {
 
 		String token = inviteTokenProvider.issueInviteToken(claims, ttl);
 
-		String key = "invite:trip:" + tripId + ":latest_jti";
-		redisTemplate.opsForValue().set(key, jti, ttl);
+		Boolean ok = redisTemplate.opsForValue().setIfAbsent(tKey, token, ttl);
+		if (Boolean.FALSE.equals(ok)) {
+			return inviteBaseUrl + "?token=" + redisTemplate.opsForValue().get(tKey);
+		}
+
+		redisTemplate.opsForValue().set(jtiKey(tripId), jti, ttl);
 
 		return inviteBaseUrl + "?token=" + token;
 	}
