@@ -3,9 +3,10 @@ import CostPlusForm from './CostPlusForm'
 interface CostPlusModalProps {
   isOpen: boolean
   onClose: () => void
+  tripId: string
 }
 
-const CostPlusModal = ({ isOpen, onClose }: CostPlusModalProps): JSX.Element | null => {
+const CostPlusModal = ({ isOpen, onClose, tripId }: CostPlusModalProps): JSX.Element | null => {
   if (!isOpen) return null
 
   return (
@@ -14,7 +15,7 @@ const CostPlusModal = ({ isOpen, onClose }: CostPlusModalProps): JSX.Element | n
       <div className="absolute inset-0 bg-black bg-opacity-50" onClick={onClose} />
 
       {/* Modal Content */}
-      <div className="relative bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-text-500 font-bmjua">비용 직접 추가하기</h2>
@@ -32,7 +33,7 @@ const CostPlusModal = ({ isOpen, onClose }: CostPlusModalProps): JSX.Element | n
 
         {/* Modal Body - 여기에 폼 추가 */}
         <div className="space-y-4">
-          <CostPlusForm />
+          <CostPlusForm tripId={tripId} />
         </div>
       </div>
     </div>

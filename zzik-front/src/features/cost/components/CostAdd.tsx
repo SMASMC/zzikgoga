@@ -4,8 +4,10 @@
 
 import CostPlusModal from './CostPlusModal'
 import { useState } from 'react'
+import { useParams } from 'react-router-dom'
 
 const CostAdd = () => {
+  const { tripId } = useParams<{ tripId: string }>()
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   const handleReceiptUpload = () => {
@@ -102,7 +104,9 @@ const CostAdd = () => {
       </div>
 
       {/* 직접 추가 모달 */}
-      {isModalOpen && <CostPlusModal isOpen={isModalOpen} onClose={handleCloseModal} />}
+      {isModalOpen && tripId && (
+        <CostPlusModal isOpen={isModalOpen} onClose={handleCloseModal} tripId={tripId} />
+      )}
     </>
   )
 }
