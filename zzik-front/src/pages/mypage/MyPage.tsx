@@ -1,53 +1,104 @@
+import { useState, useEffect, useRef, useCallback } from 'react'
 import GradientBackground from '@/components/blocks/GradientBackground'
+import { ToastDock } from '@/components/blocks/ToastDock'
+import LoginModal from '@/features/auth/components/LoginModal'
 import MyPageHeader from '@/features/mypage/components/MyPageHeader'
 import { TravelCard, TravelAddCard } from '@/features/mypage/components/TravelCard'
 import CreateTravelModal from '@/features/mypage/components/CreateTravelModal'
-import { useState, useEffect, useRef } from 'react'
 import { TravelService } from '@/features/mypage/services/travelService'
 import { Travel } from '@/features/mypage/types/mypage'
+import { useAuthStore } from '@/shared/stores/useAuthStore'
+import { AuthService } from '@/features/auth/services/authService'
 
 const MyPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [travels, setTravels] = useState<Travel[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
   const isFirstRender = useRef(true)
+  const logout = useAuthStore((state) => state.logout)
 
   const handleOpenTravelModal = () => setIsModalOpen(true)
-  const handleCloseTravelModal = () => {
-    setIsModalOpen(false)
-    loadTravels()
+  const handleCloseLoginModal = () => setIsLoginModalOpen(false)
+
+  const isUnauthorizedMessage = (message: string) => {
+    const lower = message.toLowerCase()
+    return (
+      lower.includes('401') ||
+      lower.includes('unauthor') ||
+      lower.includes('토큰') ||
+      lower.includes('token')
+    )
   }
 
-  const loadTravels = async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-      const data = await TravelService.getTravelList()
-      setTravels(data)
-    } catch (error) {
-      console.error('여행 목록 조회 실패:', error)
-      setError(error instanceof Error ? error.message : '여행 목록을 불러오는데 실패했습니다.')
-      setTravels([])
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const handleUnauthorized = useCallback(async () => {
+    setToastMessage('로그인 세션이 만료되었습니다. 다시 로그인해주세요.')
+    setIsModalOpen(false)
+    await logout()
+    setIsLoginModalOpen(true)
+  }, [logout])
+
+  const loadTravels = useCallback(
+    async (options?: { skipReissue?: boolean; suppressLoading?: boolean }) => {
+      const { skipReissue = false, suppressLoading = false } = options ?? {}
+      try {
+        if (!suppressLoading) {
+          setIsLoading(true)
+        }
+        if (!skipReissue) {
+          setError(null)
+        }
+        const data = await TravelService.getTravelList()
+        setTravels(data)
+      } catch (error) {
+        console.error('여행 목록 조회 실패:', error)
+        const fallbackMessage = '여행 목록을 불러오는데 실패했습니다.'
+        const message = error instanceof Error ? error.message : fallbackMessage
+
+        if (!skipReissue && message && isUnauthorizedMessage(message)) {
+          try {
+            await AuthService.reissue()
+            await loadTravels({ skipReissue: true, suppressLoading: true })
+            return
+          } catch (reissueError) {
+            console.error('토큰 재발급 실패:', reissueError)
+          }
+        }
+
+        if (message && isUnauthorizedMessage(message)) {
+          await handleUnauthorized()
+          setError('로그인 후 이용해주세요.')
+        } else {
+          setError(message || fallbackMessage)
+        }
+        setTravels([])
+      } finally {
+        if (!suppressLoading) {
+          setIsLoading(false)
+        }
+      }
+    },
+    [handleUnauthorized]
+  )
+
+  const handleCloseTravelModal = useCallback(() => {
+    setIsModalOpen(false)
+    loadTravels()
+  }, [loadTravels])
 
   useEffect(() => {
     // 초기 로드
     loadTravels()
 
-    // 페이지가 보일 때마다 여행 목록 새로고침 (탭 전환, 다른 앱에서 돌아올 때)
     const handleVisibilityChange = () => {
       if (!document.hidden) {
         loadTravels()
       }
     }
 
-    // 윈도우 포커스 이벤트 (다른 페이지에서 MyPage로 돌아올 때)
     const handleFocus = () => {
-      // 첫 렌더링에서는 실행하지 않음 (이미 loadTravels()가 실행되었으므로)
       if (!isFirstRender.current) {
         loadTravels()
       } else {
@@ -55,19 +106,26 @@ const MyPage = () => {
       }
     }
 
-    // 이벤트 리스너 등록
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('focus', handleFocus)
 
-    // cleanup 함수
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', handleFocus)
     }
-  }, [])
+  }, [loadTravels])
 
   return (
     <GradientBackground>
+      <ToastDock
+        open={Boolean(toastMessage)}
+        variant="warning"
+        title="다시 로그인 필요"
+        message={toastMessage ?? ''}
+        autoCloseMs={3000}
+        offsetPx={16}
+        onClose={() => setToastMessage(null)}
+      />
       <MyPageHeader />
       <main className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-12 mt-6 sm:mt-8 md:mt-10 pb-10">
         {isLoading ? (
@@ -80,7 +138,7 @@ const MyPage = () => {
           <div className="flex flex-col justify-center items-center py-20">
             <p className="text-red-500 text-lg mb-4">{error}</p>
             <button
-              onClick={loadTravels}
+              onClick={() => loadTravels()}
               className="px-6 py-2 bg-gradient-to-br from-point-500 to-main-700 text-white rounded-full hover:scale-105 transition-transform"
             >
               다시 시도
@@ -111,6 +169,7 @@ const MyPage = () => {
       </main>
 
       {isModalOpen && <CreateTravelModal onClose={handleCloseTravelModal} />}
+      {isLoginModalOpen && <LoginModal onClose={handleCloseLoginModal} />}
     </GradientBackground>
   )
 }

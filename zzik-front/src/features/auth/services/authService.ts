@@ -24,4 +24,12 @@ export class AuthService {
   public static async logout(): Promise<void> {
     await apiClient.post<void>('/auth/logout', {})
   }
+
+  /**
+   * 액세스 토큰 재발급
+   * 서버가 httpOnly 쿠키를 재설정하도록 호출합니다.
+   */
+  public static async reissue(): Promise<void> {
+    await apiClient.post<void>('/auth/reissue', {})
+  }
 }
