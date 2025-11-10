@@ -1,9 +1,18 @@
+import { useMemo, useRef } from 'react'
 import { MousePointer2 } from 'lucide-react'
+import { cn } from '@/shared/utils/cn'
 import type { RemoteCursor } from '../hooks/useSharedCursors'
 
+type CursorDisplay = RemoteCursor & { isSelf?: boolean }
+
 interface RemoteCursorsProps {
-  cursors: RemoteCursor[]
+  cursors: CursorDisplay[]
 }
+
+const REMOTE_CURSOR_SMOOTHING = 0.35
+const MAX_SNAP_DELTA = 12
+const REMOTE_CURSOR_Z_INDEX = 12
+const SELF_CURSOR_Z_INDEX = 120
 
 const getInitial = (name: string) => {
   if (!name) {
@@ -13,30 +22,93 @@ const getInitial = (name: string) => {
 }
 
 const RemoteCursors = ({ cursors }: RemoteCursorsProps) => {
+  const previousPositionsRef = useRef<Map<string, RemoteCursor['cursor']>>(new Map())
+
+  const renderedCursors = useMemo(() => {
+    const nextPositions = new Map<string, RemoteCursor['cursor']>()
+
+    const next = cursors.map((cursorData) => {
+      if (cursorData.isSelf) {
+        nextPositions.set(cursorData.userId, cursorData.cursor)
+        return cursorData
+      }
+
+      const previous = previousPositionsRef.current.get(cursorData.userId)
+      if (!previous) {
+        nextPositions.set(cursorData.userId, cursorData.cursor)
+        return cursorData
+      }
+
+      const deltaX = cursorData.cursor.x - previous.x
+      const deltaY = cursorData.cursor.y - previous.y
+      const shouldSnap = Math.abs(deltaX) > MAX_SNAP_DELTA || Math.abs(deltaY) > MAX_SNAP_DELTA
+
+      const smoothedCursor = shouldSnap
+        ? cursorData.cursor
+        : {
+            ...cursorData.cursor,
+            x: previous.x + deltaX * REMOTE_CURSOR_SMOOTHING,
+            y: previous.y + deltaY * REMOTE_CURSOR_SMOOTHING,
+          }
+
+      nextPositions.set(cursorData.userId, smoothedCursor)
+
+      return {
+        ...cursorData,
+        cursor: smoothedCursor,
+      }
+    })
+
+    previousPositionsRef.current = nextPositions
+
+    return next
+  }, [cursors])
+
   return (
     <>
-      {cursors.map(({ clientId, cursor, color, name, picture, message }) => (
+      {renderedCursors.map(({ clientId, cursor, color, name, picture, message, isSelf }) => (
         <div
           key={clientId}
           className="pointer-events-none absolute select-none"
           style={{
             left: `${cursor.x}%`,
             top: `${cursor.y}%`,
+            zIndex: isSelf ? SELF_CURSOR_Z_INDEX : REMOTE_CURSOR_Z_INDEX,
           }}
         >
           <div className="relative -translate-x-2 -translate-y-2">
             {message?.text ? (
-              <div className="absolute bottom-full left-0 mb-1 max-w-[240px] rounded-xl border border-slate-200 bg-white/95 px-3 py-1.5 text-xs font-medium text-slate-700 shadow-lg backdrop-blur">
-                {message.text}
+              <div
+                className={cn(
+                  'absolute bottom-full left-0 mb-1 max-w-[min(70vw,420px)] rounded-xl border px-3 py-1.5 text-xs font-medium shadow-lg backdrop-blur',
+                  isSelf
+                    ? 'border-blue-200 bg-blue-500/95 text-white'
+                    : 'border-slate-200 bg-white/95 text-slate-700'
+                )}
+              >
+                <p className="whitespace-pre-wrap break-words leading-snug">{message.text}</p>
               </div>
             ) : null}
             <MousePointer2
-              size={20}
+              size={25}
               strokeWidth={2}
-              className="drop-shadow-[0_4px_8px_rgba(15,23,42,0.25)]"
-              style={{ color }}
+              className={cn(
+                'drop-shadow-[0_4px_8px_rgba(15,23,42,0.25)] transition-transform duration-150',
+                isSelf && 'scale-110'
+              )}
+              style={{ color, fill: color }}
             />
-            <div className="mt-1 flex items-center gap-1 rounded-full bg-slate-900/85 px-2.5 py-1 text-[11px] font-medium text-white shadow-lg backdrop-blur">
+
+            <div
+              className={cn(
+                'mt-1 flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium text-white shadow-lg backdrop-blur',
+                'border border-white/40',
+                isSelf ? 'scale-[1.02]' : 'opacity-90'
+              )}
+              style={{
+                background: `linear-gradient(to right, ${color}, ${color})`,
+              }}
+            >
               {picture ? (
                 <img
                   src={picture}
@@ -51,7 +123,12 @@ const RemoteCursors = ({ cursors }: RemoteCursorsProps) => {
                   {getInitial(name)}
                 </span>
               )}
-              <span>{name}</span>
+              <span>{isSelf ? `${name} (나)` : name}</span>
+              {isSelf ? (
+                <span className="rounded bg-white/25 px-1.5 text-[10px] font-semibold text-white/90">
+                  내 커서
+                </span>
+              ) : null}
             </div>
           </div>
         </div>

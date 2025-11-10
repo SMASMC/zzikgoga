@@ -234,6 +234,17 @@ const collectAwarenessSnapshot = (
   }
 }
 
+const deduplicateRemoteCursors = (cursors: RemoteCursor[]): RemoteCursor[] => {
+  const map = new Map<string, RemoteCursor>()
+  cursors.forEach((cursor) => {
+    const existing = map.get(cursor.userId)
+    if (!existing || cursor.cursor.timestamp >= existing.cursor.timestamp) {
+      map.set(cursor.userId, cursor)
+    }
+  })
+  return Array.from(map.values())
+}
+
 export const useSharedCursors = (roomId: string): SharedCursorSession => {
   const authUser = useAuthStore((state) => state.user)
   const fallbackUserRef = useRef<{ id: string; name: string; picture: string | null }>()
@@ -249,7 +260,7 @@ export const useSharedCursors = (roomId: string): SharedCursorSession => {
 
   const guestIdentity = fallbackUserRef.current!
 
-  const baseId = authUser?.id ?? guestIdentity.id
+  const baseId = authUser?.id ? String(authUser.id) : guestIdentity.id
   const baseName = authUser?.name ?? guestIdentity.name
   const basePicture = authUser?.picture ?? null
 
@@ -329,7 +340,7 @@ export const useSharedCursors = (roomId: string): SharedCursorSession => {
 
     const updateFromAwareness = () => {
       const snapshot = collectAwarenessSnapshot(awareness, awareness.clientID)
-      setRemoteCursors(snapshot.remoteCursors)
+      setRemoteCursors(deduplicateRemoteCursors(snapshot.remoteCursors))
       ingestMessagePayloads(snapshot.messagePayloads, awareness.clientID)
     }
 

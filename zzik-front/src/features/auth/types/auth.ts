@@ -36,9 +36,6 @@ export interface SignupRequiredResponse {
 // 카카오 로그인 후 받는 응답 (로그인 완료)
 export interface LoginSuccessResponse {
   user: User
-  accessToken: string
-  refreshToken: string
-  signupRequired: false
   loggedIn: true
 }
 
@@ -48,7 +45,11 @@ export type OAuthCallbackResponse = SignupRequiredResponse | LoginSuccessRespons
 // 추가 정보 입력 후 받는 응답
 export interface SignupResponse {
   user: User
-  accessToken: string
-  refreshToken: string
   loggedIn: boolean
+}
+
+// 카카오 로그인 체크 응답
+export interface KakaoLoginResponse {
+  loggedIn: boolean
+  user: User
 }

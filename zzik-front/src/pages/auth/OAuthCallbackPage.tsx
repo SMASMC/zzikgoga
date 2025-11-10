@@ -19,11 +19,9 @@ export function OAuthCallbackPage() {
           navigate('/?error=no_code', { replace: true })
           return
         }
-        console.log(import.meta.env.VITE_KAKAO_REST_API_KEY)
-        console.log(import.meta.env.VITE_KAKAO_REDIRECT_URI)
-        console.log('카카오 code:', code)
+        console.log('카카오 인가 코드:', code)
 
-        // 1. 인가 코드로 id_token 받기
+        // 1. 카카오에서 idToken 받기
         const tokenResponse = await axios.post(
           'https://kauth.kakao.com/oauth/token',
           new URLSearchParams({
@@ -41,14 +39,9 @@ export function OAuthCallbackPage() {
           return
         }
 
-        // 2. 백엔드로 idToken 전달 → JWT 발급 or signupToken 반환
-        console.log('idToken:', idToken)
-        console.log('API Base URL:', import.meta.env.VITE_API_BASE_URL)
-        // const { data } = await axios.post<OAuthCallbackResponse>(
-        //   `${import.meta.env.VITE_API_BASE_URL}/auth/kakao`,
-        //   { idToken },
-        //   { withCredentials: true }
-        // )
+        console.log('idToken 획득 성공')
+
+        // 2. 백엔드로 idToken 전달
         const data = await apiClient.post<OAuthCallbackResponse>('/auth/kakao', {
           idToken: idToken,
         })
@@ -95,7 +88,7 @@ export function OAuthCallbackPage() {
     }
 
     handleOAuthCallback()
-  }, [])
+  }, [navigate, setAuth])
 
   return (
     <div className="flex min-h-screen items-center justify-center">

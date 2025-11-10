@@ -21,8 +21,7 @@ const slides: OnboardingSlide[] = [
     title: '실시간 협업 계획',
     description:
       '커서챗으로 여행 계획을 함께 세우세요. 실시간으로 대화하며 모두의 의견을 모아 완벽한 여행을 만들어보세요.',
-    image:
-      'https://images.unsplash.com/photo-1500995617113-cf789362a3e1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmcmllbmRzJTIwY29sbGFib3JhdGlvbiUyMHBsYW5uaW5nfGVufDF8fHx8MTc2MTI2OTYzNnww&ixlib=rb-4.1.0&q=80&w=1080',
+    image: '/home/mainpage_1.jpg',
     icon: <MessageSquare />,
     color: '#7DD3FC',
   },
@@ -101,7 +100,7 @@ const HomePage = () => {
   // const Icon = current.icon
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background-500">
       <Header transparentUntilScroll />
 
       {/* 에러 모달 */}
@@ -121,9 +120,9 @@ const HomePage = () => {
           />
           <div
             className="absolute inset-0 transition-colors duration-1000"
-            style={{
-              background: `linear-gradient(135deg, rgba(10, 15, 26, 0.85) 0%, rgba(10, 15, 26, 0.7) 50%, transparent 100%)`,
-            }}
+            // style={{
+            //   background: `linear-gradient(135deg, rgba(10, 15, 26, 0.85) 0%, rgba(10, 15, 26, 0.7) 5%, transparent 100%)`,
+            // }}
           />
         </div>
 
@@ -148,15 +147,15 @@ const HomePage = () => {
                 </div>
 
                 <div className="space-y-4 transition-all duration-500">
-                  <h1 className="text-white text-5xl lg:text-6xl leading-tight font-extrabold drop-shadow-lg tracking-tight">
+                  <h1 className="text-5xl lg:text-6xl leading-tight font-extrabold drop-shadow-lg tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-point-500 via-hover-600 to-main-500">
                     {current.title}
                   </h1>
-                  <p className="text-gray-200 text-lg lg:text-xl leading-relaxed max-w-xl drop-shadow">
+                  <p className="text-white text-lg lg:text-xl leading-relaxed max-w-xl drop-shadow">
                     {current.description}
                   </p>
                 </div>
 
-                <div className="flex gap-4">
+                <div className="flex flex-wrap gap-4">
                   {(() => {
                     const primary =
                       current.id === 1

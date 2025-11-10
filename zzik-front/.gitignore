@@ -34,3 +34,7 @@ workbox-*.js.map
 
 .editorconfig
 .gitattributes
+
+# Local Codex agent brief
+*codex-agent.md
+AGENTS.md
