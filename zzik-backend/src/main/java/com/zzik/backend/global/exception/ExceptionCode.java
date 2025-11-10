@@ -2,6 +2,8 @@ package com.zzik.backend.global.exception;
 
 import org.springframework.http.HttpStatus;
 
+import com.zzik.backend.global.annotation.swagger.ApiErrorResponseExplanation;
+
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -77,6 +79,12 @@ public enum ExceptionCode {
 
 
 	/* 405xx - memory */
+	NOT_FOUND_DATA(HttpStatus.NOT_FOUND, 40501,"여행 또는 회원을 찾을 수 없습니다."),
+	FORBIDDEN(HttpStatus.NOT_FOUND,40502,"해당 여행에 속한 멤버가 아닙니다."),
+	FILE_TOO_LARGE(HttpStatus.FORBIDDEN,40506, "PAYLOAD_TOO_LARGE", "파일 크기가 50MB를 초과합니다."),
+	INVALID_FILE_EXTENSION(HttpStatus.BAD_REQUEST,40507, "BAD_REQUEST", "허용되지 않는 파일 확장자입니다."),
+	FILE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR,40508, "INTERNAL_SERVER_ERROR", "파일 업로드에 실패했습니다."),
+	INVALID_FILE(HttpStatus.BAD_REQUEST,40509, "BAD_REQUEST", "파일이 유효하지 않습니다."),
 
 	/* 406xx - media */
 
