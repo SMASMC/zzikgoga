@@ -10,6 +10,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.zzik.backend.domain.auth.entity.Member;
 import com.zzik.backend.domain.auth.repository.MemberRepository;
 import com.zzik.backend.domain.cost.dto.request.CostEditRequest;
 import com.zzik.backend.domain.cost.dto.response.CostEditResponse;
@@ -49,59 +50,51 @@ public class CostEditService {
 			throw BusinessException.from(ExceptionCode.TRIP_COST_ALREADY_COMPLETED);
 		}
 
-		// // 2) 락 소유 확인
-		// if (!costEditLockService.isOwnedBy(costId, requesterId))
-		// 	throw BusinessException.from(ExceptionCode.EDIT_LOCK_HELD_BY_OTHERS);
+		// 2) 락 소유 확인
+		if (!costEditLockService.isOwnedBy(tripId, costId, requesterId))
+			throw BusinessException.from(ExceptionCode.EDIT_LOCK_HELD_BY_OTHERS);
 
-		// // 3) 부모 필드 업데이트
-		// Member payer = memberRepository.findById(req.payerId())
-		// 	.orElseThrow(() -> BusinessException.from(ExceptionCode.NOT_TRIP_MEMBER));
-		// cost.updateMain(req.paidAt(), req.place(), payer, req.memo());
+		// 3) 부모 필드 업데이트
+		Member payer = memberRepository.findById(req.payerId())
+			.orElseThrow(() -> BusinessException.from(ExceptionCode.NOT_TRIP_MEMBER));
+		cost.updateMain(req.paidAt(), req.place(), payer, req.memo());
 
-		// // 4) 현재 메뉴 인덱싱
-		// Map<Long, CostMenu> current = costMenuRepository.findAllByCostId(costId).stream()
-		// 	.collect(Collectors.toMap(CostMenu::getId, it -> it));
-		//
-		// // 5) upsert
-		// for (var m : safe(req.menus())) {
-		// 	if (m.costMenuId() == null) { // INSERT
-		// 		CostMenu created = CostMenu.builder()
-		// 			.cost(cost)
-		// 			.menuName(m.menuName())
-		// 			.count(m.count() == null ? 1 : m.count())
-		// 			.amount(m.amount())
-		// 			.mustPayerIds(distinct(safe(m.payerIds())))
-		// 			.build();
-		// 		costMenuRepository.save(created);
-		// 	} else { // UPDATE
-		// 		CostMenu exist = costMenuRepository.findByIdAndCostId(m.costMenuId(), costId)
-		// 			.orElseThrow(() -> BusinessException.from(ExceptionCode.COST_MENU_NOT_FOUND));
-		// 		exist.apply(
-		// 			m.getMenuName(),
-		// 			m.getAmount(),
-		// 			m.getCount(),
-		// 			distinct(safe(m.getPayerIds()))
-		// 		);
-		// 		current.remove(m.getCostMenuId());
-		// 	}
-		// }
-		//
-		// // 6) 삭제
-		// Set<Long> deleteIds = new HashSet<>(safe(req.deletedMenuIds()));
-		// for (var m : safe(req.menus()))
-		// 	if (m.costMenuId() != null)
-		// 		deleteIds.remove(m.getCostMenuId());
-		// if (!deleteIds.isEmpty()) {
-		// 	// 소속 검증
-		// 	for (Long id : deleteIds) {
-		// 		costMenuRepository.findByIdAndCostId(id, costId)
-		// 			.orElseThrow(() -> BusinessException.from(ExceptionCode.COST_MENU_NOT_FOUND));
-		// 	}
-		// 	costMenuRepository.deleteAllByIdInBatch(deleteIds);
-		// }
-		//
-		// // 7) 합계 재계산
-		// cost.recalcTotal();
+		// 4) 현재 메뉴 인덱싱
+		Map<Long, CostMenu> current = costMenuRepository.findAllByCost_Id(costId).stream()
+			.collect(Collectors.toMap(CostMenu::getId, it -> it));
+
+		// 5) upsert (INSERT/UPDATE)
+		for (var m : safe(req.menus())) {
+			int cnt = (m.count() == null ? 1 : m.count());
+			List<Long> mustPayerIds = safe(m.payerIds()).stream().distinct().toList();
+
+			if (m.costMenuId() == null) { // INSERT
+				CostMenu created = CostMenu.builder()
+					.cost(cost)
+					.menuName(m.menuName())
+					.count(cnt)
+					.amount(m.amount())
+					.mustPayerIds(mustPayerIds)
+					.build();
+				costMenuRepository.save(created);
+			} else {                      // UPDATE
+				CostMenu exist = costMenuRepository.findByIdAndCostId(m.costMenuId(), costId)
+					.orElseThrow(() -> BusinessException.from(ExceptionCode.COST_MENU_NOT_FOUND));
+				exist.apply(m.menuName(), m.amount(), cnt, mustPayerIds);
+				current.remove(m.costMenuId()); // 요청에서 살아남은 기존 메뉴는 map에서 제거
+			}
+		}
+
+		// 6) 삭제 자동 감지: current에 남아있는 기존 메뉴 = 요청에서 사라진 메뉴
+		if (!current.isEmpty()) {
+			// orphanRemoval=true라면 컬렉션에서 제거해도 삭제됨
+			cost.getCostMenus().removeIf(cm -> current.containsKey(cm.getId()));
+			// 레포 직접 삭제를 선호하면 아래 사용:
+			// costMenuRepository.deleteAll(current.values());
+		}
+
+		// 7) 합계 재계산
+		cost.recalcTotal();
 
 		// 8) 응답
 		return toResponse(cost);
