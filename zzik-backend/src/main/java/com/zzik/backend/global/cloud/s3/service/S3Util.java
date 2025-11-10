@@ -31,7 +31,7 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequ
  * @see S3Service
  */
 @Component
-class S3Util {
+public class S3Util {
 
 	private final S3Client s3Client;
 	private final S3Presigner s3Presigner;

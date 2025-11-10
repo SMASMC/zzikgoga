@@ -1,6 +1,8 @@
 package com.zzik.backend.domain.media.controller;
 
 import com.zzik.backend.domain.media.api.MediaApi;
+import com.zzik.backend.domain.media.dto.response.PhotoListResponse;
+import com.zzik.backend.domain.media.dto.response.PhotoUploadListResponse;
 import com.zzik.backend.domain.media.dto.response.PhotoUploadResponse;
 import com.zzik.backend.domain.media.service.MediaService;
 import com.zzik.backend.global.presentation.ApiResponse;
@@ -20,17 +22,30 @@ public class MediaController implements MediaApi {
 
 	@Override
 	@PostMapping(value = "/{tripId}", consumes = "multipart/form-data")
-	public ResponseEntity<ApiResponse<PhotoUploadResponse>> uploadPhoto(
+	public ResponseEntity<ApiResponse<PhotoUploadListResponse>> uploadPhotos(
 		@PathVariable Long tripId,
-		@RequestPart("file") MultipartFile file
+		@RequestPart("files") MultipartFile[] files
 	) {
-
 		Long memberId = SecurityUtil.getCurrentMemberId();
 
-		PhotoUploadResponse responseDto = mediaService.uploadPhoto(tripId, file, memberId);
+		PhotoUploadListResponse responseDto = mediaService.uploadPhotos(tripId, files, memberId);
 
 		return ResponseEntity.ok(
 			ApiResponse.createSuccess(responseDto)
 		);
+	}
+
+	@Override
+	@GetMapping("/{tripId}")
+	public ResponseEntity<ApiResponse<PhotoListResponse>> getPhotos(
+		@PathVariable Long tripId,
+		@RequestParam(required = false) Long cursor,
+		@RequestParam(defaultValue = "20") int size
+	) {
+		Long memberId = SecurityUtil.getCurrentMemberId();
+
+		PhotoListResponse responseDto = mediaService.getPhotos(tripId, memberId, cursor, size);
+
+		return ResponseEntity.ok(ApiResponse.createSuccess(responseDto));
 	}
 }
