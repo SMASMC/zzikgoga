@@ -1,16 +1,23 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuthStore } from '@/shared/stores/useAuthStore'
 import { User } from '@/features/auth/types/auth'
-import { CostItem, CostPlusRequest } from '@/features/cost/types/cost'
+import { CostCategory, CostItem, CostPlusRequest } from '@/features/cost/types/cost'
 import PayerSelectModal from './PayerSelectModal'
 import MemberSelectModal from './MemberSelectModal'
 import { PlanService } from '@/features/plan/services/planServices'
 import { CostPlusService } from '../services/costService'
+import { ToastDock } from '@/components/blocks/ToastDock'
+import { DropdownSelect } from '@/components/blocks/DropdownSelect'
+import { COST_CATEGORIES, COST_CATEGORY_LABELS } from '@/features/cost/types/cost'
 
 interface CostPlusFormProps {
   tripId: string
   onSuccess?: () => void
 }
+const CATEGORY_OPTIONS = COST_CATEGORIES.map((cat) => ({
+  label: COST_CATEGORY_LABELS[cat],
+  value: cat,
+}))
 
 const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -19,6 +26,10 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
   const [isPayerModalOpen, setIsPayerModalOpen] = useState(false)
   const [members, setMembers] = useState<User[]>([])
   const [openMemberModalIndex, setOpenMemberModalIndex] = useState<number | null>(null)
+  const [toast, setToast] = useState<{
+    variant: 'success' | 'warning' | 'error'
+    message: string
+  } | null>(null)
 
   // 에러 상태 관리
   const [errors, setErrors] = useState<{
@@ -35,6 +46,7 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
     payerId: user?.id || '',
     paidAt: new Date().toISOString().slice(0, 16).replace('T', ' ') + ':00',
     place: '',
+    category: 'ETC',
     totalAmount: 0,
     memo: '',
     receiptJson: null,
@@ -250,388 +262,424 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
       }
     } catch (error) {
       console.error('비용 추가 실패:', error)
-      alert('비용 추가에 실패했습니다. 다시 시도해주세요.')
+      setToast({
+        variant: 'error',
+        message: '비용 추가에 실패했습니다. 다시 시도해주세요.',
+      })
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-      {/* 결제자 선택 */}
-      <div className="mb-4 sm:mb-6">
-        <label className="block text-base sm:text-lg mb-2 sm:mb-3 text-text-600 font-bmjua">
-          결제자
-        </label>
-        <div
-          className={`bg-white rounded-2xl p-3 sm:p-4 shadow-sm flex items-center space-x-3 ${
-            errors.payerId ? 'ring-2 ring-red-400' : ''
-          }`}
-        >
-          <div className="flex-shrink-0">
-            {payer?.picture ? (
-              <img
-                src={payer.picture}
-                alt={payer.name}
-                className="w-12 h-12 rounded-full object-cover border-2 border-blue-400"
-              />
-            ) : (
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center border-2 border-blue-400">
-                <span className="text-white font-bold text-lg">{payer?.name.charAt(0) || 'U'}</span>
-              </div>
-            )}
-          </div>
-          <div className="flex-1">
-            <p className="font-bold text-text-500">{payer?.name || '사용자'}</p>
-          </div>
-          <button
-            type="button"
-            className="px-3 py-1.5 text-sm bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors font-bold"
-            onClick={() => setIsPayerModalOpen(true)}
+    <>
+      <ToastDock
+        open={Boolean(toast)}
+        variant={toast?.variant ?? 'hint'}
+        title="알림"
+        message={toast?.message ?? ''}
+        autoCloseMs={3000}
+        offsetPx={16}
+        onClose={() => setToast(null)}
+      />
+      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+        {/* 결제자 선택 */}
+        <div className="mb-4 sm:mb-6">
+          <label className="block text-base sm:text-lg mb-2 sm:mb-3 text-text-600 font-bmjua">
+            결제자
+          </label>
+          <div
+            className={`bg-white rounded-2xl p-3 sm:p-4 shadow-sm flex items-center space-x-3 ${
+              errors.payerId ? 'ring-2 ring-red-400' : ''
+            }`}
           >
-            변경
-          </button>
-        </div>
-        {errors.payerId && <p className="mt-1 text-sm text-red-500 font-bmjua">{errors.payerId}</p>}
-      </div>
-
-      {/* 결제 일시 */}
-      <div className="mb-4 sm:mb-6">
-        <label className="block text-base sm:text-lg mb-2 sm:mb-3 text-text-600 font-bmjua">
-          결제 일시
-        </label>
-        <input
-          type="datetime-local"
-          value={formData.paidAt.replace(' ', 'T').slice(0, 16)}
-          onChange={(e) =>
-            setFormData({ ...formData, paidAt: e.target.value.replace('T', ' ') + ':00' })
-          }
-          className="w-full px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md hover:scale-[1.02]"
-        />
-      </div>
-
-      {/* 결제 장소 */}
-      <div className="mb-4 sm:mb-6">
-        <label className="block text-base sm:text-lg mb-2 sm:mb-3 text-text-600 font-bmjua">
-          결제 장소
-        </label>
-        <input
-          type="text"
-          value={formData.place}
-          onChange={(e) => {
-            setFormData({ ...formData, place: e.target.value })
-            // 에러 제거
-            if (errors.place) {
-              setErrors({ ...errors, place: undefined })
-            }
-          }}
-          placeholder="예: 스타벅스 강남점"
-          className={`w-full px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md hover:scale-[1.02] placeholder:text-gray-400 ${
-            errors.place ? 'ring-2 ring-red-400' : ''
-          }`}
-        />
-        {errors.place && <p className="mt-1 text-sm text-red-500 font-bmjua">{errors.place}</p>}
-      </div>
-
-      {/* 총 금액 */}
-      <div className="mb-4 sm:mb-6">
-        <label className="block text-base sm:text-lg mb-2 sm:mb-3 text-text-600 font-bmjua">
-          총 금액
-        </label>
-        <input
-          type="number"
-          value={formData.totalAmount || ''}
-          onChange={(e) => {
-            setFormData({ ...formData, totalAmount: Number(e.target.value) })
-            // 에러 제거
-            if (errors.totalAmount) {
-              setErrors({ ...errors, totalAmount: undefined })
-            }
-            // 총 금액이 변경되면 items 에러도 제거 (금액 합계 재검증을 위해)
-            if (errors.items) {
-              setErrors({ ...errors, items: undefined })
-            }
-          }}
-          placeholder="0"
-          className={`w-full px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md hover:scale-[1.02] placeholder:text-gray-400 ${
-            errors.totalAmount ? 'ring-2 ring-red-400' : ''
-          }`}
-        />
-        {errors.totalAmount && (
-          <p className="mt-1 text-sm text-red-500 font-bmjua">{errors.totalAmount}</p>
-        )}
-      </div>
-
-      {/* 메모 */}
-      <div className="mb-4 sm:mb-6">
-        <label className="block text-base sm:text-lg mb-2 sm:mb-3 text-text-600 font-bmjua">
-          메모
-        </label>
-        <textarea
-          value={formData.memo}
-          onChange={(e) => {
-            setFormData({ ...formData, memo: e.target.value })
-            // 에러 제거
-            if (errors.memo) {
-              setErrors({ ...errors, memo: undefined })
-            }
-          }}
-          placeholder="메모를 입력하세요"
-          rows={3}
-          className={`w-full px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md hover:scale-[1.02] resize-none placeholder:text-gray-400 ${
-            errors.memo ? 'ring-2 ring-red-400' : ''
-          }`}
-        />
-        {errors.memo && <p className="mt-1 text-sm text-red-500 font-bmjua">{errors.memo}</p>}
-      </div>
-
-      {/* 증빙 자료 */}
-      <div className="mb-4 sm:mb-6">
-        <label className="block text-base sm:text-lg mb-2 sm:mb-3 text-text-600 font-bmjua">
-          증빙 자료 ( ex : 영수증, 기념 사진 )
-        </label>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleImageUpload}
-          className="hidden"
-          id="receipt-upload"
-        />
-        <label
-          htmlFor="receipt-upload"
-          className={`flex items-center justify-center w-full px-4 py-3 bg-white border-2 border-dashed rounded-xl cursor-pointer transition-colors ${
-            errors.receiptJson
-              ? 'border-red-400 hover:border-red-500'
-              : 'border-gray-300 hover:border-blue-400'
-          }`}
-        >
-          <svg
-            className="w-6 h-6 text-gray-400 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          <span className="text-sm text-gray-600">이미지 업로드</span>
-        </label>
-        {formData.receiptJson && (
-          <div className="relative">
-            <img
-              src={formData.receiptJson}
-              alt="영수증"
-              className="w-full h-32 object-cover rounded-xl"
-            />
+            <div className="flex-shrink-0">
+              {payer?.picture ? (
+                <img
+                  src={payer.picture}
+                  alt={payer.name}
+                  className="w-12 h-12 rounded-full object-cover border-2 border-blue-400"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center border-2 border-blue-400">
+                  <span className="text-white font-bold text-lg">
+                    {payer?.name.charAt(0) || 'U'}
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="flex-1">
+              <p className="font-bold text-text-500">{payer?.name || '사용자'}</p>
+            </div>
             <button
               type="button"
-              onClick={() => {
-                setFormData({ ...formData, receiptJson: null })
-                // 에러 제거
-                if (errors.receiptJson) {
-                  setErrors({ ...errors, receiptJson: undefined })
-                }
-              }}
-              className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+              className="px-3 py-1.5 text-sm bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors font-bold"
+              onClick={() => setIsPayerModalOpen(true)}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              변경
             </button>
           </div>
-        )}
-      </div>
-      {errors.receiptJson && (
-        <p className="mt-1 text-sm text-red-500 font-bmjua">{errors.receiptJson}</p>
-      )}
+          {errors.payerId && (
+            <p className="mt-1 text-sm text-red-500 font-bmjua">{errors.payerId}</p>
+          )}
+        </div>
 
-      {/* 품목 */}
-      <div className="mb-4 sm:mb-6">
-        <div className="flex justify-between items-center mb-2 sm:mb-3">
-          <label className="block text-base sm:text-lg text-text-600 font-bmjua">결제 품목</label>
-          <button
-            type="button"
-            onClick={() => {
-              addItem()
+        {/* 결제 일시 */}
+        <div className="mb-4 sm:mb-6">
+          <label className="block text-base sm:text-lg mb-2 sm:mb-3 text-text-600 font-bmjua">
+            결제 일시
+          </label>
+          <input
+            type="datetime-local"
+            value={formData.paidAt.replace(' ', 'T').slice(0, 16)}
+            onChange={(e) =>
+              setFormData({ ...formData, paidAt: e.target.value.replace('T', ' ') + ':00' })
+            }
+            className="w-full px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md hover:scale-[1.02]"
+          />
+        </div>
+
+        {/* 결제 장소 */}
+        <div className="mb-4 sm:mb-6">
+          <label className="block text-base sm:text-lg mb-2 sm:mb-3 text-text-600 font-bmjua">
+            결제 장소
+          </label>
+          <input
+            type="text"
+            value={formData.place}
+            onChange={(e) => {
+              setFormData({ ...formData, place: e.target.value })
               // 에러 제거
+              if (errors.place) {
+                setErrors({ ...errors, place: undefined })
+              }
+            }}
+            placeholder="예: 스타벅스 강남점"
+            className={`w-full px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md hover:scale-[1.02] placeholder:text-gray-400 ${
+              errors.place ? 'ring-2 ring-red-400' : ''
+            }`}
+          />
+          {errors.place && <p className="mt-1 text-sm text-red-500 font-bmjua">{errors.place}</p>}
+        </div>
+
+        {/* 카테고리 */}
+        <div className="mb-4 sm:mb-6">
+          <label className="block text-base sm:text-lg mb-2 sm:mb-3 text-text-600 font-bmjua">
+            카테고리
+          </label>
+          <DropdownSelect
+            options={CATEGORY_OPTIONS}
+            value={formData.category}
+            onChange={(value) => setFormData({ ...formData, category: value as CostCategory })}
+            className="w-full"
+          />
+        </div>
+
+        {/* 총 금액 */}
+        <div className="mb-4 sm:mb-6">
+          <label className="block text-base sm:text-lg mb-2 sm:mb-3 text-text-600 font-bmjua">
+            총 금액
+          </label>
+          <input
+            type="number"
+            value={formData.totalAmount || ''}
+            onChange={(e) => {
+              setFormData({ ...formData, totalAmount: Number(e.target.value) })
+              // 에러 제거
+              if (errors.totalAmount) {
+                setErrors({ ...errors, totalAmount: undefined })
+              }
+              // 총 금액이 변경되면 items 에러도 제거 (금액 합계 재검증을 위해)
               if (errors.items) {
                 setErrors({ ...errors, items: undefined })
               }
             }}
-            className="px-3 py-1 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-bold"
-          >
-            + 추가
-          </button>
+            placeholder="0"
+            className={`w-full px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md hover:scale-[1.02] placeholder:text-gray-400 ${
+              errors.totalAmount ? 'ring-2 ring-red-400' : ''
+            }`}
+          />
+          {errors.totalAmount && (
+            <p className="mt-1 text-sm text-red-500 font-bmjua">{errors.totalAmount}</p>
+          )}
         </div>
-        {errors.items && <p className="mb-2 text-sm text-red-500 font-bmjua">{errors.items}</p>}
-        {formData.items.map((item, index) => (
-          <div key={index} className="p-3 bg-white rounded-xl border border-gray-200 space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-bold text-blue-600">품목 {index + 1}</span>
-              {formData.items.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeItem(index)}
-                  className="text-red-500 hover:text-red-700 text-xs"
-                >
-                  삭제
-                </button>
-              )}
-            </div>
-            <label className="text-xs text-text-500 mb-1 block">품목명</label>
-            <input
-              type="text"
-              value={item.menuName}
-              onChange={(e) => {
-                updateItem(index, 'menuName', e.target.value)
-                // 에러 제거
-                if (errors.items && errors.items.includes(`품목 ${index + 1}: 품목명`)) {
-                  setErrors({ ...errors, items: undefined })
-                }
-              }}
-              className="w-full px-3 py-2 bg-gray-50 border border-blue-300 rounded-lg text-sm outline-none focus:outline-none focus:ring-0 focus:border-blue-400"
-            />
-            <label className="text-xs text-text-500 mb-1 block">금액</label>
-            <input
-              type="number"
-              min="0"
-              value={item.amount || ''}
-              onChange={(e) => {
-                const value = e.target.value === '' ? 0 : Number(e.target.value)
-                // 음수값 방지
-                if (value >= 0) {
-                  updateItem(index, 'amount', value)
-                  // 에러 제거
-                  if (errors.items && errors.items.includes(`품목 ${index + 1}: 금액`)) {
-                    setErrors({ ...errors, items: undefined })
-                  }
-                }
-              }}
-              className="w-full px-3 py-2 bg-gray-50 border border-blue-300 rounded-lg text-sm outline-none focus:outline-none focus:ring-0 focus:border-blue-400"
-            />
-            <div>
-              <label className="text-xs text-text-500 mb-1 block">결제 참여자</label>
-              {/* 선택된 멤버 표시 */}
-              {item.memberIds.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {item.memberIds.map((memberId) => {
-                    const member = getMemberById(memberId)
-                    if (!member) return null
-                    return (
-                      <div
-                        key={memberId}
-                        className="flex items-center space-x-2 px-2 py-1 bg-blue-50 rounded-lg border border-blue-200"
-                      >
-                        {member.picture ? (
-                          <img
-                            src={member.picture}
-                            alt={member.name}
-                            className="w-6 h-6 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                            <span className="text-white text-xs font-bold">
-                              {member.name.charAt(0)}
-                            </span>
-                          </div>
-                        )}
-                        <span className="text-xs font-bold text-text-500">{member.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newMemberIds = item.memberIds.filter((id) => id !== memberId)
-                            updateItem(index, 'memberIds', newMemberIds)
-                          }}
-                          className="text-blue-600 hover:text-blue-800"
-                        >
-                          <svg
-                            className="w-3 h-3"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-              {/* 멤버 선택 버튼 */}
+
+        {/* 메모 */}
+        <div className="mb-4 sm:mb-6">
+          <label className="block text-base sm:text-lg mb-2 sm:mb-3 text-text-600 font-bmjua">
+            메모
+          </label>
+          <textarea
+            value={formData.memo}
+            onChange={(e) => {
+              setFormData({ ...formData, memo: e.target.value })
+              // 에러 제거
+              if (errors.memo) {
+                setErrors({ ...errors, memo: undefined })
+              }
+            }}
+            placeholder="메모를 입력하세요"
+            rows={3}
+            className={`w-full px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md hover:scale-[1.02] resize-none placeholder:text-gray-400 ${
+              errors.memo ? 'ring-2 ring-red-400' : ''
+            }`}
+          />
+          {errors.memo && <p className="mt-1 text-sm text-red-500 font-bmjua">{errors.memo}</p>}
+        </div>
+
+        {/* 증빙 자료 */}
+        <div className="mb-4 sm:mb-6">
+          <label className="block text-base sm:text-lg mb-2 sm:mb-3 text-text-600 font-bmjua">
+            증빙 자료 ( ex : 영수증, 기념 사진 )
+          </label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            className="hidden"
+            id="receipt-upload"
+          />
+          <label
+            htmlFor="receipt-upload"
+            className={`flex items-center justify-center w-full px-4 py-3 bg-white border-2 border-dashed rounded-xl cursor-pointer transition-colors ${
+              errors.receiptJson
+                ? 'border-red-400 hover:border-red-500'
+                : 'border-gray-300 hover:border-blue-400'
+            }`}
+          >
+            <svg
+              className="w-6 h-6 text-gray-400 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            <span className="text-sm text-gray-600">이미지 업로드</span>
+          </label>
+          {formData.receiptJson && (
+            <div className="relative">
+              <img
+                src={formData.receiptJson}
+                alt="영수증"
+                className="w-full h-32 object-cover rounded-xl"
+              />
               <button
                 type="button"
-                onClick={() => setOpenMemberModalIndex(index)}
-                className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors text-sm text-left flex items-center justify-between"
+                onClick={() => {
+                  setFormData({ ...formData, receiptJson: null })
+                  // 에러 제거
+                  if (errors.receiptJson) {
+                    setErrors({ ...errors, receiptJson: undefined })
+                  }
+                }}
+                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
               >
-                <span className="text-text-500">
-                  {item.memberIds.length > 0
-                    ? `${item.memberIds.length}명 선택됨`
-                    : '결제 참여자 선택'}
-                </span>
-                <svg
-                  className="w-4 h-4 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
+                    d="M6 18L18 6M6 6l12 12"
                   />
                 </svg>
               </button>
             </div>
+          )}
+        </div>
+        {errors.receiptJson && (
+          <p className="mt-1 text-sm text-red-500 font-bmjua">{errors.receiptJson}</p>
+        )}
+
+        {/* 품목 */}
+        <div className="mb-4 sm:mb-6">
+          <div className="flex justify-between items-center mb-2 sm:mb-3">
+            <label className="block text-base sm:text-lg text-text-600 font-bmjua">결제 품목</label>
+            <button
+              type="button"
+              onClick={() => {
+                addItem()
+                // 에러 제거
+                if (errors.items) {
+                  setErrors({ ...errors, items: undefined })
+                }
+              }}
+              className="px-3 py-1 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-bold"
+            >
+              + 추가
+            </button>
           </div>
-        ))}
-      </div>
+          {errors.items && <p className="mb-2 text-sm text-red-500 font-bmjua">{errors.items}</p>}
+          {formData.items.map((item, index) => (
+            <div key={index} className="p-3 bg-white rounded-xl border border-gray-200 space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-blue-600">품목 {index + 1}</span>
+                {formData.items.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeItem(index)}
+                    className="text-red-500 hover:text-red-700 text-xs"
+                  >
+                    삭제
+                  </button>
+                )}
+              </div>
+              <label className="text-xs text-text-500 mb-1 block">품목명</label>
+              <input
+                type="text"
+                value={item.menuName}
+                onChange={(e) => {
+                  updateItem(index, 'menuName', e.target.value)
+                  // 에러 제거
+                  if (errors.items && errors.items.includes(`품목 ${index + 1}: 품목명`)) {
+                    setErrors({ ...errors, items: undefined })
+                  }
+                }}
+                className="w-full px-3 py-2 bg-gray-50 border border-blue-300 rounded-lg text-sm outline-none focus:outline-none focus:ring-0 focus:border-blue-400"
+              />
+              <label className="text-xs text-text-500 mb-1 block">금액</label>
+              <input
+                type="number"
+                min="0"
+                value={item.amount || ''}
+                onChange={(e) => {
+                  const value = e.target.value === '' ? 0 : Number(e.target.value)
+                  // 음수값 방지
+                  if (value >= 0) {
+                    updateItem(index, 'amount', value)
+                    // 에러 제거
+                    if (errors.items && errors.items.includes(`품목 ${index + 1}: 금액`)) {
+                      setErrors({ ...errors, items: undefined })
+                    }
+                  }
+                }}
+                className="w-full px-3 py-2 bg-gray-50 border border-blue-300 rounded-lg text-sm outline-none focus:outline-none focus:ring-0 focus:border-blue-400"
+              />
+              <div>
+                <label className="text-xs text-text-500 mb-1 block">결제 참여자</label>
+                {/* 선택된 멤버 표시 */}
+                {item.memberIds.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {item.memberIds.map((memberId) => {
+                      const member = getMemberById(memberId)
+                      if (!member) return null
+                      return (
+                        <div
+                          key={memberId}
+                          className="flex items-center space-x-2 px-2 py-1 bg-blue-50 rounded-lg border border-blue-200"
+                        >
+                          {member.picture ? (
+                            <img
+                              src={member.picture}
+                              alt={member.name}
+                              className="w-6 h-6 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                              <span className="text-white text-xs font-bold">
+                                {member.name.charAt(0)}
+                              </span>
+                            </div>
+                          )}
+                          <span className="text-xs font-bold text-text-500">{member.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newMemberIds = item.memberIds.filter((id) => id !== memberId)
+                              updateItem(index, 'memberIds', newMemberIds)
+                            }}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            <svg
+                              className="w-3 h-3"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+                {/* 멤버 선택 버튼 */}
+                <button
+                  type="button"
+                  onClick={() => setOpenMemberModalIndex(index)}
+                  className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors text-sm text-left flex items-center justify-between"
+                >
+                  <span className="text-text-500">
+                    {item.memberIds.length > 0
+                      ? `${item.memberIds.length}명 선택됨`
+                      : '결제 참여자 선택'}
+                  </span>
+                  <svg
+                    className="w-4 h-4 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
 
-      {/* 제출 버튼 */}
-      <div className="flex justify-center mt-6 sm:mt-8">
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className={`w-full sm:w-auto bg-gradient-to-br from-hover-600 to-point-600 text-white text-base sm:text-lg px-8 sm:px-12 py-2.5 sm:py-3 rounded-full shadow-lg hover:scale-105 hover:from-point-600 hover:to-main-800 transition-all font-bold font-bmjua ${
-            isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
-          }`}
-        >
-          {isSubmitting ? '추가 중...' : '추가하기'}
-        </button>
-      </div>
+        {/* 제출 버튼 */}
+        <div className="flex justify-center mt-6 sm:mt-8">
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className={`w-full sm:w-auto bg-gradient-to-br from-hover-600 to-point-600 text-white text-base sm:text-lg px-8 sm:px-12 py-2.5 sm:py-3 rounded-full shadow-lg hover:scale-105 hover:from-point-600 hover:to-main-800 transition-all font-bold font-bmjua ${
+              isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+          >
+            {isSubmitting ? '추가 중...' : '추가하기'}
+          </button>
+        </div>
 
-      {/* 결제자 선택 모달 */}
-      <PayerSelectModal
-        isOpen={isPayerModalOpen}
-        onClose={() => setIsPayerModalOpen(false)}
-        tripId={tripId}
-        onSelect={handlePayerSelect}
-      />
-
-      {/* 결제 참여자 선택 모달 */}
-      {openMemberModalIndex !== null && (
-        <MemberSelectModal
-          isOpen={openMemberModalIndex !== null}
-          onClose={() => setOpenMemberModalIndex(null)}
+        {/* 결제자 선택 모달 */}
+        <PayerSelectModal
+          isOpen={isPayerModalOpen}
+          onClose={() => setIsPayerModalOpen(false)}
           tripId={tripId}
-          selectedMemberIds={formData.items[openMemberModalIndex]?.memberIds || []}
-          onSelect={(memberIds) => {
-            handleMemberSelect(openMemberModalIndex, memberIds)
-            setOpenMemberModalIndex(null)
-          }}
+          onSelect={handlePayerSelect}
         />
-      )}
-    </form>
+
+        {/* 결제 참여자 선택 모달 */}
+        {openMemberModalIndex !== null && (
+          <MemberSelectModal
+            isOpen={openMemberModalIndex !== null}
+            onClose={() => setOpenMemberModalIndex(null)}
+            tripId={tripId}
+            selectedMemberIds={formData.items[openMemberModalIndex]?.memberIds || []}
+            onSelect={(memberIds) => {
+              handleMemberSelect(openMemberModalIndex, memberIds)
+              setOpenMemberModalIndex(null)
+            }}
+          />
+        )}
+      </form>
+    </>
   )
 }
 

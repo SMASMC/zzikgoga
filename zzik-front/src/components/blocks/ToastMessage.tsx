@@ -1,35 +1,35 @@
 // src/components/blocks/ToastMessage.tsx
-import { useEffect, useRef } from 'react';
-import type { IconType } from 'react-icons';
+import { useEffect, useRef } from 'react'
+import type { IconType } from 'react-icons'
 import {
   HiCheckCircle,
   HiExclamationCircle,
   HiXCircle,
   HiInformationCircle,
   HiX,
-} from 'react-icons/hi';
+} from 'react-icons/hi'
 
-export type ToastVariant = 'success' | 'warning' | 'error' | 'hint';
+export type ToastVariant = 'success' | 'warning' | 'error' | 'hint'
 
 export type ToastState = {
-  open?: boolean; // 표시 여부
-  variant: ToastVariant; // success | warning | error | hint
-  message: string; // 본문
-  title?: string; // 제목
-  autoCloseMs?: number; // 자동 닫힘(ms), 기본 3000
-  onClose?: () => void; // 닫기 콜백
-  className?: string; // 추가 클래스
-  closable?: boolean; // 닫기 버튼 표시(기본 true)
-};
+  open?: boolean // 표시 여부
+  variant: ToastVariant // success | warning | error | hint
+  message: string // 본문
+  title?: string // 제목
+  autoCloseMs?: number // 자동 닫힘(ms), 기본 3000
+  onClose?: () => void // 닫기 콜백
+  className?: string // 추가 클래스
+  closable?: boolean // 닫기 버튼 표시(기본 true)
+}
 
 const THEME: Record<
   ToastVariant,
   {
-    icon: IconType;
-    wrap: string; // 컨테이너 배경/보더/그림자
-    title: string; // 타이틀 색
-    iconColor: string;
-    border: string;
+    icon: IconType
+    wrap: string // 컨테이너 배경/보더/그림자
+    title: string // 타이틀 색
+    iconColor: string
+    border: string
   }
 > = {
   success: {
@@ -60,7 +60,7 @@ const THEME: Record<
     iconColor: 'text-sky-600',
     border: 'border-sky-400',
   },
-};
+}
 
 export function ToastMessage({
   open = true,
@@ -72,21 +72,21 @@ export function ToastMessage({
   className,
   closable = true,
 }: ToastState) {
-  const closeRef = useRef(onClose);
+  const closeRef = useRef(onClose)
   useEffect(() => {
-    closeRef.current = onClose;
-  }, [onClose]);
+    closeRef.current = onClose
+  }, [onClose])
 
   useEffect(() => {
-    if (!open || !autoCloseMs) return;
-    const t = setTimeout(() => closeRef.current?.(), autoCloseMs);
-    return () => clearTimeout(t);
-  }, [open, autoCloseMs]);
+    if (!open || !autoCloseMs) return
+    const t = setTimeout(() => closeRef.current?.(), autoCloseMs)
+    return () => clearTimeout(t)
+  }, [open, autoCloseMs])
 
-  if (!open) return null;
+  if (!open) return null
 
-  const t = THEME[variant];
-  const Icon = t.icon;
+  const t = THEME[variant]
+  const Icon = t.icon
 
   return (
     <div
@@ -123,5 +123,5 @@ export function ToastMessage({
         </button>
       )}
     </div>
-  );
+  )
 }

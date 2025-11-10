@@ -3,6 +3,7 @@
 
 import { useState } from 'react'
 import Calendar from '@components/atoms/Calendar'
+import { ToastDock } from '@/components/blocks/ToastDock'
 import { CreateTravelRequest } from '../types/mypage'
 import { TravelService } from '../services/travelService'
 
@@ -14,6 +15,10 @@ const CreateTravelModal = ({ onClose }: { onClose: () => void }) => {
   const [showCalendar, setShowCalendar] = useState(false)
   const [startDate, setStartDate] = useState<Date | null>(null)
   const [endDate, setEndDate] = useState<Date | null>(null)
+  const [toast, setToast] = useState<{
+    variant: 'success' | 'warning' | 'error'
+    message: string
+  } | null>(null)
 
   const handleCompanionToggle = (label: string) => {
     setCompanion((prev) =>
@@ -72,19 +77,19 @@ const CreateTravelModal = ({ onClose }: { onClose: () => void }) => {
   const handleCreateTravel = () => {
     // 유효성 검사
     if (companion.length === 0) {
-      alert('누구와 함께 가는지 선택해주세요.')
+      setToast({ variant: 'warning', message: '누구와 함께 가는지 선택해주세요.' })
       return
     }
     if (maleCount + femaleCount === 0) {
-      alert('여행 인원을 선택해주세요.')
+      setToast({ variant: 'warning', message: '여행 인원을 선택해주세요.' })
       return
     }
     if (!startDate || !endDate) {
-      alert('여행 날짜를 선택해주세요.')
+      setToast({ variant: 'warning', message: '여행 날짜를 선택해주세요.' })
       return
     }
     if (theme.length === 0) {
-      alert('여행 테마를 선택해주세요.')
+      setToast({ variant: 'warning', message: '여행 테마를 선택해주세요.' })
       return
     }
 
@@ -103,16 +108,26 @@ const CreateTravelModal = ({ onClose }: { onClose: () => void }) => {
     TravelService.createTravel(travelData)
       .then((response) => {
         console.log('여행 생성 성공:', response)
+        setToast({ variant: 'success', message: '여행이 생성되었습니다!' })
         onClose()
       })
       .catch((error) => {
         console.error('여행 생성 실패:', error)
-        alert('여행 생성에 실패했습니다. 다시 시도해주세요.')
+        setToast({ variant: 'error', message: '여행 생성에 실패했습니다. 다시 시도해주세요.' })
       })
   }
 
   return (
     <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4">
+      <ToastDock
+        open={Boolean(toast)}
+        variant={toast?.variant ?? 'hint'}
+        title="알림"
+        message={toast?.message ?? ''}
+        autoCloseMs={3000}
+        offsetPx={24}
+        onClose={() => setToast(null)}
+      />
       <div className="w-full max-w-md sm:max-w-lg bg-gradient-to-br from-white via-background-500 to-background-600 rounded-3xl shadow-xl p-6 sm:p-8 font-bmjua relative max-h-[90vh] overflow-y-auto custom-scrollbar">
         {/* 닫기 버튼 */}
         <button

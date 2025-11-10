@@ -53,6 +53,7 @@ export function OAuthCallbackPage() {
           console.log('로그인 성공 - 정보 저장')
           setAuth(data.user)
           console.log('로그인 여부 전역 저장 완료')
+          sessionStorage.setItem('toastAfterLogin', '로그인이 완료되었습니다!')
 
           // 초대 링크에서 왔는지 확인
           const redirectUrl = sessionStorage.getItem('redirectAfterLogin')

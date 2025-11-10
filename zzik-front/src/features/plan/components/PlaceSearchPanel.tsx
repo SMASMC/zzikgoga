@@ -1,8 +1,9 @@
-import { useJsApiLoader, GoogleMap, Marker } from '@react-google-maps/api'
+import { useJsApiLoader, GoogleMap, Marker, Polyline } from '@react-google-maps/api'
 import type { Libraries } from '@react-google-maps/api'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import Input from '@/components/atoms/Input'
 import SolidButton from '@/components/atoms/SolidButton'
+import { ToastDock } from '@/components/blocks/ToastDock'
 import PlaceModal from './PlaceModal'
 
 const libraries: Libraries = ['places']
@@ -14,6 +15,8 @@ export interface NewPlace {
   location: { latitude: number; longitude: number }
 }
 
+const defaultCenter = { lat: 37.5665, lng: 126.978 }
+
 const PlaceSearchPanel = () => {
   const [keyword, setKeyword] = useState('')
   const [places, setPlaces] = useState<NewPlace[]>([])
@@ -21,6 +24,16 @@ const PlaceSearchPanel = () => {
   const [hasSearched, setHasSearched] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [mapCenter, setMapCenter] = useState(defaultCenter)
+
+  const routePlaces = useMemo(() => {
+    if (!selectedPlace) {
+      return places
+    }
+    const others = places.filter((p) => p.id !== selectedPlace.id)
+    return [selectedPlace, ...others]
+  }, [places, selectedPlace])
 
   const mapRef = useRef<google.maps.Map | null>(null)
 
@@ -35,13 +48,21 @@ const PlaceSearchPanel = () => {
 
   const handleSelectPlace = useCallback((place: NewPlace) => {
     setSelectedPlace(place)
-    setPlaces([place])
+    setPlaces((prev) => {
+      if (prev.length === 0) {
+        return [place]
+      }
+      const others = prev.filter((p) => p.id !== place.id)
+      return [place, ...others]
+    })
+    const nextCenter = {
+      lat: place.location.latitude,
+      lng: place.location.longitude,
+    }
+    setMapCenter(nextCenter)
     setTimeout(() => {
       if (mapRef.current) {
-        mapRef.current.panTo({
-          lat: place.location.latitude,
-          lng: place.location.longitude,
-        })
+        mapRef.current.panTo(nextCenter)
         mapRef.current.setZoom(15)
       }
     }, 0)
@@ -49,7 +70,7 @@ const PlaceSearchPanel = () => {
 
   const handleAddPlace = useCallback(() => {
     if (!selectedPlace) {
-      alert('먼저 장소를 선택해 주세요.')
+      setToastMessage('먼저 장소를 선택해 주세요.')
       return
     }
     setIsModalOpen(true)
@@ -88,10 +109,12 @@ const PlaceSearchPanel = () => {
         setPlaces(payload.places)
         setSelectedPlace(payload.places[0])
         const first = payload.places[0]
-        mapRef.current?.setCenter({
+        const nextCenter = {
           lat: first.location.latitude,
           lng: first.location.longitude,
-        })
+        }
+        setMapCenter(nextCenter)
+        mapRef.current?.setCenter(nextCenter)
         mapRef.current?.setZoom(13)
       } else {
         setPlaces([])
@@ -126,10 +149,6 @@ const PlaceSearchPanel = () => {
         <p className="text-xs text-red-500">
           {loadError instanceof Error ? loadError.message : 'Invalid Google Maps API key.'}
         </p>
-        <p>
-          Google Cloud Console에서 키를 확인하고, referrer 제한에{' '}
-          <code>http://localhost:5173/*</code> 등 개발 도메인이 포함되어 있는지 확인해 주세요.
-        </p>
       </aside>
     )
   }
@@ -144,9 +163,18 @@ const PlaceSearchPanel = () => {
 
   return (
     <aside className="flex w-full flex-col gap-4 border-r border-slate-200 bg-white p-4 md:w-1/4">
+      <ToastDock
+        open={Boolean(toastMessage)}
+        variant="warning"
+        title="알림"
+        message={toastMessage ?? ''}
+        autoCloseMs={3000}
+        offsetPx={16}
+        onClose={() => setToastMessage(null)}
+      />
       <header>
-        <h2 className="text-lg font-semibold text-slate-800">장소 검색</h2>
-        <p className="mt-1 text-xs text-slate-400">검색 후 지도를 클릭해 장소를 추가하세요.</p>
+        <h2 className="text-4xl font-bold text-slate-800">장소 검색</h2>
+        <p className="mt-1 text-sm text-slate-400">검색 후 지도를 클릭해 장소를 추가하세요.</p>
       </header>
 
       <div className="flex flex-col gap-2 sm:flex-row">
@@ -160,7 +188,7 @@ const PlaceSearchPanel = () => {
             }
           }}
           placeholder="장소, 관광지, 주소 등을 입력해 주세요."
-          className="flex-1 placeholder:text-slate-400"
+          className="flex-1 placeholder:text-slate-400 rounded-full"
         />
         <SolidButton
           onClick={handleSearch}
@@ -214,14 +242,26 @@ const PlaceSearchPanel = () => {
           onLoad={(map) => {
             mapRef.current = map
           }}
-          mapContainerStyle={{ width: '100%', height: '400px' }}
-          center={{
-            lat: selectedPlace?.location.latitude ?? 37.5665,
-            lng: selectedPlace?.location.longitude ?? 126.978,
-          }}
+          mapContainerClassName="
+      w-full
+      h-[50vh]
+      sm:h-[55vh]
+      md:h-[60vh]
+      lg:h-[65vh]
+      xl:h-[70vh]
+      2xl:h-[75vh]
+    "
+          center={mapCenter}
           zoom={selectedPlace ? 13 : 11}
+          onDragEnd={() => {
+            const center = mapRef.current?.getCenter()
+            if (center) {
+              setMapCenter({ lat: center.lat(), lng: center.lng() })
+            }
+          }}
+          options={{ gestureHandling: 'greedy' }}
         >
-          {(selectedPlace ? [selectedPlace] : places).map((place) => (
+          {routePlaces.map((place) => (
             <Marker
               key={place.id}
               position={{
@@ -231,6 +271,19 @@ const PlaceSearchPanel = () => {
               title={place.displayName.text}
             />
           ))}
+          {routePlaces.length > 1 && (
+            <Polyline
+              path={routePlaces.map((place) => ({
+                lat: place.location.latitude,
+                lng: place.location.longitude,
+              }))}
+              options={{
+                strokeColor: '#2563eb',
+                strokeOpacity: 0.7,
+                strokeWeight: 4,
+              }}
+            />
+          )}
         </GoogleMap>
       </div>
 

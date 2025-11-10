@@ -89,6 +89,14 @@ const MyPage = () => {
   }, [loadTravels])
 
   useEffect(() => {
+    const saved = sessionStorage.getItem('toastAfterLogin')
+    if (saved) {
+      setToastMessage(saved)
+      sessionStorage.removeItem('toastAfterLogin')
+    }
+  }, [])
+
+  useEffect(() => {
     // 초기 로드
     loadTravels()
 

@@ -52,7 +52,7 @@ const PlaceModal = ({ onClose, place }: PlaceModalProps) => {
 
   const handleSubmit = () => {
     if (!startDateTime || !endDateTime) {
-      alert('날짜와 시간을 선택해주세요.')
+      setToastMessage('날짜와 시간을 선택해주세요.')
       return
     }
     if (!isWithinTripRange(startDateTime) || (endDateTime && !isWithinTripRange(endDateTime))) {
@@ -79,7 +79,7 @@ const PlaceModal = ({ onClose, place }: PlaceModalProps) => {
       <ToastDock
         open={Boolean(toastMessage)}
         variant="warning"
-        title="날짜 범위 확인"
+        title="알림"
         message={toastMessage ?? ''}
         autoCloseMs={3000}
         offsetPx={24}

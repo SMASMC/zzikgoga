@@ -3,7 +3,7 @@
 // 전체 정산 내역 및 상세 조회
 import { useState, useEffect } from 'react'
 import { CostListService } from '../services/costService'
-import { CostListResponse } from '../types/cost'
+import { CostListResponse, COST_CATEGORY_LABELS } from '../types/cost'
 
 interface CostListProps {
   tripId: string
@@ -104,6 +104,9 @@ const CostList = ({ tripId }: CostListProps) => {
                     <div className="flex items-center gap-2 mb-1">
                       <p className="font-bold text-text-500 truncate">{cost.payerName}</p>
                       <span className="text-xs text-text-600">결제</span>
+                      <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">
+                        {COST_CATEGORY_LABELS[cost.category]}
+                      </span>
                     </div>
                     <p className="text-sm text-text-600 truncate">{cost.place}</p>
                     <p className="text-xs text-gray-500">{formatDate(cost.paidAt)}</p>

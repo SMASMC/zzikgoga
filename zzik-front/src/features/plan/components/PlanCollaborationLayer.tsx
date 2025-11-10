@@ -134,7 +134,7 @@ const PlanCollaborationLayer = ({
     <div
       ref={containerRef}
       className={cn(
-        'relative flex min-h-0 flex-col cursor-none overflow-hidden [&_*]:cursor-none md:h-screen md:min-h-0 md:flex-row',
+        'relative flex min-h-0 flex-col cursor-none overflow-hidden text-[15px] [&_*]:cursor-none md:h-screen md:min-h-0 md:flex-row md:text-base',
         className
       )}
       onPointerMove={handlePointerMove}

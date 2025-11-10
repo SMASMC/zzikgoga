@@ -5,6 +5,7 @@ import SolidButton from '@components/atoms/SolidButton'
 import { SignupRequest } from '../types/auth'
 import { AuthService } from '../services/authService'
 import { useAuthStore } from '@/shared/stores/useAuthStore'
+import { ToastDock } from '@/components/blocks/ToastDock'
 
 interface SignupFormProps {
   signupSessionToken: string | null
@@ -31,6 +32,11 @@ const SignUpForm = ({
   })
 
   const [errors, setErrors] = useState<Partial<Record<keyof typeof formData, string>>>({})
+  const [toast, setToast] = useState<{
+    variant: 'success' | 'warning' | 'error' | 'hint'
+    title?: string
+    message: string
+  } | null>(null)
 
   console.log(formData)
 
@@ -75,7 +81,11 @@ const SignUpForm = ({
     e.preventDefault()
 
     if (!signupSessionToken) {
-      alert('유효하지 않은 회원가입 세션입니다')
+      setToast({
+        variant: 'error',
+        title: '회원가입 세션 오류',
+        message: '유효하지 않은 회원가입 세션입니다.',
+      })
       navigate('/auth')
       return
     }
@@ -104,13 +114,21 @@ const SignUpForm = ({
         throw new Error('회원가입 응답에 필수 정보가 없습니다')
       }
 
-      alert('회원가입이 완료되었습니다!')
+      setToast({
+        variant: 'success',
+        title: '회원가입 완료',
+        message: '회원가입이 완료되었습니다!',
+      })
       console.log('mypage로 이동')
       navigate('/mypage', { replace: true })
     } catch (error) {
       console.error('회원가입 실패:', error)
       const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다'
-      alert(errorMessage)
+      setToast({
+        variant: 'error',
+        title: '회원가입 실패',
+        message: errorMessage,
+      })
     }
   }
 
@@ -192,6 +210,15 @@ const SignUpForm = ({
 
   return (
     <div className="w-full max-w-md space-y-4">
+      <ToastDock
+        open={Boolean(toast)}
+        variant={toast?.variant ?? 'hint'}
+        title={toast?.title}
+        message={toast?.message ?? ''}
+        autoCloseMs={3000}
+        offsetPx={16}
+        onClose={() => setToast(null)}
+      />
       <h1 className="text-3xl font-bmjua font-bold text-center mb-6">추가 정보 입력</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">

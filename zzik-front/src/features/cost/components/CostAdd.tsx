@@ -6,11 +6,16 @@ import CostPlusModal from './CostPlusModal'
 import { useState, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { CostReciptService } from '../services/costService'
+import { ToastDock } from '@/components/blocks/ToastDock'
 
 const CostAdd = () => {
   const { tripId } = useParams<{ tripId: string }>()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [toast, setToast] = useState<{
+    variant: 'success' | 'warning' | 'error'
+    message: string
+  } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleReceiptUpload = () => {
@@ -28,7 +33,7 @@ const CostAdd = () => {
       const response = await CostReciptService.uploadReceipt(tripId, { file })
 
       console.log('영수증 업로드 성공:', response)
-      alert('영수증이 성공적으로 업로드되었습니다.')
+      setToast({ variant: 'success', message: '영수증이 성공적으로 업로드되었습니다.' })
 
       // 파일 input 초기화
       if (fileInputRef.current) {
@@ -38,7 +43,10 @@ const CostAdd = () => {
       // TODO: 목록 새로고침 (CostList 컴포넌트에 새로고침 함수 전달 필요)
     } catch (error) {
       console.error('영수증 업로드 실패:', error)
-      alert('영수증 업로드에 실패했습니다. 내역이 잘 보일 수 있도록 찍어주세요.')
+      setToast({
+        variant: 'error',
+        message: '영수증 업로드에 실패했습니다. 내역이 잘 보일 수 있도록 찍어주세요.',
+      })
     } finally {
       setIsUploading(false)
     }
@@ -55,6 +63,15 @@ const CostAdd = () => {
 
   return (
     <>
+      <ToastDock
+        open={Boolean(toast)}
+        variant={toast?.variant ?? 'hint'}
+        title="알림"
+        message={toast?.message ?? ''}
+        autoCloseMs={3000}
+        offsetPx={16}
+        onClose={() => setToast(null)}
+      />
       <div className="bg-white rounded-3xl shadow-lg p-6 h-full">
         <h2 className="text-xl font-bold text-text-500 mb-6 font-bmjua">비용 추가하기</h2>
 

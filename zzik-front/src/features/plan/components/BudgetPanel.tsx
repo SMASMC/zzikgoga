@@ -3,11 +3,19 @@ import { useParams } from 'react-router-dom'
 import SolidButton from '@/components/atoms/SolidButton'
 import Input from '@/components/atoms/Input'
 import { ToastDock } from '@/components/blocks/ToastDock'
+import { DropdownSelect } from '@/components/blocks/DropdownSelect'
 import { useYTripDoc } from '../hooks/useYTripDoc'
 import YTextEditor from './YTextEditor'
 import * as Y from 'yjs'
+import type { CostCategory } from '@/features/cost/types/cost'
+import { COST_CATEGORIES, COST_CATEGORY_LABELS } from '@/features/cost/types/cost'
 
 const todayKey = () => new Date().toISOString().slice(0, 10)
+
+const CATEGORY_OPTIONS = COST_CATEGORIES.map((cat) => ({
+  label: COST_CATEGORY_LABELS[cat],
+  value: cat,
+}))
 
 const BudgetPanel = () => {
   const { tripId } = useParams<{ tripId: string }>()
@@ -19,7 +27,7 @@ const BudgetPanel = () => {
   const { budgetsByDate, addBudget, doc, tripInfo } = useYTripDoc(roomId)
 
   const [date, setDate] = useState<string>(todayKey())
-  const [category, setCategory] = useState<string>('카테고리')
+  const [category, setCategory] = useState<CostCategory>('ETC')
   const [amount, setAmount] = useState<string>('')
   const [description, setDescription] = useState<string>('')
   const [toastMessage, setToastMessage] = useState<string | null>(null)
@@ -47,14 +55,14 @@ const BudgetPanel = () => {
 
   const handleAdd = () => {
     const amt = Number(amount)
-    if (!date || !category.trim() || !Number.isFinite(amt)) {
+    if (!date || !category || !Number.isFinite(amt)) {
       return
     }
     if (!isWithinTripRange(date)) {
       notifyOutOfRange()
       return
     }
-    addBudget(date, { category: category.trim(), amount: amt, description: description.trim() })
+    addBudget(date, { category, amount: amt, description: description.trim() })
     setAmount('')
     setDescription('')
   }
@@ -64,25 +72,26 @@ const BudgetPanel = () => {
       <ToastDock
         open={Boolean(toastMessage)}
         variant="warning"
-        title="날짜 범위를 벗어났어요"
+        title="날짜 범위를 확인해주세요"
         message={toastMessage ?? ''}
         autoCloseMs={3000}
         offsetPx={16}
         onClose={() => setToastMessage(null)}
       />
       <header>
-        <h2 className="text-lg font-semibold text-slate-800">예산</h2>
-        <p className="mt-1 text-xs text-slate-400">예산을 입력할 수 있습니다.</p>
+        <h2 className="text-4xl font-bold text-slate-800">예산</h2>
+        <p className="mt-1 text-sm text-slate-400">예산을 입력할 수 있습니다.</p>
       </header>
 
       <div className="flex flex-col gap-2 rounded-lg border border-slate-200 p-3">
         <div className="grid grid-cols-2 gap-2">
           <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          <Input
-            type="text"
-            placeholder="카테고리"
+          <DropdownSelect
+            options={CATEGORY_OPTIONS}
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onChange={(value) => setCategory(value as CostCategory)}
+            placeholder="카테고리"
+            className="w-full "
           />
           <Input
             type="number"
@@ -107,7 +116,7 @@ const BudgetPanel = () => {
 
       <div className="flex max-h-80 flex-col gap-3 overflow-y-auto rounded-lg border border-slate-200 p-3">
         {Object.keys(budgetsByDate).length === 0 ? (
-          <p className="text-center text-xs text-slate-400">설명을 입력하십시오.</p>
+          <p className="text-center text-sm text-slate-400">설명을 입력하십시오.</p>
         ) : (
           Object.entries(budgetsByDate)
             .sort(([a], [b]) => a.localeCompare(b))
@@ -133,7 +142,9 @@ const BudgetPanel = () => {
                           className="rounded border border-slate-100 bg-white p-2"
                         >
                           <div className="flex items-center justify-between">
-                            <span className="text-slate-700">{it.category}</span>
+                            <span className="text-slate-700">
+                              {COST_CATEGORY_LABELS[it.category as CostCategory] || it.category}
+                            </span>
                             <span className="text-slate-600">{it.amount.toLocaleString()}원</span>
                           </div>
                           {yDesc ? (

@@ -8,9 +8,10 @@ interface YTextEditorProps {
   ytext: Y.Text
   className?: string
   placeholder?: string
+  maxLength?: number
 }
 
-const YTextEditor = ({ ytext, className, placeholder }: YTextEditorProps) => {
+const YTextEditor = ({ ytext, className, placeholder, maxLength }: YTextEditorProps) => {
   const isRemoteRef = useRef(false)
   const isComposingRef = useRef(false)
   const pendingRemoteTextRef = useRef<string | null>(null)
@@ -19,8 +20,27 @@ const YTextEditor = ({ ytext, className, placeholder }: YTextEditorProps) => {
 
   const syncEditorToYText = useCallback(
     (editorInstance: TTEditor) => {
-      const newText = editorInstance.getText({ blockSeparator: '\n' })
+      let newText = editorInstance.getText({ blockSeparator: '\n' })
       const current = ytext.toString()
+
+      // Enforce maxLength if specified
+      if (maxLength && newText.length > maxLength) {
+        newText = newText.slice(0, maxLength)
+        // Update editor to show truncated text
+        isRemoteRef.current = true
+        try {
+          const { from } = editorInstance.state.selection
+          editorInstance.commands.setContent(newText, false)
+          const size = editorInstance.state.doc.content.size
+          editorInstance.commands.setTextSelection({
+            from: Math.min(from, size),
+            to: Math.min(from, size),
+          })
+        } finally {
+          isRemoteRef.current = false
+        }
+      }
+
       if (newText === current) {
         return
       }
@@ -52,7 +72,7 @@ const YTextEditor = ({ ytext, className, placeholder }: YTextEditorProps) => {
         }
       }, 'tiptap-edit')
     },
-    [ytext]
+    [ytext, maxLength]
   )
 
   const editor = useEditor({
@@ -61,7 +81,7 @@ const YTextEditor = ({ ytext, className, placeholder }: YTextEditorProps) => {
     editorProps: {
       attributes: {
         class:
-          'prose prose-sm max-w-none focus:outline-none min-h-[2.25rem] border border-slate-200 rounded-md px-2 py-1',
+          'prose prose-base max-w-none focus:outline-none min-h-[3rem] border-2 border-slate-200 rounded-xl px-4 py-2 text-lg font-semibold hover:border-blue-300 transition-colors overflow-hidden',
       },
       handleDOMEvents: {
         compositionstart: () => {
@@ -110,8 +130,18 @@ const YTextEditor = ({ ytext, className, placeholder }: YTextEditorProps) => {
   useEffect(() => {
     if (!editor) return
     const observer = () => {
-      const nextText = ytext.toString()
+      let nextText = ytext.toString()
       const currentText = editor.getText({ blockSeparator: '\n' })
+
+      // Enforce maxLength on remote updates
+      if (maxLength && nextText.length > maxLength) {
+        nextText = nextText.slice(0, maxLength)
+        // Truncate in ytext as well
+        ytext.doc?.transact(() => {
+          ytext.delete(maxLength, ytext.length - maxLength)
+        }, 'maxlength-enforcement')
+      }
+
       if (nextText !== currentText) {
         if (isComposingRef.current) {
           pendingRemoteTextRef.current = nextText
@@ -135,7 +165,7 @@ const YTextEditor = ({ ytext, className, placeholder }: YTextEditorProps) => {
     return () => {
       ytext.unobserve(observer)
     }
-  }, [editor, ytext])
+  }, [editor, ytext, maxLength])
 
   useEffect(() => {
     return () => {

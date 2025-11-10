@@ -104,6 +104,43 @@ const snapshotSchedules = (doc: Y.Doc): Record<string, YScheduleItem[]> => {
   return result
 }
 
+const parseOffsetMinutes = (value: unknown): number => {
+  if (typeof value !== 'string') return 0
+  const match = value.match(/^(\d{1,3}):(\d{2})$/)
+  if (!match) return 0
+  const hours = Number(match[1]) || 0
+  const minutes = Number(match[2]) || 0
+  return hours * 60 + minutes
+}
+
+const formatLocalMinute = (date: Date): string => {
+  const pad = (v: number) => String(v).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+const ensureSequentialScheduleTimes = (yArr: Y.Array<Y.Map<unknown>>) => {
+  let pointer: Date | null = null
+  yArr.forEach((yItem) => {
+    const startRaw = yItem.get('start_time')
+    if (typeof startRaw !== 'string') {
+      return
+    }
+    let startDate = new Date(startRaw)
+    if (!pointer) {
+      pointer = new Date(startDate.getTime())
+    } else if (startDate < pointer) {
+      startDate = new Date(pointer.getTime())
+      yItem.set('start_time', formatLocalMinute(startDate))
+    } else {
+      pointer = new Date(startDate.getTime())
+    }
+    const offsetMinutes = parseOffsetMinutes(yItem.get('offset_time'))
+    if (offsetMinutes > 0) {
+      pointer = new Date(startDate.getTime() + offsetMinutes * 60000)
+    }
+  })
+}
+
 export const useYTripDoc = (roomId: string) => {
   const providerRef = useRef<ReturnType<typeof acquireProvider> | null>(null)
   const [tripInfo, setTripInfo] = useState<TripInfoPlain>({})
@@ -266,6 +303,124 @@ export const useYTripDoc = (roomId: string) => {
     []
   )
 
+  const updateScheduleTime = useCallback(
+    (
+      dateKey: string,
+      index: number,
+      updates: { startTimeLocal?: string; offsetHHMM?: string | null }
+    ) => {
+      const entry = providerRef.current
+      if (!entry) return
+      const { doc } = entry
+      const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
+      const yArr = schedulesMap.get(dateKey)
+      if (!(yArr instanceof Y.Array)) return
+      const yItem = yArr.get(index) as Y.Map<unknown> | undefined
+      if (!yItem) return
+
+      const applyOffset = (map: Y.Map<unknown>) => {
+        if (updates.offsetHHMM !== undefined) {
+          map.set('offset_time', updates.offsetHHMM)
+        }
+      }
+
+      if (updates.startTimeLocal) {
+        const newDateKey = dateKeyOf(updates.startTimeLocal)
+        if (newDateKey === dateKey) {
+          // same day: in-place update
+          doc.transact(() => {
+            yItem.set('start_time', updates.startTimeLocal!)
+            applyOffset(yItem)
+          }, 'update-schedule-time')
+        } else {
+          // cross-day move: clone to a fresh map and preserve uid
+          doc.transact(() => {
+            const snapshot = {
+              id: (yItem.get('id') as number) ?? null,
+              uid: (yItem.get('uid') as string) ?? '',
+              has_location: Boolean(yItem.get('has_location')),
+              location: yItem.get('location') as unknown,
+              memo: yItem.get('memo') as unknown,
+              offset_time: (yItem.get('offset_time') as string | null) ?? null,
+            }
+            const newMap = new Y.Map<unknown>()
+            newMap.set('id', snapshot.id)
+            // preserve stable uid so memo collaboration field remains the same
+            if (snapshot.uid) newMap.set('uid', snapshot.uid)
+            newMap.set('start_time', updates.startTimeLocal!)
+            newMap.set('has_location', snapshot.has_location)
+            // copy memo as plain text into a fresh Y.Text to avoid cross-parent insert
+            const memoText = (
+              snapshot.memo instanceof Y.Text
+                ? snapshot.memo.toString()
+                : String(snapshot.memo ?? '')
+            )
+              .replace(/\r\n/g, '\n')
+              .replace(/\n+$/, '')
+            newMap.set('memo', new Y.Text(memoText))
+            // location can be plain object or null
+            newMap.set(
+              'location',
+              snapshot.location && typeof snapshot.location === 'object'
+                ? { ...(snapshot.location as object) }
+                : null
+            )
+            // offset_time
+            newMap.set(
+              'offset_time',
+              updates.offsetHHMM !== undefined ? updates.offsetHHMM : snapshot.offset_time
+            )
+
+            let nextArr = schedulesMap.get(newDateKey)
+            if (!(nextArr instanceof Y.Array)) {
+              nextArr = new Y.Array<Y.Map<unknown>>()
+              schedulesMap.set(newDateKey, nextArr)
+            }
+            nextArr.push([newMap])
+            // remove old item last
+            yArr.delete(index, 1)
+            // if the old array is empty, remove the date key entirely
+            if (yArr.length === 0) {
+              schedulesMap.delete(dateKey)
+            }
+          }, 'move-schedule-day')
+        }
+      } else {
+        doc.transact(() => applyOffset(yItem), 'update-schedule-offset')
+      }
+    },
+    []
+  )
+
+  const reorderSchedule = useCallback((dateKey: string, fromIndex: number, toIndex: number) => {
+    const entry = providerRef.current
+    if (!entry) return
+    const { doc } = entry
+    const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
+    const yArr = schedulesMap.get(dateKey)
+    if (!(yArr instanceof Y.Array)) return
+    if (fromIndex === toIndex || fromIndex < 0 || fromIndex >= yArr.length) {
+      return
+    }
+
+    doc.transact(() => {
+      const item = yArr.get(fromIndex)
+      if (!item) {
+        return
+      }
+
+      yArr.delete(fromIndex, 1)
+      let insertIndex = toIndex
+      if (insertIndex < 0) insertIndex = 0
+      if (insertIndex > yArr.length) insertIndex = yArr.length
+      if (fromIndex < toIndex) {
+        insertIndex = Math.max(0, insertIndex - 1)
+      }
+      yArr.insert(insertIndex, [item])
+      ensureSequentialScheduleTimes(yArr)
+    }, 'reorder-schedule')
+  }, [])
+
   return {
     doc: providerRef.current?.doc ?? null,
     awareness: (providerRef.current?.awareness as Awareness) ?? null,
@@ -274,93 +429,7 @@ export const useYTripDoc = (roomId: string) => {
     schedulesByDate,
     addBudget,
     addSchedule,
-    updateScheduleTime: useCallback(
-      (
-        dateKey: string,
-        index: number,
-        updates: { startTimeLocal?: string; offsetHHMM?: string | null }
-      ) => {
-        const entry = providerRef.current
-        if (!entry) return
-        const { doc } = entry
-        const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
-        const yArr = schedulesMap.get(dateKey)
-        if (!(yArr instanceof Y.Array)) return
-        const yItem = yArr.get(index) as Y.Map<unknown> | undefined
-        if (!yItem) return
-
-        const applyOffset = (map: Y.Map<unknown>) => {
-          if (updates.offsetHHMM !== undefined) {
-            map.set('offset_time', updates.offsetHHMM)
-          }
-        }
-
-        if (updates.startTimeLocal) {
-          const newDateKey = dateKeyOf(updates.startTimeLocal)
-          if (newDateKey === dateKey) {
-            // same day: in-place update
-            doc.transact(() => {
-              yItem.set('start_time', updates.startTimeLocal!)
-              applyOffset(yItem)
-            }, 'update-schedule-time')
-          } else {
-            // cross-day move: clone to a fresh map and preserve uid
-            doc.transact(() => {
-              const snapshot = {
-                id: (yItem.get('id') as number) ?? null,
-                uid: (yItem.get('uid') as string) ?? '',
-                has_location: Boolean(yItem.get('has_location')),
-                location: yItem.get('location') as unknown,
-                memo: yItem.get('memo') as unknown,
-                offset_time: (yItem.get('offset_time') as string | null) ?? null,
-              }
-              const newMap = new Y.Map<unknown>()
-              newMap.set('id', snapshot.id)
-              // preserve stable uid so memo collaboration field remains the same
-              if (snapshot.uid) newMap.set('uid', snapshot.uid)
-              newMap.set('start_time', updates.startTimeLocal!)
-              newMap.set('has_location', snapshot.has_location)
-              // copy memo as plain text into a fresh Y.Text to avoid cross-parent insert
-              const memoText = (
-                snapshot.memo instanceof Y.Text
-                  ? snapshot.memo.toString()
-                  : String(snapshot.memo ?? '')
-              )
-                .replace(/\r\n/g, '\n')
-                .replace(/\n+$/, '')
-              newMap.set('memo', new Y.Text(memoText))
-              // location can be plain object or null
-              newMap.set(
-                'location',
-                snapshot.location && typeof snapshot.location === 'object'
-                  ? { ...(snapshot.location as object) }
-                  : null
-              )
-              // offset_time
-              newMap.set(
-                'offset_time',
-                updates.offsetHHMM !== undefined ? updates.offsetHHMM : snapshot.offset_time
-              )
-
-              let nextArr = schedulesMap.get(newDateKey)
-              if (!(nextArr instanceof Y.Array)) {
-                nextArr = new Y.Array<Y.Map<unknown>>()
-                schedulesMap.set(newDateKey, nextArr)
-              }
-              nextArr.push([newMap])
-              // remove old item last
-              yArr.delete(index, 1)
-              // if the old array is empty, remove the date key entirely
-              if (yArr.length === 0) {
-                schedulesMap.delete(dateKey)
-              }
-            }, 'move-schedule-day')
-          }
-        } else {
-          doc.transact(() => applyOffset(yItem), 'update-schedule-offset')
-        }
-      },
-      []
-    ),
+    updateScheduleTime,
+    reorderSchedule,
   }
 }

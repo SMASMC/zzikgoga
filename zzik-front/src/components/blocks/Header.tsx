@@ -3,6 +3,7 @@ import SolidButton from '@/components/atoms/SolidButton'
 import { useEffect, useState } from 'react'
 import LoginModal from '@/features/auth/components/LoginModal'
 import { useAuthStore } from '@/shared/stores/useAuthStore'
+import { ToastDock } from '@/components/blocks/ToastDock'
 
 interface HeaderProps {
   transparentUntilScroll?: boolean
@@ -12,6 +13,7 @@ interface HeaderProps {
 const Header = ({ transparentUntilScroll = false, scrollOffset = 10 }: HeaderProps) => {
   const [scrolled, setScrolled] = useState(false)
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
   const navigate = useNavigate()
   const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
@@ -42,11 +44,21 @@ const Header = ({ transparentUntilScroll = false, scrollOffset = 10 }: HeaderPro
 
   const handleLogout = async () => {
     await logout()
+    setToastMessage('로그아웃되었습니다.')
     navigate('/')
   }
 
   return (
-    <header className={`${wrapperBase} ${wrapperMode}`}>
+    <header className={`${wrapperBase} ${wrapperMode}`} data-toast-anchor>
+      <ToastDock
+        open={Boolean(toastMessage)}
+        variant="hint"
+        title="알림"
+        message={toastMessage ?? ''}
+        autoCloseMs={3000}
+        offsetPx={12}
+        onClose={() => setToastMessage(null)}
+      />
       <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
         <Link to="/" className="text-2xl font-bold">
           <img src="/zzikgoga_logo.png" alt="logo" className="w-32" />
