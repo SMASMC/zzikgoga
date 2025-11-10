@@ -33,7 +33,7 @@ public interface CostEditApi {
 			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.TRIP_NOT_FOUND),
 			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.NOT_TRIP_MEMBER),
 			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.COST_MENU_NOT_FOUND),
-			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.EDIT_LOCK_HELD_BY_OTHERS),
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.EDIT_LOCK_NOT_FOUND),
 			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.TRIP_COST_ALREADY_COMPLETED)
 		}
 	)
