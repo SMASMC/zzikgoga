@@ -172,4 +172,22 @@ public class CostEditLockService {
 			throw BusinessException.from(ExceptionCode.NOT_TRIP_MEMBER);
 		}
 	}
+
+	public boolean isOwnedBy(Long tripId, Long costId, Long memberId) {
+		validateAccess(tripId, costId, memberId);
+		String key = keyOf(tripId, costId);
+
+		Long ttl = redis.getExpire(key, TimeUnit.SECONDS);
+		if (ttl <= 0) {
+			redis.delete(key);
+			return false;
+		}
+		Map<Object, Object> map = redis.opsForHash().entries(key);
+		if (map.isEmpty())
+			return false;
+
+		String lockedMemberId = (String)map.get("memberId");
+		return String.valueOf(memberId).equals(lockedMemberId);
+	}
+
 }
