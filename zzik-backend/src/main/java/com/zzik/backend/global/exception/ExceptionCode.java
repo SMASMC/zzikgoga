@@ -2,8 +2,6 @@ package com.zzik.backend.global.exception;
 
 import org.springframework.http.HttpStatus;
 
-import com.zzik.backend.global.annotation.swagger.ApiErrorResponseExplanation;
-
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -59,7 +57,7 @@ public enum ExceptionCode {
 	INVALID_COST(HttpStatus.NOT_FOUND, 40308, "존재하지 않는 결제 항목입니다.", "cost - 비용 항목 not found"),
 	NO_COSTS(HttpStatus.CONFLICT, 40309, "정산할 결제 내역이 없습니다.", "cost - 비용 없음"),
 	SHARE_MISSING(HttpStatus.CONFLICT, 40310, "일부 결제 항목에 분담자 설정이 누락되었습니다.", "cost - 분담자 누락/유효하지 않음"),
-	EDIT_LOCK_HELD_BY_OTHERS(HttpStatus.CONFLICT, 40311, "다른 사용자가 수정 중입니다.", "cost - edit lock held"),
+	EDIT_LOCK_NOT_FOUND(HttpStatus.CONFLICT, 40311, "사용자가 락을 가지고 있지 않습니다.", "cost - edit lock 없음"),
 	TRIP_COST_ALREADY_COMPLETED(HttpStatus.CONFLICT, 40312, "해당 여행의 정산이 완료되어 수정할 수 없습니다.",
 		"cost - trip.isCostCompleted = true"),
 	COST_MENU_NOT_FOUND(HttpStatus.NOT_FOUND, 40313, "존재하지 않는 결제 메뉴 항목입니다.", "cost - cost_menu not found"),
@@ -77,14 +75,13 @@ public enum ExceptionCode {
 	INVITE_INVALID(HttpStatus.UNAUTHORIZED, 40451, "유효하지 않은 초대 링크입니다."),
 	INVITE_EXPIRED(HttpStatus.UNAUTHORIZED, 40452, "초대 링크가 만료되었습니다."),
 
-
 	/* 405xx - memory */
-	NOT_FOUND_DATA(HttpStatus.NOT_FOUND, 40501,"여행 또는 회원을 찾을 수 없습니다."),
-	FORBIDDEN(HttpStatus.NOT_FOUND,40502,"해당 여행에 속한 멤버가 아닙니다."),
-	FILE_TOO_LARGE(HttpStatus.FORBIDDEN,40506, "PAYLOAD_TOO_LARGE", "파일 크기가 50MB를 초과합니다."),
-	INVALID_FILE_EXTENSION(HttpStatus.BAD_REQUEST,40507, "BAD_REQUEST", "허용되지 않는 파일 확장자입니다."),
-	FILE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR,40508, "INTERNAL_SERVER_ERROR", "파일 업로드에 실패했습니다."),
-	INVALID_FILE(HttpStatus.BAD_REQUEST,40509, "BAD_REQUEST", "파일이 유효하지 않습니다."),
+	NOT_FOUND_DATA(HttpStatus.NOT_FOUND, 40501, "여행 또는 회원을 찾을 수 없습니다."),
+	FORBIDDEN(HttpStatus.NOT_FOUND, 40502, "해당 여행에 속한 멤버가 아닙니다."),
+	FILE_TOO_LARGE(HttpStatus.FORBIDDEN, 40506, "PAYLOAD_TOO_LARGE", "파일 크기가 50MB를 초과합니다."),
+	INVALID_FILE_EXTENSION(HttpStatus.BAD_REQUEST, 40507, "BAD_REQUEST", "허용되지 않는 파일 확장자입니다."),
+	FILE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 40508, "INTERNAL_SERVER_ERROR", "파일 업로드에 실패했습니다."),
+	INVALID_FILE(HttpStatus.BAD_REQUEST, 40509, "BAD_REQUEST", "파일이 유효하지 않습니다."),
 
 	/* 406xx - media */
 
