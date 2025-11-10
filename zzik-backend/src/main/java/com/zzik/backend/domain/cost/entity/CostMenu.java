@@ -63,4 +63,11 @@ public class CostMenu extends BaseEntity {
 		this.amount = amount;
 		this.mustPayerIds = mustPayerIds;
 	}
+	
+	public void apply(String menuName, Long amount, Integer count, List<Long> mustPayerIds) {
+		this.menuName = menuName;
+		this.amount = amount;
+		this.count = (count == null ? 1 : count);
+		this.mustPayerIds = (mustPayerIds == null ? List.of() : mustPayerIds.stream().distinct().toList());
+	}
 }

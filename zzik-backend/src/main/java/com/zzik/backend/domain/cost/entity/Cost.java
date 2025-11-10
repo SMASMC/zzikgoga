@@ -87,4 +87,17 @@ public class Cost extends BaseEntity {
 		this.receipt = receipt;
 		this.receiptUrl = receiptUrl;
 	}
+
+	public void updateMain(String paidAt, String place, Member payer, String memo) {
+		this.paidAt = paidAt;
+		this.place = place;
+		this.payer = payer;
+		this.memo = memo;
+	}
+
+	public void recalcTotal() {
+		long sum = (this.costMenus == null ? 0L :
+			this.costMenus.stream().mapToLong(cm -> cm.getAmount() * cm.getCount()).sum());
+		this.totalAmount = sum;
+	}
 }
