@@ -17,6 +17,7 @@ import com.zzik.backend.domain.cost.entity.CostMenu;
 import com.zzik.backend.domain.cost.repository.CostMenuRepository;
 import com.zzik.backend.domain.cost.repository.CostRepository;
 import com.zzik.backend.domain.plan.repository.TripMemberRepository;
+import com.zzik.backend.domain.plan.service.TripMemberService;
 import com.zzik.backend.global.exception.BusinessException;
 import com.zzik.backend.global.exception.ExceptionCode;
 import com.zzik.backend.global.security.utils.SecurityUtil;
@@ -32,6 +33,7 @@ public class CostEditService {
 	private final MemberRepository memberRepository;
 	private final TripMemberRepository tripMemberRepository;
 	private final CostEditLockService costEditLockService;
+	private final TripMemberService tripMemberService;
 
 	@Transactional
 	public CostEditResponse edit(Long tripId, Long costId, CostEditRequest req) {
@@ -92,7 +94,13 @@ public class CostEditService {
 		// 7) 합계 재계산
 		cost.recalcTotal();
 
-		// 8) 응답
+		// 8) invalidate approvals in case AOP didn't trigger
+		try {
+			tripMemberService.invalidateAllByTrip(tripId);
+		} catch (Exception ignored) {
+		}
+
+		// 9) 응답
 		return toResponse(cost);
 	}
 

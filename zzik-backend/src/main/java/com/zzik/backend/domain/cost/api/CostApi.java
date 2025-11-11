@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.zzik.backend.domain.cost.dto.request.SaveCostRequest;
 import com.zzik.backend.domain.cost.dto.response.CostCalculateResponse;
+import com.zzik.backend.domain.cost.dto.response.CostDeleteResponse;
 import com.zzik.backend.domain.cost.dto.response.CostItemDetailResponse;
 import com.zzik.backend.domain.cost.dto.response.CostListResponse;
 import com.zzik.backend.domain.cost.dto.response.ReceiptOcrResponse;
@@ -141,7 +142,7 @@ public interface CostApi {
 	@ApiResponseExplanations(
 		success = @ApiSuccessResponseExplanation(
 			description = "정산 삭제 성공",
-			responseClass = Long.class
+			responseClass = CostDeleteResponse.class
 		),
 		errors = {
 			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.INVALID_TRIP),
@@ -153,7 +154,7 @@ public interface CostApi {
 		value = "/{tripId}/{costId}",
 		produces = MediaType.APPLICATION_JSON_VALUE
 	)
-	ResponseEntity<ApiResponse<Long>> deleteCost(
+	ResponseEntity<ApiResponse<CostDeleteResponse>> deleteCost(
 		@PathVariable Long tripId,
 		@PathVariable Long costId
 	);

@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.zzik.backend.domain.cost.api.CostApi;
 import com.zzik.backend.domain.cost.dto.request.SaveCostRequest;
 import com.zzik.backend.domain.cost.dto.response.CostCalculateResponse;
+import com.zzik.backend.domain.cost.dto.response.CostDeleteResponse;
 import com.zzik.backend.domain.cost.dto.response.CostItemDetailResponse;
 import com.zzik.backend.domain.cost.dto.response.CostListResponse;
 import com.zzik.backend.domain.cost.dto.response.ReceiptOcrResponse;
@@ -77,11 +78,11 @@ public class CostController implements CostApi {
 	}
 
 	@Override
-	public ResponseEntity<ApiResponse<Long>> deleteCost(
+	public ResponseEntity<ApiResponse<CostDeleteResponse>> deleteCost(
 		@PathVariable Long tripId,
 		@PathVariable Long costId
 	) {
 		Long deletedId = costService.deleteCost(tripId, costId);
-		return ResponseEntity.ok(ApiResponse.createSuccess(deletedId));
+		return ResponseEntity.ok(ApiResponse.createSuccess(new CostDeleteResponse(deletedId)));
 	}
 }

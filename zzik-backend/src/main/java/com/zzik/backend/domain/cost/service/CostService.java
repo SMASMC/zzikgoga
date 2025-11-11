@@ -82,6 +82,7 @@ public class CostService {
 	}
 
 	// OCR + 저장
+	@Transactional
 	public ReceiptOcrResponse ocrAndCreate(Long tripId, MultipartFile file) {
 		validateReceiptImage(file);
 		try {
@@ -124,8 +125,8 @@ public class CostService {
 			// s3에 파일 실제 저장
 			String objectKeyOfFile = s3Service.uploadFile(file, S3Directory.RECEIPT);
 
-			Long costId = createCost(tripId, mapped, objectKeyOfFile);
-			log.info("[OCR->CREATE] created costId={}, items={}", costId, mapped.getItems().size());
+			createCost(tripId, mapped, objectKeyOfFile);
+			tripMemberService.invalidateAllByTrip(tripId);
 			return ocrResult;
 
 		} catch (BusinessException e) {
@@ -228,7 +229,6 @@ public class CostService {
 		if (!StringUtils.hasText(req.getPaidAt()))
 			throw BusinessException.from(ExceptionCode.RECEIPT_CONTEXT_INVALID);
 
-		// TODO: SecurityContext에서 로그인 사용자 ID 추출
 		Long memberId = SecurityUtil.getCurrentMemberId();
 		Member createdBy = memberRepository.findById(memberId)
 			.orElseThrow(() -> BusinessException.from(ExceptionCode.NOT_FOUND_USER));
@@ -298,7 +298,7 @@ public class CostService {
 		}
 		costMenuRepository.saveAll(menus);
 
-		log.info("Created cost id={}, total={}, menus={}", cost.getId(), finalTotal, menus.size());
+		tripMemberService.invalidateAllByTrip(tripId);
 		return cost.getId();
 	}
 
@@ -450,6 +450,7 @@ public class CostService {
 			.build();
 	}
 
+	@Transactional
 	public Long deleteCost(Long tripId, Long costId) {
 		if (!tripRepository.existsById(tripId)) {
 			throw BusinessException.from(ExceptionCode.INVALID_TRIP);
@@ -462,6 +463,7 @@ public class CostService {
 			.orElseThrow(() -> BusinessException.from(ExceptionCode.COST_NOT_FOUND));
 
 		costRepository.delete(cost);
+		tripMemberService.invalidateAllByTrip(tripId);
 
 		return cost.getId();
 	}
