@@ -2,6 +2,7 @@ package com.zzik.backend.domain.memory.api;
 
 import com.zzik.backend.domain.memory.dto.request.MemorySaveRequest;
 import com.zzik.backend.domain.memory.dto.response.MemoryDetailResponse;
+import com.zzik.backend.domain.memory.dto.response.MemoryPdfResponse;
 import com.zzik.backend.global.annotation.swagger.ApiErrorResponseExplanation;
 import com.zzik.backend.global.annotation.swagger.ApiResponseExplanations;
 import com.zzik.backend.global.annotation.swagger.ApiSuccessResponseExplanation;
@@ -54,6 +55,25 @@ public interface MemoryApi {
 		}
 	)
 	ResponseEntity<ApiResponse<MemoryDetailResponse>> getMyMemory(
+		@PathVariable Long tripId
+	);
+
+	@Operation(
+		summary = "여행 기록 PDF 변환 및 저장",
+		description = "DB에 저장된 '나의 여행 기록'을 PDF로 변환하여 S3에 저장하고, URL을 반환합니다."
+	)
+	@ApiResponseExplanations(
+		success = @ApiSuccessResponseExplanation(
+			description = "PDF 변환 및 S3 저장 성공",
+			responseClass = MemoryPdfResponse.class
+		),
+		errors = {
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.NOT_FOUND_RESOURCE),
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.FORBIDDEN),
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.FILE_UPLOAD_FAILED)
+		}
+	)
+	ResponseEntity<ApiResponse<MemoryPdfResponse>> convertMemoryToPdf(
 		@PathVariable Long tripId
 	);
 }

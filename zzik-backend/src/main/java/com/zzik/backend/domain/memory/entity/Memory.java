@@ -98,13 +98,20 @@ public class Memory extends BaseEntity {
     }
 
 	/**
-	 * [추가]
 	 * 여행 기록의 내용(제목, 본문, 상태)을 수정합니다.
 	 */
 	public void update(String title, Map<String, Object> content, MemoryStatus status) {
 		this.title = title;
 		this.content = content;
 		this.status = status;
+	}
+
+	/**
+	 * PDF 저장 정보를 업데이트합니다. (S3 Object Key 저장)
+	 */
+	public void setPdfStorageInfo(String pdfObjectKey, StorageType storageType) {
+		this.pdfUrl = pdfObjectKey;
+		this.storageType = storageType;
 	}
 }
 

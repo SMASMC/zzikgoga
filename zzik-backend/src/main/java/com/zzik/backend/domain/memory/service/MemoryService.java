@@ -4,18 +4,34 @@ import com.zzik.backend.domain.auth.entity.Member;
 import com.zzik.backend.domain.auth.repository.MemberRepository;
 import com.zzik.backend.domain.memory.dto.request.MemorySaveRequest;
 import com.zzik.backend.domain.memory.dto.response.MemoryDetailResponse;
+import com.zzik.backend.domain.memory.dto.response.MemoryPdfResponse;
 import com.zzik.backend.domain.memory.entity.Memory;
 import com.zzik.backend.domain.memory.enums.MintStatus;
+import com.zzik.backend.domain.memory.enums.StorageType;
 import com.zzik.backend.domain.memory.repository.MemoryRepository;
 import com.zzik.backend.domain.plan.entity.Trip;
 import com.zzik.backend.domain.plan.repository.TripMemberRepository;
 import com.zzik.backend.domain.plan.repository.TripRepository;
+import com.zzik.backend.global.cloud.s3.service.S3Directory;
+import com.zzik.backend.global.cloud.s3.service.S3Service;
 import com.zzik.backend.global.exception.BusinessException;
 import com.zzik.backend.global.exception.ExceptionCode;
+import com.zzik.backend.global.util.ByteArrayMultipartFile;
+import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @Transactional
@@ -26,6 +42,7 @@ public class MemoryService {
 	private final MemberRepository memberRepository;
 	private final TripRepository tripRepository;
 	private final TripMemberRepository tripMemberRepository;
+	private final S3Service s3Service;
 
 	/**
 	 * 1. 여행 기록 저장 (Upsert: Create or Update)
@@ -89,6 +106,161 @@ public class MemoryService {
 		return MemoryDetailResponse.from(memory);
 	}
 
+
+	/**
+	 * 3. 여행 기록 PDF 변환
+	 */
+	public MemoryPdfResponse convertMemoryToPdf(Long tripId, Long memberId) {
+
+		// 1. DB에서 내 기록 조회 (권한 확인 포함)
+		checkTripMembership(tripId, memberId);
+		Memory memory = memoryRepository.findByTripIdAndMemberIdWithDetailsFetch(tripId, memberId)
+			.orElseThrow(() -> BusinessException.from(ExceptionCode.NOT_FOUND_RESOURCE));
+
+		try {
+			// 2. Memory 엔티티(JSONB)를 HTML 문자열로 변환
+			String htmlContent = convertBlocksToHtml(memory);
+
+			// 3. HTML 문자열을 PDF (byte[])로 변환
+			byte[] pdfBytes = generatePdfFromHtml(htmlContent);
+
+			// 4. byte[]를 MultipartFile 래퍼로 생성
+			String filename = "memory-" + memory.getId() + "-" + memberId + ".pdf";
+			MultipartFile pdfMultipartFile = new ByteArrayMultipartFile(
+				pdfBytes,
+				filename,
+				MediaType.APPLICATION_PDF_VALUE
+			);
+
+			// 5. 제공된 S3Service를 사용하여 업로드 (Object Key 반환)
+			String objectKey = s3Service.uploadFile(
+				pdfMultipartFile,
+				S3Directory.MEMORY_PDF
+			);
+
+			// 6. DB에 S3 Object Key 및 상태 업데이트 (전체 URL이 아님!)
+			memory.setPdfStorageInfo(objectKey, StorageType.s3);
+
+			// 7. S3Service를 사용하여 Presigned URL 생성 (응답용)
+			String presignedUrl = s3Service.getPresignedUrl(objectKey);
+
+			// 8. 응답 DTO 반환
+			return new MemoryPdfResponse(memory.getId(), presignedUrl, StorageType.s3.name());
+
+		} catch (Exception e) {
+			throw BusinessException.from(ExceptionCode.FILE_UPLOAD_FAILED);
+		}
+	}
+
+	// --- PDF 변환 헬퍼 메서드 ---
+
+	/**
+	 * [Helper] Memory 엔티티의 JSONB(Map)를 HTML 문자열로 변환
+	 */
+	private String convertBlocksToHtml(Memory memory) {
+		StringBuilder html = new StringBuilder();
+		html.append("<html><head><style>");
+		// 폰트 이름은 'NanumGothic' (아래 폰트 등록 이름과 일치)
+		html.append("body { font-family: 'NanumGothic', sans-serif; margin: 40px; }");
+		html.append("h1 { font-size: 2.0em; font-weight: bold; }");
+		html.append("h2 { font-size: 1.5em; font-weight: bold; }");
+		html.append("h3 { font-size: 1.2em; font-weight: bold; }");
+		html.append("p { font-size: 1.0em; line-height: 1.6; min-height: 1.2em; }"); // 👈 빈 <p>태그 높이
+		html.append("img { max-width: 100%; height: auto; margin-top: 10px; }");
+		html.append("hr { border: 0; border-top: 1px solid #eee; margin: 20px 0; }");
+		html.append("</style></head><body>");
+
+		// 1. 제목
+		html.append("<h1>").append(escapeHtml(memory.getTitle())).append("</h1>");
+		html.append("<hr />"); // 제목과 본문 구분선
+
+		// 2. 본문 (JSONB)
+		Map<String, Object> contentMap = memory.getContent();
+		if (contentMap != null && contentMap.containsKey("blocks")) {
+			List<Map<String, Object>> blocks = (List<Map<String, Object>>) contentMap.get("blocks");
+
+			for (Map<String, Object> block : blocks) {
+				String type = (String) block.get("type");
+				Map<String, Object> data = (Map<String, Object>) block.get("data");
+				if (data == null) continue;
+
+				switch (type) {
+					case "heading1":
+						html.append("<h1>").append(escapeHtml((String) data.get("text"))).append("</h1>");
+						break;
+					case "heading2":
+						html.append("<h2>").append(escapeHtml((String) data.get("text"))).append("</h2>");
+						break;
+					case "heading3":
+						html.append("<h3>").append(escapeHtml((String) data.get("text"))).append("</h3>");
+						break;
+					case "paragraph":
+						String text = (String) data.get("text");
+						html.append("<p>");
+						if (text != null && !text.isEmpty()) {
+							html.append(escapeHtml(text));
+						} else {
+							html.append("&#160;"); // 비어있는 p태그도 높이
+						}
+						html.append("</p>");
+						break;
+					case "image":
+						String url = (String) data.get("url");
+						String caption = (String) data.get("caption");
+						html.append("<div>");
+						if(url != null) html.append("<img src=\"").append(escapeHtml(url)).append("\" />");
+						if (caption != null && !caption.isEmpty()) {
+							html.append("<p style='text-align:center; font-style:italic;'>")
+								.append(escapeHtml(caption))
+								.append("</p>");
+						}
+						html.append("</div>");
+						break;
+					// TODO: "list", "quote" 등 타입 추가
+				}
+			}
+		}
+		html.append("</body></html>");
+		return html.toString();
+	}
+
+	/**
+	 * [Helper] HTML을 PDF byte[]로 변환 (한글 폰트 적용)
+	 */
+	private byte[] generatePdfFromHtml(String html) throws Exception {
+		try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
+			PdfRendererBuilder builder = new PdfRendererBuilder();
+
+			// src/main/resources/fonts/NanumGothic.ttf
+			// ClassPathResource를 사용하여 리소스 경로에서 폰트 로드
+			builder.useFont(
+				() -> {
+					try {
+						return new ClassPathResource("fonts/NanumGothic.ttf").getInputStream();
+					} catch (IOException e) {
+						throw new RuntimeException(e);
+					}
+				},
+				"NanumGothic" // 👈 CSS에서 사용할 폰트 이름
+			);
+
+			builder.withHtmlContent(html, null);
+			builder.toStream(os);
+			builder.run();
+			return os.toByteArray();
+		}
+	}
+
+	/**
+	 * [Helper] XSS 방지를 위한 간단한 HTML Escape
+	 */
+	private String escapeHtml(String text) {
+		if (text == null) return "";
+		// (간단한 XSS 방지. <b> 등을 허용하려면 라이브러리 필요)
+		return text.replace("&", "&amp;")
+			.replace("<", "&lt;")
+			.replace(">", "&gt;");
+	}
 
 	/**
 	 * [Helper] 사용자가 해당 여행의 멤버인지 확인
