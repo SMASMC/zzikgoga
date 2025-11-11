@@ -3,24 +3,41 @@ import * as Y from 'yjs'
 import { EditorContent, useEditor } from '@tiptap/react'
 import type { Editor as TTEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
+import { cn } from '@/shared/utils/cn'
 
 interface YTextEditorProps {
   ytext: Y.Text
   className?: string
   placeholder?: string
   maxLength?: number
+  singleLine?: boolean
+  variant?: 'input' | 'plain'
 }
 
-const YTextEditor = ({ ytext, className, placeholder, maxLength }: YTextEditorProps) => {
+const normalizeSingleLine = (text: string, singleLine: boolean | undefined) =>
+  singleLine ? text.replace(/\s*\n+\s*/g, ' ').trimStart() : text
+
+const YTextEditor = ({
+  ytext,
+  className,
+  placeholder,
+  maxLength,
+  singleLine,
+  variant = 'input',
+}: YTextEditorProps) => {
   const isRemoteRef = useRef(false)
   const isComposingRef = useRef(false)
   const pendingRemoteTextRef = useRef<string | null>(null)
 
-  const initialContent = useMemo(() => ytext.toString(), [ytext])
+  const initialContent = useMemo(
+    () => normalizeSingleLine(ytext.toString(), singleLine),
+    [ytext, singleLine]
+  )
 
   const syncEditorToYText = useCallback(
     (editorInstance: TTEditor) => {
-      let newText = editorInstance.getText({ blockSeparator: '\n' })
+      let newText = editorInstance.getText({ blockSeparator: singleLine ? '' : '\n' })
+      newText = normalizeSingleLine(newText, singleLine)
       const current = ytext.toString()
 
       // Enforce maxLength if specified
@@ -72,7 +89,7 @@ const YTextEditor = ({ ytext, className, placeholder, maxLength }: YTextEditorPr
         }
       }, 'tiptap-edit')
     },
-    [ytext, maxLength]
+    [ytext, maxLength, singleLine]
   )
 
   const editor = useEditor({
@@ -81,7 +98,7 @@ const YTextEditor = ({ ytext, className, placeholder, maxLength }: YTextEditorPr
     editorProps: {
       attributes: {
         class:
-          'prose prose-base max-w-none focus:outline-none min-h-[3rem] border-2 border-slate-200 rounded-xl px-4 py-2 text-lg font-semibold hover:border-blue-300 transition-colors overflow-hidden',
+          'prose prose-base max-w-none focus:outline-none min-h-[2.5rem] bg-transparent text-inherit leading-snug',
       },
       handleDOMEvents: {
         compositionstart: () => {
@@ -99,7 +116,7 @@ const YTextEditor = ({ ytext, className, placeholder, maxLength }: YTextEditorPr
             isRemoteRef.current = true
             try {
               const { from, to } = editor.state.selection
-              editor.commands.setContent(pending, false)
+              editor.commands.setContent(normalizeSingleLine(pending, singleLine), false)
               const size = editor.state.doc.content.size
               editor.commands.setTextSelection({
                 from: Math.min(from, size),
@@ -108,6 +125,13 @@ const YTextEditor = ({ ytext, className, placeholder, maxLength }: YTextEditorPr
             } finally {
               isRemoteRef.current = false
             }
+          }
+          return false
+        },
+        keydown: (_: unknown, event: KeyboardEvent) => {
+          if (singleLine && event.key === 'Enter') {
+            event.preventDefault()
+            return true
           }
           return false
         },
@@ -142,15 +166,16 @@ const YTextEditor = ({ ytext, className, placeholder, maxLength }: YTextEditorPr
         }, 'maxlength-enforcement')
       }
 
-      if (nextText !== currentText) {
+      const normalizedNextText = normalizeSingleLine(nextText, singleLine)
+      if (normalizedNextText !== currentText) {
         if (isComposingRef.current) {
-          pendingRemoteTextRef.current = nextText
+          pendingRemoteTextRef.current = normalizedNextText
           return
         }
         isRemoteRef.current = true
         try {
           const { from, to } = editor.state.selection
-          editor.commands.setContent(nextText, false)
+          editor.commands.setContent(normalizedNextText, false)
           const size = editor.state.doc.content.size
           editor.commands.setTextSelection({
             from: Math.min(from, size),
@@ -165,7 +190,7 @@ const YTextEditor = ({ ytext, className, placeholder, maxLength }: YTextEditorPr
     return () => {
       ytext.unobserve(observer)
     }
-  }, [editor, ytext, maxLength])
+  }, [editor, ytext, maxLength, singleLine])
 
   useEffect(() => {
     return () => {
@@ -174,7 +199,15 @@ const YTextEditor = ({ ytext, className, placeholder, maxLength }: YTextEditorPr
   }, [editor])
 
   return (
-    <div className={className} data-placeholder={placeholder}>
+    <div
+      className={cn(
+        variant === 'plain'
+          ? 'w-full'
+          : 'w-full rounded-full border-2 border-slate-300 bg-white px-5 py-2.5 text-lg font-semibold text-slate-900 shadow-sm transition-all hover:border-blue-300 hover:shadow-md focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 flex items-center',
+        className
+      )}
+      data-placeholder={placeholder}
+    >
       <EditorContent editor={editor} />
     </div>
   )

@@ -39,7 +39,7 @@ export function OAuthCallbackPage() {
           return
         }
 
-        console.log('idToken 획득 성공')
+        console.log('idToken 획득 성공', idToken)
 
         // 2. 백엔드로 idToken 전달
         const data = await apiClient.post<OAuthCallbackResponse>('/auth/kakao', {

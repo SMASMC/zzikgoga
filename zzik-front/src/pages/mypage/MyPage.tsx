@@ -163,13 +163,15 @@ const MyPage = () => {
               </div>
             ) : (
               travels.map((travel) => (
-                <TravelCard
-                  key={travel.tripId}
-                  tripId={travel.tripId}
-                  title={travel.title}
-                  date={`${travel.start_date} ~ ${travel.end_date}`}
-                  img={travel.thumbnail || 'pwa-512x512.png'}
-                />
+              <TravelCard
+                key={travel.tripId}
+                tripId={travel.tripId}
+                title={travel.title}
+                date={`${travel.start_date} ~ ${travel.end_date}`}
+                img={travel.thumbnail || 'pwa-512x512.png'}
+                startDate={travel.start_date}
+                endDate={travel.end_date}
+              />
               ))
             )}
           </div>

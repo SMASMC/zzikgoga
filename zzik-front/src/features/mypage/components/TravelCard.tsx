@@ -6,15 +6,20 @@ import { useNavigate } from 'react-router-dom'
 import { TravelAddCardProps, TravelCardProps } from '../types/mypage'
 import SolidButton from '@/components/atoms/SolidButton'
 
-const TravelCard = ({ tripId, title, date, img }: TravelCardProps) => {
+const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCardProps) => {
   const navigate = useNavigate()
   const [isButtonHovered, setIsButtonHovered] = useState(false)
   const [imageSrc, setImageSrc] = useState(img || '/pwa-512x512.png')
 
   // 카드 클릭 시 여행 계획 페이지로 이동
   const handleCardClick = () => {
-    console.log(`카드 클릭 - 여행 계획 페이지로 이동 (tripId: ${tripId})`)
-    navigate(`/plan/${tripId}`)
+    const travelMeta = {
+      travelTitle: title,
+      startDate,
+      endDate,
+    }
+    sessionStorage.setItem(`plan-meta-${tripId}`, JSON.stringify(travelMeta))
+    navigate(`/plan/${tripId}`, { state: travelMeta })
   }
 
   // TODO: 정산하기 버튼 클릭 시 실행할 함수
@@ -24,12 +29,12 @@ const TravelCard = ({ tripId, title, date, img }: TravelCardProps) => {
     navigate(`/cost/${tripId}`)
   }
 
-  // // TODO: 사진 버튼 클릭 시 실행할 함수
-  // const handlePhotoClick = (e: React.MouseEvent) => {
-  //   e.stopPropagation() // 카드 클릭 이벤트 전파 방지
-  //   console.log(`사진 버튼 클릭 - 사진 갤러리로 이동 (tripId: ${tripId})`)
-  //   // 여기에 사진 갤러리 이동 함수 추가 (예: navigate(`/gallery/${tripId}`))
-  // }
+  // 사진 버튼 클릭 시 실행할 함수
+  const handlePhotoClick = (e: React.MouseEvent) => {
+    e.stopPropagation() // 카드 클릭 이벤트 전파 방지
+    console.log(`사진 버튼 클릭 - 사진 갤러리로 이동 (tripId: ${tripId})`)
+    // 여기에 사진 갤러리 이동 함수 추가 (예: navigate(`/gallery/${tripId}`))
+  }
 
   // 이미지 로드 실패 시 기본 이미지로 대체
   const handleImageError = () => {
@@ -51,24 +56,25 @@ const TravelCard = ({ tripId, title, date, img }: TravelCardProps) => {
       />
       <h3 className="font-bmjua text-text-500">{title}</h3>
       <p className="text-gray-500 text-sm mb-3">{date}</p>
-      <div className="flex gap-2">
+      <div className="flex justify-center gap-2 mb-2">
         <SolidButton
           onClick={handleSettlementClick}
           onMouseEnter={() => setIsButtonHovered(true)}
           onMouseLeave={() => setIsButtonHovered(false)}
-          className="flex-1 bg-gradient-to-br from-point-500 to-main-700 text-white py-2 rounded-2xl hover:from-point-600 hover:to-main-800 hover:scale-110 transition-all"
+          className="flex-1 bg-gradient-to-br from-point-500 to-main-700 text-white py-2 rounded-full hover:from-point-600 hover:to-main-800 hover:scale-110 transition-all"
         >
           정산하기
         </SolidButton>
-        {/* 사진 버튼은 현재 구현하지 않음 */}
-        {/* <button
+      </div>
+      <div className="flex justify-end gap-2">
+        <SolidButton
           onClick={handlePhotoClick}
           onMouseEnter={() => setIsButtonHovered(true)}
           onMouseLeave={() => setIsButtonHovered(false)}
-          className="w-12 bg-gradient-to-br from-hover-500 to-background-700 rounded-2xl flex justify-center items-center hover:from-hover-600 hover:to-background-800 hover:scale-110 transition-all"
+          className="flex-1  from-hover-500 to-background-700 rounded-full flex justify-center items-center hover:from-hover-600 hover:to-background-800 hover:scale-110 transition-all"
         >
           📷
-        </button> */}
+        </SolidButton>
       </div>
     </div>
   )

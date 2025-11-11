@@ -101,6 +101,14 @@ class ApiClient {
     })
   }
 
+  async patch<T>(endpoint: string, data?: unknown, config?: RequestConfig): Promise<T> {
+    return this.request<T>(endpoint, {
+      ...config,
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
   async delete<T>(endpoint: string, config?: RequestConfig): Promise<T> {
     return this.request<T>(endpoint, { ...config, method: 'DELETE' })
   }

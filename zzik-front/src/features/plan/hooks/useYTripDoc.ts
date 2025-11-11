@@ -118,25 +118,23 @@ const formatLocalMinute = (date: Date): string => {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
-const ensureSequentialScheduleTimes = (yArr: Y.Array<Y.Map<unknown>>) => {
+const reflowScheduleTimes = (yArr: Y.Array<Y.Map<unknown>>) => {
+  if (yArr.length === 0) return
   let pointer: Date | null = null
   yArr.forEach((yItem) => {
     const startRaw = yItem.get('start_time')
-    if (typeof startRaw !== 'string') {
-      return
-    }
-    let startDate = new Date(startRaw)
+    const fallback = new Date()
+    let startDate = typeof startRaw === 'string' ? new Date(startRaw) : fallback
     if (!pointer) {
       pointer = new Date(startDate.getTime())
-    } else if (startDate < pointer) {
+    } else {
       startDate = new Date(pointer.getTime())
       yItem.set('start_time', formatLocalMinute(startDate))
-    } else {
-      pointer = new Date(startDate.getTime())
     }
     const offsetMinutes = parseOffsetMinutes(yItem.get('offset_time'))
-    if (offsetMinutes > 0) {
-      pointer = new Date(startDate.getTime() + offsetMinutes * 60000)
+    pointer = new Date(startDate.getTime() + Math.max(0, offsetMinutes) * 60000)
+    if (pointer < startDate) {
+      pointer = new Date(startDate.getTime())
     }
   })
 }
@@ -392,34 +390,71 @@ export const useYTripDoc = (roomId: string) => {
     []
   )
 
-  const reorderSchedule = useCallback((dateKey: string, fromIndex: number, toIndex: number) => {
-    const entry = providerRef.current
-    if (!entry) return
-    const { doc } = entry
-    const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
-    const yArr = schedulesMap.get(dateKey)
-    if (!(yArr instanceof Y.Array)) return
-    if (fromIndex === toIndex || fromIndex < 0 || fromIndex >= yArr.length) {
-      return
-    }
-
-    doc.transact(() => {
-      const item = yArr.get(fromIndex)
-      if (!item) {
+  const reorderSchedule = useCallback(
+    (dateKey: string, fromIndex: number, toIndex: number) => {
+      const entry = providerRef.current
+      if (!entry) return
+      const { doc } = entry
+      const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
+      const yArr = schedulesMap.get(dateKey)
+      if (!(yArr instanceof Y.Array)) return
+      if (fromIndex === toIndex || fromIndex < 0 || fromIndex >= yArr.length) {
         return
       }
 
-      yArr.delete(fromIndex, 1)
-      let insertIndex = toIndex
-      if (insertIndex < 0) insertIndex = 0
-      if (insertIndex > yArr.length) insertIndex = yArr.length
-      if (fromIndex < toIndex) {
-        insertIndex = Math.max(0, insertIndex - 1)
-      }
-      yArr.insert(insertIndex, [item])
-      ensureSequentialScheduleTimes(yArr)
-    }, 'reorder-schedule')
-  }, [])
+      doc.transact(() => {
+        const item = yArr.get(fromIndex)
+        if (!item) {
+          return
+        }
+
+        yArr.delete(fromIndex, 1)
+        let insertIndex = toIndex
+        if (insertIndex < 0) insertIndex = 0
+        if (insertIndex > yArr.length) insertIndex = yArr.length
+        if (fromIndex < toIndex) {
+          insertIndex = Math.max(0, insertIndex - 1)
+        }
+        yArr.insert(insertIndex, [item])
+        reflowScheduleTimes(yArr)
+      }, 'reorder-schedule')
+    },
+    []
+  )
+
+  const moveSchedule = useCallback(
+    (sourceDateKey: string, fromIndex: number, targetDateKey: string, targetIndex: number) => {
+      const entry = providerRef.current
+      if (!entry) return
+      const { doc } = entry
+      const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
+      const sourceArr = schedulesMap.get(sourceDateKey)
+      if (!(sourceArr instanceof Y.Array)) return
+      const item = sourceArr.get(fromIndex)
+      if (!item) return
+
+      doc.transact(() => {
+        sourceArr.delete(fromIndex, 1)
+        if (sourceArr.length === 0) {
+          schedulesMap.delete(sourceDateKey)
+        } else {
+          reflowScheduleTimes(sourceArr)
+        }
+
+        let targetArr = schedulesMap.get(targetDateKey)
+        if (!(targetArr instanceof Y.Array)) {
+          targetArr = new Y.Array<Y.Map<unknown>>()
+          schedulesMap.set(targetDateKey, targetArr)
+        }
+        let insertIndex = targetIndex
+        if (insertIndex < 0) insertIndex = 0
+        if (insertIndex > targetArr.length) insertIndex = targetArr.length
+        targetArr.insert(insertIndex, [item])
+        reflowScheduleTimes(targetArr)
+      }, 'move-schedule')
+    },
+    []
+  )
 
   return {
     doc: providerRef.current?.doc ?? null,
@@ -431,5 +466,6 @@ export const useYTripDoc = (roomId: string) => {
     addSchedule,
     updateScheduleTime,
     reorderSchedule,
+    moveSchedule,
   }
 }

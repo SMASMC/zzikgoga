@@ -3,6 +3,7 @@
 
 import { useState } from 'react'
 import Calendar from '@components/atoms/Calendar'
+import CloseButton from '@/components/atoms/CloseButton'
 import { ToastDock } from '@/components/blocks/ToastDock'
 import { CreateTravelRequest } from '../types/mypage'
 import { TravelService } from '../services/travelService'
@@ -130,12 +131,7 @@ const CreateTravelModal = ({ onClose }: { onClose: () => void }) => {
       />
       <div className="w-full max-w-md sm:max-w-lg bg-gradient-to-br from-white via-background-500 to-background-600 rounded-3xl shadow-xl p-6 sm:p-8 font-bmjua relative max-h-[90vh] overflow-y-auto custom-scrollbar">
         {/* 닫기 버튼 */}
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-4 text-gray-600 hover:text-gray-700 text-3xl leading-none hover:scale-110 transition-transform"
-        >
-          ✕
-        </button>
+        <CloseButton onClick={onClose} className="absolute top-3 right-4" />
 
         {/* 제목 */}
         <h2 className="text-xl sm:text-2xl text-text-500 mb-4 sm:mb-6 font-bold">여행 생성하기</h2>

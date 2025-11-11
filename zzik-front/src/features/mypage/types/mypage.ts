@@ -11,6 +11,8 @@ export interface TravelCardProps {
   title: string
   date: string
   img: string
+  startDate: string
+  endDate: string
 }
 
 export interface CreateTravelRequest {

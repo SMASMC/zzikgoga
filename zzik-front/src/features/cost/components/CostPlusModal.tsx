@@ -1,4 +1,5 @@
 import CostPlusForm from './CostPlusForm'
+import CloseButton from '@/components/atoms/CloseButton'
 
 interface CostPlusModalProps {
   isOpen: boolean
@@ -19,12 +20,7 @@ const CostPlusModal = ({ isOpen, onClose, tripId }: CostPlusModalProps): JSX.Ele
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-text-500 font-bmjua">비용 직접 추가하기</h2>
-          <button
-            onClick={onClose}
-            className="absolute top-3 right-4 text-gray-600 hover:text-gray-700 text-3xl leading-none hover:scale-110 transition-transform"
-          >
-            ✕
-          </button>
+          <CloseButton onClick={onClose} className="absolute top-3 right-4" />
         </div>
 
         {/* Modal Body */}

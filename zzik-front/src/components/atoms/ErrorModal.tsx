@@ -1,3 +1,5 @@
+import CloseButton from './CloseButton'
+
 interface ErrorModalProps {
   errorType: string
   onClose: () => void
@@ -29,12 +31,7 @@ const ErrorModal = ({ errorType, onClose }: ErrorModalProps) => {
     <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 sm:p-8 relative animate-fade-in">
         {/* 닫기 버튼 */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl leading-none hover:scale-110 transition-transform"
-        >
-          ✕
-        </button>
+        <CloseButton onClick={onClose} className="absolute top-4 right-4 text-2xl text-gray-400" />
 
         {/* 에러 아이콘 */}
         <div className="flex justify-center mb-4">

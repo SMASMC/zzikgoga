@@ -1,4 +1,5 @@
 import SolidButton from '@/components/atoms/SolidButton'
+import CloseButton from '@/components/atoms/CloseButton'
 import { useMemo, useState, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { ToastDock } from '@/components/blocks/ToastDock'
@@ -86,12 +87,7 @@ const PlaceModal = ({ onClose, place }: PlaceModalProps) => {
         onClose={() => setToastMessage(null)}
       />
       <div className="w-full max-w-md sm:max-w-lg bg-gradient-to-br from-white via-background-500 to-background-600 rounded-3xl shadow-xl p-6 sm:p-8 font-bmjua relative max-h-[90vh] overflow-y-auto custom-scrollbar">
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-4 text-gray-600 hover:text-gray-700 text-3xl leading-none hover:scale-110 transition-transform"
-        >
-          ✕
-        </button>
+        <CloseButton onClick={onClose} className="absolute top-3 right-4" />
 
         <h2 className="text-xl sm:text-2xl text-text-500 mb-4 sm:mb-6 font-bold">장소 추가하기</h2>
 

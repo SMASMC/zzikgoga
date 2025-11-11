@@ -93,6 +93,18 @@ export interface CursorChatMessage {
   isSelf: boolean
 }
 
+export interface CursorParticipant {
+  clientId: number
+  userId: string
+  name: string
+  color: string
+  picture?: string | null
+  lastActive: number
+  hasCursor: boolean
+  hasMessage: boolean
+  isSelf: boolean
+}
+
 interface AwarenessUser {
   id?: string
   name?: string
@@ -130,6 +142,7 @@ export interface SharedCursorSession {
   clearMessage: () => void
   selfMessage: CursorMessage | null
   chatMessages: CursorChatMessage[]
+  participants: CursorParticipant[]
 }
 
 const buildSelfIdentity = (id: string, name: string, picture: string | null) => ({
@@ -150,10 +163,15 @@ interface AwarenessMessagePayload {
 const collectAwarenessSnapshot = (
   awareness: Awareness,
   selfClientId: number
-): { remoteCursors: RemoteCursor[]; messagePayloads: AwarenessMessagePayload[] } => {
+): {
+  remoteCursors: RemoteCursor[]
+  messagePayloads: AwarenessMessagePayload[]
+  participants: CursorParticipant[]
+} => {
   const now = Date.now()
   const remoteCursors: RemoteCursor[] = []
   const messagePayloads: AwarenessMessagePayload[] = []
+  const participantsMap = new Map<string, CursorParticipant>()
 
   awareness.getStates().forEach((state, clientId) => {
     const typed = state as AwarenessState
@@ -181,18 +199,19 @@ const collectAwarenessSnapshot = (
           })()
         : null
 
+    const color = user.color ?? pickColor(user.id)
+    const name = user.name ?? 'Unknown'
+    const picture = user.picture ?? null
+    const isSelf = clientId === selfClientId
+
     messagePayloads.push({
       clientId,
       userId: user.id,
-      name: user.name ?? 'Unknown',
-      color: user.color ?? pickColor(user.id),
-      picture: user.picture ?? null,
+      name,
+      color,
+      picture,
       message: normalizedMessage,
     })
-
-    if (clientId === selfClientId) {
-      return
-    }
 
     const normalizedCursor =
       cursor && typeof cursor.x === 'number' && typeof cursor.y === 'number'
@@ -209,6 +228,33 @@ const collectAwarenessSnapshot = (
           })()
         : null
 
+    const lastActiveCandidate = Math.max(
+      normalizedCursor?.timestamp ?? 0,
+      normalizedMessage?.timestamp ?? 0
+    )
+    const lastActive = lastActiveCandidate > 0 ? lastActiveCandidate : now
+
+    const participantEntry: CursorParticipant = {
+      clientId,
+      userId: user.id,
+      name,
+      color,
+      picture,
+      lastActive,
+      hasCursor: Boolean(normalizedCursor),
+      hasMessage: Boolean(normalizedMessage),
+      isSelf,
+    }
+
+    const existingParticipant = participantsMap.get(user.id)
+    if (!existingParticipant || lastActive >= existingParticipant.lastActive) {
+      participantsMap.set(user.id, participantEntry)
+    }
+
+    if (isSelf) {
+      return
+    }
+
     if (normalizedCursor || normalizedMessage) {
       const fallbackCursor: CursorPosition = {
         x: 50,
@@ -219,9 +265,9 @@ const collectAwarenessSnapshot = (
       remoteCursors.push({
         clientId,
         userId: user.id,
-        name: user.name ?? 'Unknown',
-        color: user.color ?? pickColor(user.id),
-        picture: user.picture ?? null,
+        name,
+        color,
+        picture,
         cursor: normalizedCursor ?? fallbackCursor,
         message: normalizedMessage,
       })
@@ -231,6 +277,7 @@ const collectAwarenessSnapshot = (
   return {
     remoteCursors,
     messagePayloads,
+    participants: Array.from(participantsMap.values()),
   }
 }
 
@@ -286,6 +333,7 @@ export const useSharedCursors = (roomId: string): SharedCursorSession => {
   const [remoteCursors, setRemoteCursors] = useState<RemoteCursor[]>([])
   const [selfMessage, setSelfMessage] = useState<CursorMessage | null>(null)
   const [chatMessages, setChatMessages] = useState<CursorChatMessage[]>([])
+  const [participants, setParticipants] = useState<CursorParticipant[]>([])
 
   const ingestMessagePayloads = useCallback(
     (payloads: AwarenessMessagePayload[], selfClientId: number) => {
@@ -337,10 +385,12 @@ export const useSharedCursors = (roomId: string): SharedCursorSession => {
     messageSeenRef.current.clear()
     setChatMessages([])
     setSelfMessage(null)
+    setParticipants([])
 
     const updateFromAwareness = () => {
       const snapshot = collectAwarenessSnapshot(awareness, awareness.clientID)
       setRemoteCursors(deduplicateRemoteCursors(snapshot.remoteCursors))
+      setParticipants(snapshot.participants)
       ingestMessagePayloads(snapshot.messagePayloads, awareness.clientID)
     }
 
@@ -540,5 +590,6 @@ export const useSharedCursors = (roomId: string): SharedCursorSession => {
     clearMessage,
     selfMessage,
     chatMessages,
+    participants,
   }
 }

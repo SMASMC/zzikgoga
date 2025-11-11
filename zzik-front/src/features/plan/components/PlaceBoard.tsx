@@ -9,10 +9,12 @@ import { cn } from '@/shared/utils/cn'
 import type { SharedCursorSession } from '../hooks/useSharedCursors'
 import { useYTripDoc } from '../hooks/useYTripDoc'
 import * as Y from 'yjs'
-import YTextEditor from './YTextEditor'
 import ScheduleMemoEditor from './ScheduleMemoEditor'
 import FriendInviteModal from './FriendInviteModal'
 import { ToastDock } from '@/components/blocks/ToastDock'
+import CloseButton from '@/components/atoms/CloseButton'
+import { TravelService } from '@/features/mypage/services/travelService'
+import SolidButton from '@/components/atoms/SolidButton'
 
 const CHAT_AUTO_HIDE_MS = 5000
 const getRoomId = (tripId: string | undefined) =>
@@ -67,6 +69,49 @@ const normalizeOffsetToHHMM = (raw: string | null | undefined): string => {
 
 const isValidHHMM = (v: string) => /^\d{2}:\d{2}$/.test(v)
 
+const MAX_TITLE_LENGTH = 100
+
+const getInitial = (value: string | undefined) => {
+  if (!value) return '?'
+  const trimmed = value.trim()
+  if (!trimmed) return '?'
+  return trimmed.charAt(0).toUpperCase()
+}
+
+const syncYTextContent = (target: Y.Text, nextValue: string) => {
+  const current = target.toString()
+  if (current === nextValue) {
+    return
+  }
+
+  let prefix = 0
+  const minLen = Math.min(current.length, nextValue.length)
+  while (prefix < minLen && current[prefix] === nextValue[prefix]) {
+    prefix += 1
+  }
+
+  let suffix = 0
+  while (
+    suffix < minLen - prefix &&
+    current[current.length - 1 - suffix] === nextValue[nextValue.length - 1 - suffix]
+  ) {
+    suffix += 1
+  }
+
+  const deleteFrom = prefix
+  const deleteLength = current.length - prefix - suffix
+  const insertText = nextValue.slice(prefix, nextValue.length - suffix)
+
+  target.doc?.transact(() => {
+    if (deleteLength > 0) {
+      target.delete(deleteFrom, deleteLength)
+    }
+    if (insertText.length > 0) {
+      target.insert(deleteFrom, insertText)
+    }
+  }, 'title-input')
+}
+
 interface PlaceBoardProps {
   cursorSession: SharedCursorSession
 }
@@ -102,27 +147,144 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
   }, [doc, tripInfo?.title])
 
   /**
-   * 2) 렌더 비용 축소: titleYText를 memo로 캐시
+   * 2) 매 렌더마다 최신 Y.Text 핸들 가져오기 (다른 클라이언트가 문자열->Y.Text로 전환해도 즉시 반영)
    */
-  const titleYText = useMemo(() => {
+  const titleYText = (() => {
     if (!doc) return null
-    const t = (doc.getMap('tripInfo') as Y.Map<unknown>).get('title')
-    return t instanceof Y.Text ? t : null
-  }, [doc])
+    const tripMap = doc.getMap('tripInfo') as Y.Map<unknown>
+    const value = tripMap.get('title')
+    return value instanceof Y.Text ? value : null
+  })()
 
   const boardRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const autoHideTimerRef = useRef<number | null>(null)
   const dragItemRef = useRef<{ dateKey: string; index: number } | null>(null)
+  const titlePersistTimerRef = useRef<number | null>(null)
+  const lastSyncedTitleRef = useRef<string>('')
 
   const [selfCursor, setSelfCursor] = useState<{ x: number; y: number } | null>(null)
   const [isChatOpen, setIsChatOpen] = useState(false)
+  const [isRosterOpen, setIsRosterOpen] = useState(false)
+  const [titleDraft, setTitleDraft] = useState('')
   const [chatValue, setChatValue] = useState('')
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [editStart, setEditStart] = useState('')
   const [editOffset, setEditOffset] = useState('')
 
-  const { self, sendMessage, selfMessage } = cursorSession
+  const { self, sendMessage, selfMessage, participants } = cursorSession
+  const metaStorageKey = tripId ? `plan-meta-${tripId}` : null
+
+  const updatePersistedMeta = useCallback(
+    (nextTitle: string) => {
+      if (!metaStorageKey || typeof window === 'undefined') return
+      try {
+        const existingRaw = window.sessionStorage.getItem(metaStorageKey)
+        const parsed = existingRaw ? JSON.parse(existingRaw) : {}
+        window.sessionStorage.setItem(
+          metaStorageKey,
+          JSON.stringify({
+            ...parsed,
+            travelTitle: nextTitle,
+          })
+        )
+      } catch {
+        // ignore storage issues
+      }
+    },
+    [metaStorageKey]
+  )
+
+  const rosterEntries = useMemo(() => {
+    if (!participants || participants.length === 0) {
+      return [
+        {
+          clientId: Number.MAX_SAFE_INTEGER,
+          userId: self.id,
+          name: self.name,
+          color: self.color,
+          picture: self.picture ?? null,
+          lastActive: Date.now(),
+          hasCursor: Boolean(selfCursor),
+          hasMessage: Boolean(selfMessage),
+          isSelf: true,
+        },
+      ]
+    }
+    return [...participants].sort((a, b) => {
+      if (a.isSelf && !b.isSelf) return -1
+      if (!a.isSelf && b.isSelf) return 1
+      return a.name.localeCompare(b.name)
+    })
+  }, [participants, self.color, self.id, self.name, self.picture, selfCursor, selfMessage])
+
+  const participantCount = rosterEntries.length
+
+  useEffect(() => {
+    if (!titleYText) {
+      setTitleDraft('')
+      return
+    }
+    const syncState = () => {
+      setTitleDraft(titleYText.toString())
+    }
+    syncState()
+    const observer = () => syncState()
+    titleYText.observe(observer)
+    return () => {
+      titleYText.unobserve(observer)
+    }
+  }, [titleYText])
+
+  const handleTitleChange = useCallback(
+    (value: string) => {
+      const nextValue = value.slice(0, MAX_TITLE_LENGTH)
+      setTitleDraft(nextValue)
+      if (!titleYText) return
+      syncYTextContent(titleYText, nextValue)
+    },
+    [titleYText]
+  )
+
+  useEffect(() => {
+    if (!titleYText) return
+
+    const persistTitle = () => {
+      const nextTitle = titleYText.toString()
+      if (nextTitle === lastSyncedTitleRef.current) return
+
+      lastSyncedTitleRef.current = nextTitle
+      updatePersistedMeta(nextTitle)
+
+      if (titlePersistTimerRef.current !== null) {
+        window.clearTimeout(titlePersistTimerRef.current)
+      }
+
+      titlePersistTimerRef.current = window.setTimeout(async () => {
+        if (!tripId) return
+        const numericTripId = Number(tripId)
+        if (!Number.isFinite(numericTripId)) return
+        try {
+          await TravelService.updateTravelTitle(numericTripId, {
+            title: nextTitle.trim() || '제목 없음',
+          })
+        } catch (error) {
+          console.error('여행 제목 동기화 실패', error)
+        }
+      }, 800)
+    }
+
+    persistTitle()
+    titleYText.observe(persistTitle)
+
+    return () => {
+      titleYText.unobserve(persistTitle)
+      if (titlePersistTimerRef.current !== null) {
+        window.clearTimeout(titlePersistTimerRef.current)
+        titlePersistTimerRef.current = null
+      }
+    }
+  }, [titleYText, tripId, updatePersistedMeta])
 
   // 친구 초대 모달 & 토스트
   const [isFriendModalOpen, setIsFriendModalOpen] = useState(false)
@@ -350,30 +512,13 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
         tabIndex={0}
       >
         {/* 친구 초대 버튼 (오른쪽 하단) */}
-        <button
+        <SolidButton
           type="button"
           onClick={openFriendModal}
-          className="pointer-events-auto absolute bottom-8 right-8 z-10 group"
-          title="친구 초대하기"
+          className="pointer-events-auto absolute bottom-8 right-8 z-10 group rounded-full"
         >
-          <div className="relative">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-xl hover:scale-110 transition-transform border-4 border-white">
-              <svg
-                className="w-8 h-8 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={3}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-            </div>
-          </div>
-        </button>
+          친구 초대하기
+        </SolidButton>
 
         {/* 빈 상태 안내 */}
         <div
@@ -393,26 +538,26 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
         </div>
 
         {hasSchedules ? (
-          <div className="flex min-h-0 flex-1 flex-col gap-5 p-6">
-            <header className="flex flex-col gap-3 md:flex-row md:items-start md:gap-4">
+          <div className="flex min-h-0 flex-1 flex-col gap-5 p-6 pt-16 md:pt-8">
+            <header className="flex flex-col gap-3 md:flex-row md:items-start md:gap-4 md:pr-56 lg:pr-[360px]">
               <h2 className="text-3xl font-extrabold text-slate-900 flex-shrink-0">여행 일정</h2>
 
               {/* === 여행 제목 편집 영역 ===
                   - doc이 준비되어 Y.Text가 있으면 YTextEditor로 실시간 편집
                   - doc이 아직 없으면 읽기 전용 안전 뷰
               */}
-              <div className="min-w-0 flex-1 max-w-xl">
+              <div className="min-w-0 flex-1 max-w-full md:max-w-[32rem]">
                 {titleYText ? (
-                  <div className="rounded-2xl border-2 border-slate-200 bg-white px-4 py-3 shadow-sm">
-                    <YTextEditor
-                      ytext={titleYText}
-                      placeholder="여행 제목을 입력하세요"
-                      maxLength={100}
-                      className="min-h-[2.5rem] bg-transparent text-3xl font-extrabold text-slate-900 focus:outline-none"
-                    />
-                  </div>
+                  <input
+                    type="text"
+                    value={titleDraft}
+                    onChange={(event) => handleTitleChange(event.target.value)}
+                    maxLength={MAX_TITLE_LENGTH}
+                    placeholder="여행 제목을 입력해주세요"
+                    className="w-full rounded-full border-2 border-slate-300 bg-white px-5 py-2.5 text-lg font-semibold text-slate-900 shadow-sm transition-all placeholder:text-slate-400 hover:border-blue-300 hover:shadow-md focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  />
                 ) : (
-                  <div className="rounded-2xl border-2 border-slate-200 bg-white px-4 py-3 text-3xl font-extrabold text-slate-900 shadow-sm">
+                  <div className="w-full rounded-full border-2 border-slate-300 bg-white px-5 py-2.5 text-lg font-semibold text-slate-900 shadow-sm">
                     {tripInfo?.title?.trim() ? tripInfo.title : `Trip #${tripInfo?.id ?? ''}`}
                   </div>
                 )}
@@ -659,13 +804,90 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
             <span className="text-sm text-slate-500 group-hover:text-blue-600">눌러서 열기</span>
           </button>
 
-          <div className="pointer-events-auto flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-sm font-semibold text-slate-700 shadow-md backdrop-blur">
+          <button
+            type="button"
+            onClick={() => setIsRosterOpen((open) => !open)}
+            aria-expanded={isRosterOpen}
+            aria-controls="plan-participant-panel"
+            className={cn(
+              'pointer-events-auto flex items-center gap-2 rounded-full border-2 border-blue-200 bg-white/95 px-5 py-2.5 text-base font-semibold text-slate-700 shadow-xl backdrop-blur transition',
+              'hover:border-blue-400 hover:text-blue-600 hover:shadow-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-300'
+            )}
+          >
             <span
               className="inline-flex h-3.5 w-3.5 rounded-full"
               style={{ backgroundColor: self.color }}
             />
             <span className="font-bold">{self.name}</span>
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500">
+              {participantCount}명
+            </span>
+          </button>
+        </div>
+
+        {/* 참여자 패널 */}
+        <div
+          id="plan-participant-panel"
+          className={cn(
+            'absolute right-8 top-20 z-30 w-80 max-w-[90vw] rounded-2xl border-2 border-white/70 bg-white/95 shadow-2xl backdrop-blur transition-all duration-300',
+            isRosterOpen
+              ? 'pointer-events-auto translate-y-0 opacity-100'
+              : 'pointer-events-none -translate-y-2 opacity-0'
+          )}
+        >
+          <div className="flex items-center justify-between border-b-2 border-slate-100 px-6 py-4">
+            <div className="text-lg font-bold text-slate-800">참여 중 · {participantCount}명</div>
+            <CloseButton onClick={() => setIsRosterOpen(false)} className="text-xl" />
           </div>
+          {participantCount > 0 ? (
+            <ul className="max-h-72 divide-y divide-slate-100 overflow-y-auto">
+              {rosterEntries.map((participant) => (
+                <li
+                  key={`${participant.clientId}-${participant.userId}`}
+                  className="flex items-center gap-3 px-6 py-3"
+                >
+                  {participant.picture ? (
+                    <img
+                      src={participant.picture}
+                      alt={participant.name}
+                      className="h-10 w-10 rounded-full border border-white/60 object-cover shadow-sm"
+                    />
+                  ) : (
+                    <span
+                      className="flex h-10 w-10 items-center justify-center rounded-full border text-sm font-bold"
+                      style={{ borderColor: participant.color, color: participant.color }}
+                    >
+                      {getInitial(participant.name)}
+                    </span>
+                  )}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                      {participant.name}
+                      {participant.isSelf ? (
+                        <span className="rounded-full bg-blue-50 px-2 text-[11px] font-semibold text-blue-600">
+                          나
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <span
+                        className="inline-flex h-2 w-2 rounded-full"
+                        style={{ backgroundColor: participant.color }}
+                      />
+                      <span>{participant.hasCursor ? '활동 중' : '대기 중'}</span>
+                      {participant.hasMessage ? (
+                        <span className="rounded-full bg-slate-100 px-1.5 text-[10px] font-semibold text-slate-600">
+                          채팅중
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="px-6 py-6 text-sm text-slate-500">아직 참여자가 없습니다.</div>
+          )}
         </div>
 
         {/* Chat 패널 */}
@@ -679,7 +901,10 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
         >
           <div className="flex items-center justify-between border-b-2 border-slate-100 px-6 py-4">
             <div className="text-lg font-bold text-slate-800">커서 메시지 보내기</div>
-            <span className="text-sm text-slate-500">ESC로 닫기</span>
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <span>ESC로 닫기</span>
+              <CloseButton onClick={() => setIsChatOpen(false)} className="text-xl" />
+            </div>
           </div>
           <div className="px-6 py-3 text-sm text-slate-600">
             입력한 내용은 내 커서 풍선으로만 표시됩니다.
