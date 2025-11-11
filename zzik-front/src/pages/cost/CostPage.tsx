@@ -1,4 +1,3 @@
-import NewHeader from '@/components/blocks/NewHeader'
 import CostAdd from '@/features/cost/components/CostAdd'
 import CostList from '@/features/cost/components/CostList'
 import GradientBackground from '@/components/blocks/GradientBackground'
@@ -19,7 +18,6 @@ const CostPage = () => {
 
   return (
     <GradientBackground>
-      <NewHeader />
       <main className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-12 mt-6 sm:mt-8 md:mt-10 pb-10">
         <h1 className="text-3xl font-bold text-text-500 mb-8 font-bmjua">여행 정산</h1>
 

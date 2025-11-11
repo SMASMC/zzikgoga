@@ -1,6 +1,7 @@
-import { Link, useNavigate } from 'react-router-dom'
-import SolidButton from '@/components/atoms/SolidButton'
 import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
+import SolidButton from '@/components/atoms/SolidButton'
 import LoginModal from '@/features/auth/components/LoginModal'
 import { useAuthStore } from '@/shared/stores/useAuthStore'
 import { ToastDock } from '@/components/blocks/ToastDock'
@@ -8,9 +9,14 @@ import { ToastDock } from '@/components/blocks/ToastDock'
 interface HeaderProps {
   transparentUntilScroll?: boolean
   scrollOffset?: number // px
+  showBackButton?: boolean
 }
 
-const Header = ({ transparentUntilScroll = false, scrollOffset = 10 }: HeaderProps) => {
+const Header = ({
+  transparentUntilScroll = false,
+  scrollOffset = 10,
+  showBackButton = false,
+}: HeaderProps) => {
   const [scrolled, setScrolled] = useState(false)
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
@@ -31,8 +37,10 @@ const Header = ({ transparentUntilScroll = false, scrollOffset = 10 }: HeaderPro
 
   const wrapperBase = 'w-full'
   const wrapperMode = transparentUntilScroll
-    ? `fixed top-0 left-0 right-0 z-50 ${scrolled ? 'bg-white shadow-md' : 'bg-transparent'}`
-    : 'bg-white shadow-md'
+    ? `fixed top-0 left-0 right-0 z-50 ${
+        scrolled ? 'bg-white/90 shadow-md backdrop-blur' : 'bg-transparent'
+      }`
+    : 'sticky top-0 z-40 bg-transparent backdrop-blur'
 
   const handleLoginForm = () => {
     setIsLoginModalOpen(true)
@@ -48,6 +56,16 @@ const Header = ({ transparentUntilScroll = false, scrollOffset = 10 }: HeaderPro
     navigate('/')
   }
 
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1)
+      return
+    }
+    navigate('/')
+  }
+
+  const greeting = user ? `${user.name ?? '사용자'}님 반갑습니다` : '로그인이 필요해요'
+
   return (
     <header className={`${wrapperBase} ${wrapperMode}`} data-toast-anchor>
       <ToastDock
@@ -59,12 +77,27 @@ const Header = ({ transparentUntilScroll = false, scrollOffset = 10 }: HeaderPro
         offsetPx={12}
         onClose={() => setToastMessage(null)}
       />
-      <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
-        <Link to="/" className="text-2xl font-bold">
-          <img src="/zzikgoga_logo.png" alt="logo" className="w-32" />
-        </Link>
+      <nav className="container mx-auto flex items-center justify-between px-4 py-4">
+        <div className="flex items-center gap-3">
+          {showBackButton && (
+            <button
+              type="button"
+              onClick={handleBack}
+              aria-label="뒤로가기"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-main-600 shadow-sm transition hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-point-500/60"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+          )}
+          <Link to="/" className="text-2xl font-bold">
+            <img src="/zzikgoga_logo.png" alt="logo" className="w-32" />
+          </Link>
+        </div>
 
         <div className="flex gap-4 items-center">
+          <span className="rounded-full bg-white/30 px-4 py-1.5 text-sm font-bmjua text-white/90 shadow-sm backdrop-blur">
+            {greeting}
+          </span>
           {user ? (
             <SolidButton onClick={handleLogout} variant="point" size="md" rounded="full">
               로그아웃

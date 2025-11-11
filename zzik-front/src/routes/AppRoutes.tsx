@@ -1,4 +1,7 @@
-import { Routes, Route } from 'react-router-dom'
+import type { ReactNode } from 'react'
+import { Routes, Route, Outlet } from 'react-router-dom'
+import BackgroundLayout from '@/components/layout/BackgroundLayout'
+import Header from '@/components/blocks/Header'
 import HomePage from '@/pages/home/HomePage'
 import { OAuthCallbackPage } from '@/pages/auth/OAuthCallbackPage'
 import PlanPage from '@/pages/plan/PlanPage'
@@ -9,56 +12,65 @@ import { PublicOnlyRoute } from '@/components/auth/PublicOnlyRoute'
 import CostPage from '@/pages/cost/CostPage'
 import { InviteCallbackPage } from '@/pages/plan/InviteCallbackPage'
 
+type BackgroundShellProps = {
+  header?: ReactNode
+}
+
+const BackgroundShell = ({ header }: BackgroundShellProps) => (
+  <BackgroundLayout>
+    <div className="flex min-h-screen flex-col">
+      {header === undefined ? <Header showBackButton /> : header}
+      <main className="flex-1">
+        <Outlet />
+      </main>
+    </div>
+  </BackgroundLayout>
+)
+
 const AppRoutes = () => {
   return (
     <Routes>
-      {/* 누구나 접근 가능 */}
-      {/* 1. 홈 화면 */}
       <Route path="/" element={<HomePage />} />
-      {/* 2. OAuth 콜백 */}
-      <Route path="/auth/callback" element={<OAuthCallbackPage />} />
-      {/* 3. 초대 링크 (query parameter 방식) */}
-      <Route path="/invite" element={<InviteCallbackPage />} />
 
-      {/* 비로그인 사용자만 접근 가능 */}
-      {/* 3. 회원가입 */}
-      <Route
-        path="/auth/signup"
-        element={
-          <PublicOnlyRoute>
-            <SignupPage />
-          </PublicOnlyRoute>
-        }
-      />
+      <Route element={<BackgroundShell />}>
+        <Route path="/auth/callback" element={<OAuthCallbackPage />} />
+        <Route path="/invite" element={<InviteCallbackPage />} />
+        <Route
+          path="/auth/signup"
+          element={
+            <PublicOnlyRoute>
+              <SignupPage />
+            </PublicOnlyRoute>
+          }
+        />
+        <Route
+          path="/plan/:tripId"
+          element={
+            <ProtectedRoute>
+              <PlanPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/cost/:tripId"
+          element={
+            <ProtectedRoute>
+              <CostPage />
+            </ProtectedRoute>
+          }
+        />
+      </Route>
 
-      {/* 로그인 사용자만 접근 가능 */}
-      {/* 4. 여행 계획 */}
-      <Route
-        path="/plan/:tripId"
-        element={
-          <ProtectedRoute>
-            <PlanPage />
-          </ProtectedRoute>
-        }
-      />
-      {/* 5. 마이페이지 */}
-      <Route
-        path="/mypage"
-        element={
-          <ProtectedRoute>
-            <MyPage />
-          </ProtectedRoute>
-        }
-      />
-      {/* 6. 정산 */}
-      <Route
-        path="/cost/:tripId"
-        element={
-          <ProtectedRoute>
-            <CostPage />
-          </ProtectedRoute>
-        }
-      />
+      <Route element={<BackgroundShell />}>
+        <Route
+          path="/mypage"
+          element={
+            <ProtectedRoute>
+              <MyPage />
+            </ProtectedRoute>
+          }
+        />
+      </Route>
     </Routes>
   )
 }

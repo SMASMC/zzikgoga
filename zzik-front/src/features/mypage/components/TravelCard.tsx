@@ -61,7 +61,7 @@ const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCard
           onClick={handleSettlementClick}
           onMouseEnter={() => setIsButtonHovered(true)}
           onMouseLeave={() => setIsButtonHovered(false)}
-          className="flex-1 bg-gradient-to-br from-point-500 to-main-700 text-white py-2 rounded-full hover:from-point-600 hover:to-main-800 hover:scale-110 transition-all"
+          className="flex-1 transition-all rounded-full"
         >
           정산하기
         </SolidButton>
@@ -71,9 +71,9 @@ const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCard
           onClick={handlePhotoClick}
           onMouseEnter={() => setIsButtonHovered(true)}
           onMouseLeave={() => setIsButtonHovered(false)}
-          className="flex-1  from-hover-500 to-background-700 rounded-full flex justify-center items-center hover:from-hover-600 hover:to-background-800 hover:scale-110 transition-all"
+          className="flex-1 transition-all rounded-full"
         >
-          📷
+          기록하기
         </SolidButton>
       </div>
     </div>

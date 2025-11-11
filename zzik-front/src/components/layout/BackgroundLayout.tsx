@@ -1,64 +1,66 @@
 // src/components/layout/BackgroundLayout.tsx
-import React from 'react';
+import React from 'react'
 
 interface BackgroundLayoutProps {
-  children: React.ReactNode;
-  className?: string;
+  children: React.ReactNode
+  className?: string
 }
 
 const themeConfig = {
   default: {
-    background: 'bg-gradient-to-br from-emerald-50/20 via-sky-50/30 to-teal-50/10',
+    // palette 적용: background / point / main
+    background: 'bg-gradient-to-b from-background-500 via-background-600 to-background-500',
     elements: [
       {
         className:
-          'absolute left-10 top-20 h-40 w-40 animate-pulse rounded-full bg-gradient-to-br from-emerald-400/20 to-green-600/10 blur-2xl',
+          'absolute left-10 top-20 h-40 w-40 animate-pulse rounded-full bg-gradient-to-br from-point-500/25 to-main-700/15 blur-2xl',
         delay: undefined,
       },
       {
         className:
-          'absolute right-20 top-60 h-32 w-32 animate-bounce rounded-full bg-gradient-to-br from-lime-400/25 to-emerald-500/15 blur-xl',
+          'absolute right-20 top-60 h-32 w-32 animate-bounce rounded-full bg-gradient-to-br from-hover-600/25 to-point-600/15 blur-xl',
         delay: '3s',
       },
       {
         className:
-          'absolute bottom-40 left-1/4 h-48 w-48 rounded-full bg-gradient-to-br from-green-300/15 to-emerald-400/10 blur-3xl',
+          'absolute bottom-40 left-1/4 h-48 w-48 rounded-full bg-gradient-to-br from-background-700/20 to-point-500/10 blur-3xl',
         delay: undefined,
       },
       {
         className:
-          'absolute right-1/3 top-1/2 h-36 w-36 animate-pulse rounded-full bg-gradient-to-br from-emerald-500/20 to-lime-400/10 blur-2xl',
+          'absolute right-1/3 top-1/2 h-36 w-36 animate-pulse rounded-full bg-gradient-to-br from-main-600/20 to-hover-600/10 blur-2xl',
         delay: '1s',
       },
       {
         className:
-          'absolute right-1/4 top-32 h-8 w-8 rotate-45 animate-spin rounded-lg bg-gradient-to-br from-emerald-400 to-green-500 shadow-lg',
+          'absolute right-1/4 top-32 h-8 w-8 rotate-45 animate-spin rounded-lg bg-gradient-to-br from-point-600 to-main-700 shadow-lg',
         delay: '8s',
       },
       {
         className:
-          'absolute bottom-1/3 left-1/3 h-6 w-6 animate-bounce rounded-full bg-gradient-to-br from-lime-400 to-emerald-500 shadow-md',
+          'absolute bottom-1/3 left-1/3 h-6 w-6 animate-bounce rounded-full bg-gradient-to-br from-hover-600 to-point-700 shadow-md',
         delay: '2s',
       },
       {
         className:
-          'absolute right-10 top-2/3 h-10 w-10 rotate-12 animate-pulse rounded-lg bg-gradient-to-br from-green-400 to-emerald-600 shadow-lg',
+          'absolute right-10 top-2/3 h-10 w-10 rotate-12 animate-pulse rounded-lg bg-gradient-to-br from-point-500 to-main-800 shadow-lg',
         delay: undefined,
       },
       {
-        className: 'absolute left-1/2 top-1/4 h-4 w-4 animate-ping rounded-full bg-emerald-400/30',
+        className: 'absolute left-1/2 top-1/4 h-4 w-4 animate-ping rounded-full bg-point-500/40',
         delay: undefined,
       },
       {
-        className: 'absolute bottom-1/4 right-1/2 h-3 w-3 animate-ping rounded-full bg-lime-400/40',
+        className:
+          'absolute bottom-1/4 right-1/2 h-3 w-3 animate-ping rounded-full bg-hover-600/50',
         delay: '1.5s',
       },
     ],
   },
-};
+}
 
 const BackgroundLayout: React.FC<BackgroundLayoutProps> = ({ children, className = '' }) => {
-  const config = themeConfig.default;
+  const config = themeConfig.default
 
   return (
     <div className={`relative min-h-screen ${config.background} ${className}`}>
@@ -77,7 +79,7 @@ const BackgroundLayout: React.FC<BackgroundLayoutProps> = ({ children, className
       {/* 컨텐츠 */}
       <div className="relative z-10">{children}</div>
     </div>
-  );
-};
+  )
+}
 
-export default BackgroundLayout;
+export default BackgroundLayout

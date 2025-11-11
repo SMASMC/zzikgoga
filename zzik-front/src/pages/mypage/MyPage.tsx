@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import GradientBackground from '@/components/blocks/GradientBackground'
 import { ToastDock } from '@/components/blocks/ToastDock'
 import LoginModal from '@/features/auth/components/LoginModal'
-import MyPageHeader from '@/features/mypage/components/MyPageHeader'
 import { TravelCard, TravelAddCard } from '@/features/mypage/components/TravelCard'
 import CreateTravelModal from '@/features/mypage/components/CreateTravelModal'
 import { TravelService } from '@/features/mypage/services/travelService'
@@ -124,7 +122,7 @@ const MyPage = () => {
   }, [loadTravels])
 
   return (
-    <GradientBackground>
+    <div>
       <ToastDock
         open={Boolean(toastMessage)}
         variant="warning"
@@ -134,7 +132,6 @@ const MyPage = () => {
         offsetPx={16}
         onClose={() => setToastMessage(null)}
       />
-      <MyPageHeader />
       <main className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-12 mt-6 sm:mt-8 md:mt-10 pb-10">
         {isLoading ? (
           // 로딩 중
@@ -163,15 +160,15 @@ const MyPage = () => {
               </div>
             ) : (
               travels.map((travel) => (
-              <TravelCard
-                key={travel.tripId}
-                tripId={travel.tripId}
-                title={travel.title}
-                date={`${travel.start_date} ~ ${travel.end_date}`}
-                img={travel.thumbnail || 'pwa-512x512.png'}
-                startDate={travel.start_date}
-                endDate={travel.end_date}
-              />
+                <TravelCard
+                  key={travel.tripId}
+                  tripId={travel.tripId}
+                  title={travel.title}
+                  date={`${travel.start_date} ~ ${travel.end_date}`}
+                  img={travel.thumbnail || 'pwa-512x512.png'}
+                  startDate={travel.start_date}
+                  endDate={travel.end_date}
+                />
               ))
             )}
           </div>
@@ -180,7 +177,7 @@ const MyPage = () => {
 
       {isModalOpen && <CreateTravelModal onClose={handleCloseTravelModal} />}
       {isLoginModalOpen && <LoginModal onClose={handleCloseLoginModal} />}
-    </GradientBackground>
+    </div>
   )
 }
 

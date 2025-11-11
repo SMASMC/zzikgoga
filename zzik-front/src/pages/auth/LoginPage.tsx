@@ -4,7 +4,7 @@ import LoginForm from '@features/auth/components/LoginForm'
 const LoginPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
+      <Header showBackButton />
 
       <main className="container mx-auto px-4 py-16 flex justify-center">
         <LoginForm />
