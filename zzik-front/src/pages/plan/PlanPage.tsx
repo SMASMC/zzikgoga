@@ -5,6 +5,7 @@ import PlaceBoard from '@features/plan/components/PlaceBoard'
 import PlaceSearchPanel from '@features/plan/components/PlaceSearchPanel'
 import PlanCollaborationLayer from '@features/plan/components/PlanCollaborationLayer'
 import { useSharedCursors } from '@features/plan/hooks/useSharedCursors'
+import Header from '@/components/blocks/Header'
 
 const getRoomId = (tripId: string | undefined) =>
   tripId && tripId.trim().length > 0 ? `trip-${tripId.trim()}` : 'trip-default'
@@ -16,11 +17,16 @@ const PlanPage = () => {
   const cursorSession = useSharedCursors(roomId)
 
   return (
-    <PlanCollaborationLayer cursorSession={cursorSession}>
-      <PlaceSearchPanel />
-      <PlaceBoard cursorSession={cursorSession} />
-      <BudgetPanel />
-    </PlanCollaborationLayer>
+    <div className="flex flex-col h-screen">
+      <PlanCollaborationLayer cursorSession={cursorSession}>
+        <Header showBackButton whiteBackground />
+        <div className="flex flex-1 min-h-0">
+          <PlaceSearchPanel />
+          <PlaceBoard cursorSession={cursorSession} />
+          <BudgetPanel />
+        </div>
+      </PlanCollaborationLayer>
+    </div>
   )
 }
 

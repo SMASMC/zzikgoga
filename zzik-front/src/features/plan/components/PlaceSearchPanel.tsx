@@ -161,7 +161,7 @@ const PlaceSearchPanel = () => {
   }
 
   return (
-    <aside className="flex w-full flex-col gap-6 border-r border-slate-200 bg-white p-4 md:w-1/3 lg:w-1/4">
+    <aside className="flex w-full min-h-0 flex-col gap-6 border-r border-slate-200 bg-white p-4 md:w-1/3 lg:w-1/4">
       <ToastDock
         open={Boolean(toastMessage)}
         variant="hint"
@@ -173,7 +173,7 @@ const PlaceSearchPanel = () => {
       />
 
       <header>
-        <h2 className="text-2xl font-extrabold text-slate-900">장소 검색</h2>
+        <h2 className="text-4xl font-extrabold text-slate-900">장소 검색</h2>
         <p className="mt-1 text-sm text-slate-400">검색 후 리스트에서 장소를 클릭해 추가하세요.</p>
       </header>
 
@@ -192,7 +192,7 @@ const PlaceSearchPanel = () => {
         />
         <SolidButton
           onClick={handleSearch}
-          className="w-full rounded-full bg-main-600 px-4 py-2 text-white hover:bg-main-700 sm:w-auto"
+          className="w-full rounded-full bg-main-600 px-6 py-2 text-white hover:bg-main-700 sm:w-auto"
         >
           검색
         </SolidButton>
@@ -235,12 +235,12 @@ const PlaceSearchPanel = () => {
         </SolidButton>
       ) : null}
 
-      <div className="overflow-hidden rounded-lg shadow">
+      <div className="flex-1 min-h-0 overflow-hidden rounded-lg shadow">
         <GoogleMap
           onLoad={(map) => {
             mapRef.current = map
           }}
-          mapContainerClassName="w-full h-[50vh] sm:h-[55vh] md:h-[60vh] lg:h-[65vh] xl:h-[70vh] 2xl:h-[75vh]"
+          mapContainerClassName="w-full h-full"
           center={mapCenter}
           zoom={selectedPlace ? 13 : 11}
           onDragEnd={() => {

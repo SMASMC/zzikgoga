@@ -501,7 +501,7 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
   const hasSchedules = useMemo(() => Object.keys(schedulesByDate).length > 0, [schedulesByDate])
 
   return (
-    <section className="relative flex flex-1 min-h-0 flex-col overflow-hidden border-x border-slate-200 bg-slate-50">
+    <section className="relative flex flex-1 min-h-0 flex-col overflow-hidden border-x border-slate-200 bg-white">
       <ToastDock
         open={Boolean(toast)}
         variant={toast?.variant ?? 'hint'}
@@ -549,7 +549,7 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
         {hasSchedules ? (
           <div className="flex min-h-0 flex-1 flex-col gap-5 p-6 pt-16 md:pt-8">
             <header className="flex flex-col gap-3 md:flex-row md:items-start md:gap-4 md:pr-56 lg:pr-[360px]">
-              <h2 className="text-3xl font-extrabold text-slate-900 flex-shrink-0">여행 일정</h2>
+              <h2 className="text-4xl font-extrabold text-slate-900 flex-shrink-0">여행 일정</h2>
 
               {/* === 여행 제목 편집 영역 ===
                   - doc이 준비되어 Y.Text가 있으면 YTextEditor로 실시간 편집

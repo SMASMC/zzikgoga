@@ -79,12 +79,10 @@ const RemoteCursors = ({ cursors }: RemoteCursorsProps) => {
           <div className="relative -translate-x-2 -translate-y-2">
             {message?.text ? (
               <div
-                className={cn(
-                  'absolute bottom-full left-0 mb-1 max-w-[min(70vw,420px)] rounded-xl border px-3.5 py-2 text-xl font-semibold shadow-lg backdrop-blur',
-                  isSelf
-                    ? 'border-blue-200 bg-blue-500/95 text-white'
-                    : 'border-slate-200 bg-white/95 text-slate-700'
-                )}
+                className="absolute bottom-full left-0 mb-1 max-w-[min(70vw,420px)] rounded-xl border border-white/40 px-3.5 py-2 text-xl font-semibold text-white shadow-lg backdrop-blur"
+                style={{
+                  background: `linear-gradient(135deg, ${color}e6, ${color}f2)`,
+                }}
               >
                 <p className="whitespace-pre-wrap break-words leading-snug">{message.text}</p>
               </div>

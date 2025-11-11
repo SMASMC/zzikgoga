@@ -15,7 +15,7 @@ const SolidButton = ({
   ...props
 }: ButtonProps) => {
   const baseStyles =
-    'font-bmjua text-white shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105'
+    'inline-flex items-center justify-center whitespace-nowrap font-bmjua text-white shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105'
 
   const variantStyles = {
     main: 'bg-gradient-to-br from-hover-600 to-point-600 hover:from-hover-800 hover:to-point-700',

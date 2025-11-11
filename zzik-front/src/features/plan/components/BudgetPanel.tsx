@@ -102,7 +102,7 @@ const BudgetPanel = () => {
   })()
 
   return (
-    <aside className="flex w-full flex-col gap-4 border-l border-slate-200 bg-white p-4 md:w-1/4">
+    <aside className="flex w-full min-h-0 flex-col gap-4 border-l border-slate-200 bg-white p-4 md:w-1/4">
       <ToastDock
         open={Boolean(toastMessage)}
         variant="warning"
@@ -177,7 +177,7 @@ const BudgetPanel = () => {
         </SolidButton>
       </div>
 
-      <div className="flex max-h-80 flex-col gap-3 overflow-y-auto rounded-lg border border-slate-200 p-3">
+      <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto rounded-lg border border-slate-200 p-3">
         {Object.keys(budgetsByDate).length === 0 ? (
           <p className="text-center text-sm text-slate-400">설명을 입력하십시오.</p>
         ) : (

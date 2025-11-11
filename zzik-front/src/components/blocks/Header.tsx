@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import SolidButton from '@/components/atoms/SolidButton'
@@ -10,13 +10,16 @@ interface HeaderProps {
   transparentUntilScroll?: boolean
   scrollOffset?: number // px
   showBackButton?: boolean
+  whiteBackground?: boolean
 }
 
 const Header = ({
   transparentUntilScroll = false,
   scrollOffset = 10,
   showBackButton = false,
+  whiteBackground = false,
 }: HeaderProps) => {
+  const headerRef = useRef<HTMLElement | null>(null)
   const [scrolled, setScrolled] = useState(false)
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
@@ -35,12 +38,45 @@ const Header = ({
     return () => window.removeEventListener('scroll', onScroll)
   }, [transparentUntilScroll, scrollOffset])
 
+  useLayoutEffect(() => {
+    if (typeof document === 'undefined') return undefined
+    const element = headerRef.current
+    if (!element) return undefined
+
+    const setHeaderHeight = () => {
+      const nextHeight = Math.round(element.getBoundingClientRect().height)
+      document.documentElement.style.setProperty(
+        '--zzik-header-height',
+        `${Number.isFinite(nextHeight) ? nextHeight : 0}px`
+      )
+    }
+
+    setHeaderHeight()
+
+    if (typeof ResizeObserver === 'function') {
+      const observer = new ResizeObserver(() => setHeaderHeight())
+      observer.observe(element)
+      return () => {
+        observer.disconnect()
+        document.documentElement.style.removeProperty('--zzik-header-height')
+      }
+    }
+
+    window.addEventListener('resize', setHeaderHeight)
+    return () => {
+      window.removeEventListener('resize', setHeaderHeight)
+      document.documentElement.style.removeProperty('--zzik-header-height')
+    }
+  }, [])
+
   const wrapperBase = 'w-full'
-  const wrapperMode = transparentUntilScroll
-    ? `fixed top-0 left-0 right-0 z-50 ${
-        scrolled ? 'bg-white/90 shadow-md backdrop-blur' : 'bg-transparent'
-      }`
-    : 'sticky top-0 z-40 bg-transparent backdrop-blur'
+  const wrapperMode = whiteBackground
+    ? 'sticky top-0 z-40 bg-white shadow-sm'
+    : transparentUntilScroll
+      ? `fixed top-0 left-0 right-0 z-50 ${
+          scrolled ? 'bg-white/90 shadow-md backdrop-blur' : 'bg-transparent'
+        }`
+      : 'sticky top-0 z-40 bg-transparent backdrop-blur'
 
   const handleLoginForm = () => {
     setIsLoginModalOpen(true)
@@ -67,7 +103,7 @@ const Header = ({
   const greeting = user ? `${user.name ?? '사용자'}님 반갑습니다` : '로그인이 필요해요'
 
   return (
-    <header className={`${wrapperBase} ${wrapperMode}`} data-toast-anchor>
+    <header ref={headerRef} className={`${wrapperBase} ${wrapperMode}`} data-toast-anchor>
       <ToastDock
         open={Boolean(toastMessage)}
         variant="hint"
@@ -95,7 +131,7 @@ const Header = ({
         </div>
 
         <div className="flex gap-4 items-center">
-          <span className="rounded-full bg-white/30 px-4 py-1.5 text-sm font-bmjua text-white/90 shadow-sm backdrop-blur">
+          <span className="rounded-full bg-white/30 px-4 py-1.5 text-sm font-bmjua text-text-500/90 shadow-sm backdrop-blur">
             {greeting}
           </span>
           {user ? (
