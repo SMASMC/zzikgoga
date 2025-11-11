@@ -3,6 +3,7 @@ package com.zzik.backend.domain.plan.service;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.zzik.backend.domain.plan.entity.TripMember;
 import com.zzik.backend.domain.plan.repository.TripMemberRepository;
@@ -55,4 +56,10 @@ public class TripMemberService {
 
 		return fetchedTripMembers;
 	}
+	
+	@Transactional
+	public int invalidateAllByTrip(Long tripId) {
+		return tripMemberRepository.invalidateAllAcceptsByTripId(tripId);
+	}
+
 }
