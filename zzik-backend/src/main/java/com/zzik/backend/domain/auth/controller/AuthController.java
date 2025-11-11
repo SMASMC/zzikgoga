@@ -39,7 +39,7 @@ public class AuthController {
 
 	private final AuthService authService;
 
-	private static final long ACCESS_TOKEN_COOKIE_VALIDITY_SECONDS = 18000;
+	private static final long ACCESS_TOKEN_COOKIE_VALIDITY_SECONDS = 180000;
 
 	@PostMapping("/kakao")
 	public ResponseEntity<ApiResponse<LoginResponse>> kakaoLogin(

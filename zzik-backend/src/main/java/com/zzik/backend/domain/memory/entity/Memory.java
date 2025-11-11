@@ -1,6 +1,10 @@
 package com.zzik.backend.domain.memory.entity;
 
+import java.util.Map;
+
 import org.hibernate.annotations.JdbcType;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import com.zzik.backend.domain.auth.entity.Member;
 import com.zzik.backend.domain.memory.enums.MemoryStatus;
@@ -11,8 +15,6 @@ import com.zzik.backend.global.base.entity.BaseEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -50,13 +52,13 @@ public class Memory extends BaseEntity {
     @Column(name = "title", nullable = false, length = 255)
     private String title; // 추억 제목
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, columnDefinition = "memory_status")
     @JdbcType(org.hibernate.dialect.PostgreSQLEnumJdbcType.class)
-    private MemoryStatus status = MemoryStatus.ONPROCESS;
+    private MemoryStatus status = MemoryStatus.onprocess;
 
     @Column(name = "content", columnDefinition = "JSONB")
-    private String content; // 임시저장 콘텐츠(JSON)
+	@JdbcTypeCode(SqlTypes.JSON)
+	private Map<String, Object> content; // 임시저장 콘텐츠(JSON)
 
     @Column(name = "pdf_url", length = 1024)
     private String pdfUrl; // PDF URL
@@ -67,34 +69,42 @@ public class Memory extends BaseEntity {
     @Column(name = "nft_id", length = 255)
     private String nftId; // NFT ID
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "mint_status", nullable = false, columnDefinition = "mint_status")
     @JdbcType(org.hibernate.dialect.PostgreSQLEnumJdbcType.class)
-    private MintStatus mintStatus = MintStatus.NONE;
+    private MintStatus mintStatus = MintStatus.none;
 
     @Column(name = "mint_hash", length = 255)
     private String mintHash; // 트랜잭션 해시
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "storage_type", columnDefinition = "storage_type")
     @JdbcType(org.hibernate.dialect.PostgreSQLEnumJdbcType.class)
     private StorageType storageType; // 저장소 타입(S3/Arweave)
 
     @Builder
     public Memory(Member member, Trip trip, String title, MemoryStatus status,
-                  String content, String pdfUrl, String arweaveUrl, String nftId,
+		Map<String, Object> content, String pdfUrl, String arweaveUrl, String nftId,
                   MintStatus mintStatus, String mintHash, StorageType storageType) {
         this.member = member;
         this.trip = trip;
         this.title = title;
-        this.status = status != null ? status : MemoryStatus.ONPROCESS;
+        this.status = status != null ? status : MemoryStatus.onprocess;
         this.content = content;
         this.pdfUrl = pdfUrl;
         this.arweaveUrl = arweaveUrl;
         this.nftId = nftId;
-        this.mintStatus = mintStatus != null ? mintStatus : MintStatus.NONE;
+        this.mintStatus = mintStatus != null ? mintStatus : MintStatus.none;
         this.mintHash = mintHash;
         this.storageType = storageType;
     }
+
+	/**
+	 * [추가]
+	 * 여행 기록의 내용(제목, 본문, 상태)을 수정합니다.
+	 */
+	public void update(String title, Map<String, Object> content, MemoryStatus status) {
+		this.title = title;
+		this.content = content;
+		this.status = status;
+	}
 }
 
