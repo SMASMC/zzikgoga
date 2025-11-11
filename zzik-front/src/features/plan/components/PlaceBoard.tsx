@@ -23,14 +23,6 @@ const getRoomId = (tripId: string | undefined) =>
 const toTime = (isoLocal: string) =>
   isoLocal?.length >= 16 ? isoLocal.slice(11, 16) : isoLocal || ''
 
-const isoToInputStart = (isoLocal: string) => {
-  if (!isoLocal) return ''
-  const date = isoLocal.slice(0, 10)
-  const time = isoLocal.slice(11, 16)
-  const [hh, mm] = time.split(':')
-  return `${date}-${hh}-${mm}`
-}
-
 const inputStartToIso = (input: string): string | null => {
   const parts = input.split('-')
   if (parts.length !== 5) return null
@@ -121,8 +113,15 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
   const roomId = useMemo(() => getRoomId(tripId), [tripId])
 
   // Schedules/Trip info
-  const { schedulesByDate, tripInfo, doc, awareness, updateScheduleTime, reorderSchedule } =
-    useYTripDoc(roomId)
+  const {
+    schedulesByDate,
+    tripInfo,
+    doc,
+    awareness,
+    updateScheduleTime,
+    reorderSchedule,
+    removeSchedule,
+  } = useYTripDoc(roomId)
 
   /**
    * 1) 제목 필드 보장: doc이 준비되면 tripInfo.title이 Y.Text로 존재하도록 보장
@@ -371,6 +370,16 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
       reorderSchedule(dateKey, sourceIndex, nextIndex)
     },
     [reorderSchedule, schedulesByDate]
+  )
+
+  const handleRemoveSchedule = useCallback(
+    (dateKey: string, index: number) => {
+      if (editingKey === `${dateKey}:${index}`) {
+        setEditingKey(null)
+      }
+      removeSchedule(dateKey, index)
+    },
+    [editingKey, removeSchedule]
   )
 
   const handlePointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
@@ -623,19 +632,17 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
                                         (+{normalizeOffsetToHHMM(it.offset_time)})
                                       </span>
                                     ) : null}
-                                    <button
-                                      type="button"
-                                      className="hidden ml-2 rounded border border-slate-200 px-2 py-0.5 text-[11px] text-slate-500 hover:bg-slate-50"
-                                      onClick={() => {
-                                        const key = `${date}:${originalIndex}`
-                                        setEditingKey(key)
-                                        setEditStart(isoToInputStart(it.start_time))
-                                        setEditOffset(normalizeOffsetToHHMM(it.offset_time))
-                                      }}
-                                    >
-                                      시간 수정
-                                    </button>
                                   </div>
+                                </div>
+
+                                <div className="mt-2 flex flex-wrap items-end justify-end gap-2 text-[11px] text-slate-500">
+                                  <button
+                                    type="button"
+                                    className="rounded-full border border-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-500 transition hover:border-red-300 hover:bg-red-50"
+                                    onClick={() => handleRemoveSchedule(date, originalIndex)}
+                                  >
+                                    삭제
+                                  </button>
                                 </div>
 
                                 <div className="mt-1">

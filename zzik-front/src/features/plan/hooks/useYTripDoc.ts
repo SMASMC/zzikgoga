@@ -137,7 +137,7 @@ export const useYTripDoc = (roomId: string) => {
       setSchedulesByDate(snapshotSchedules(doc))
     }
 
-    // Initial snapshot
+    // 초기 스냅샷
     updateAll()
 
     const budgetsMap = doc.getMap('budgets') as Y.Map<unknown>
@@ -155,10 +155,9 @@ export const useYTripDoc = (roomId: string) => {
         end_date: (t.get('end_date') as string) ?? undefined,
       })
     }
-    const tripDeepObserver = (
-      _events: Y.YEvent<Y.Map<unknown>>[],
-      _transaction: Y.Transaction
-    ) => {
+
+    // 🔧 불필요 인자 제거(미사용 변수 에러 방지)
+    const tripDeepObserver = () => {
       tripObserver()
     }
 
@@ -166,7 +165,7 @@ export const useYTripDoc = (roomId: string) => {
     schedulesMap.observeDeep(schedulesObserver)
     tripMap.observeDeep(tripDeepObserver)
 
-    // Ensure each schedule item has a stable uid
+    // 각 스케줄 아이템 uid 보정 (없거나 짧을 때만)
     const ensureUids = () => {
       const sm = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
       sm.forEach((arr) => {
@@ -180,6 +179,7 @@ export const useYTripDoc = (roomId: string) => {
     }
     ensureUids()
 
+    // cleanup
     return () => {
       budgetsMap.unobserveDeep(budgetsObserver)
       schedulesMap.unobserveDeep(schedulesObserver)
@@ -204,7 +204,7 @@ export const useYTripDoc = (roomId: string) => {
       yItem.set('id', null)
       yItem.set('category', budget.category)
       yItem.set('amount', Number(budget.amount) || 0)
-      yItem.set('description', new Y.Text(budget.description ?? ''))
+      yItem.set('description', new Y.Text((budget.description ?? '').toString()))
       yArr.push([yItem])
     },
     []
@@ -256,17 +256,17 @@ export const useYTripDoc = (roomId: string) => {
       yItem.set('uid', `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
       yItem.set('start_time', payload.startTimeLocal)
 
-       let offset: string | null = null
-       if (payload.endTimeLocal) {
-         try {
-           const start = new Date(payload.startTimeLocal)
-           const end = new Date(payload.endTimeLocal)
-           const ms = end.getTime() - start.getTime()
-           offset = millisToHHMM(ms)
-         } catch {
-           offset = null
-         }
-       }
+      let offset: string | null = null
+      if (payload.endTimeLocal) {
+        try {
+          const start = new Date(payload.startTimeLocal)
+          const end = new Date(payload.endTimeLocal)
+          const ms = end.getTime() - start.getTime()
+          offset = millisToHHMM(ms)
+        } catch {
+          offset = null
+        }
+      }
       yItem.set('offset_time', offset)
       const initialMemo = (payload.memo ?? '').replace(/\r\n/g, '\n').replace(/\n+$/, '')
       yItem.set('memo', new Y.Text(initialMemo))
@@ -388,37 +388,34 @@ export const useYTripDoc = (roomId: string) => {
     []
   )
 
-  const reorderSchedule = useCallback(
-    (dateKey: string, fromIndex: number, toIndex: number) => {
-      const entry = providerRef.current
-      if (!entry) return
-      const { doc } = entry
-      const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
-      const yArr = schedulesMap.get(dateKey)
-      if (!(yArr instanceof Y.Array)) return
-      if (fromIndex === toIndex || fromIndex < 0 || fromIndex >= yArr.length) {
+  const reorderSchedule = useCallback((dateKey: string, fromIndex: number, toIndex: number) => {
+    const entry = providerRef.current
+    if (!entry) return
+    const { doc } = entry
+    const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
+    const yArr = schedulesMap.get(dateKey)
+    if (!(yArr instanceof Y.Array)) return
+    if (fromIndex === toIndex || fromIndex < 0 || fromIndex >= yArr.length) {
+      return
+    }
+
+    doc.transact(() => {
+      const item = yArr.get(fromIndex)
+      if (!item) {
         return
       }
 
-      doc.transact(() => {
-        const item = yArr.get(fromIndex)
-        if (!item) {
-          return
-        }
-
-        yArr.delete(fromIndex, 1)
-        let insertIndex = toIndex
-        if (insertIndex < 0) insertIndex = 0
-        if (insertIndex > yArr.length) insertIndex = yArr.length
-        if (fromIndex < toIndex) {
-          insertIndex = Math.max(0, insertIndex - 1)
-        }
-        yArr.insert(insertIndex, [item])
-        reflowScheduleTimes(yArr)
-      }, 'reorder-schedule')
-    },
-    []
-  )
+      yArr.delete(fromIndex, 1)
+      let insertIndex = toIndex
+      if (insertIndex < 0) insertIndex = 0
+      if (insertIndex > yArr.length) insertIndex = yArr.length
+      if (fromIndex < toIndex) {
+        insertIndex = Math.max(0, insertIndex - 1)
+      }
+      yArr.insert(insertIndex, [item])
+      reflowScheduleTimes(yArr)
+    }, 'reorder-schedule')
+  }, [])
 
   const moveSchedule = useCallback(
     (sourceDateKey: string, fromIndex: number, targetDateKey: string, targetIndex: number) => {
@@ -454,26 +451,23 @@ export const useYTripDoc = (roomId: string) => {
     []
   )
 
-  const removeSchedule = useCallback(
-    (dateKey: string, index: number) => {
-      const entry = providerRef.current
-      if (!entry) return
-      const { doc } = entry
-      const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
-      const yArr = schedulesMap.get(dateKey)
-      if (!(yArr instanceof Y.Array)) return
-      if (index < 0 || index >= yArr.length) return
-      doc.transact(() => {
-        yArr.delete(index, 1)
-        if (yArr.length === 0) {
-          schedulesMap.delete(dateKey)
-        } else {
-          reflowScheduleTimes(yArr)
-        }
-      }, 'remove-schedule')
-    },
-    []
-  )
+  const removeSchedule = useCallback((dateKey: string, index: number) => {
+    const entry = providerRef.current
+    if (!entry) return
+    const { doc } = entry
+    const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
+    const yArr = schedulesMap.get(dateKey)
+    if (!(yArr instanceof Y.Array)) return
+    if (index < 0 || index >= yArr.length) return
+    doc.transact(() => {
+      yArr.delete(index, 1)
+      if (yArr.length === 0) {
+        schedulesMap.delete(dateKey)
+      } else {
+        reflowScheduleTimes(yArr)
+      }
+    }, 'remove-schedule')
+  }, [])
 
   return {
     doc: providerRef.current?.doc ?? null,

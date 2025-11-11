@@ -4,11 +4,7 @@ interface CloseButtonProps {
   title?: string
 }
 
-export const CloseButton = ({
-  onClick,
-  className = '',
-  title = '닫기',
-}: CloseButtonProps) => {
+export const CloseButton = ({ onClick, className = '', title = '닫기' }: CloseButtonProps) => {
   return (
     <button
       type="button"
