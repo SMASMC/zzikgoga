@@ -95,6 +95,9 @@ dependencies {
     /* Flyway */
     implementation 'org.flywaydb:flyway-core:11.15.0'
     implementation 'org.flywaydb:flyway-database-postgresql:11.15.0'
+
+    implementation 'com.openhtmltopdf:openhtmltopdf-pdfbox:1.0.10'
+    implementation 'com.openhtmltopdf:openhtmltopdf-slf4j:1.0.10'
 }
 
 // QueryDSL 설정

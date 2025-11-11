@@ -3,6 +3,7 @@ package com.zzik.backend.domain.memory.controller;
 import com.zzik.backend.domain.memory.api.MemoryApi;
 import com.zzik.backend.domain.memory.dto.request.MemorySaveRequest;
 import com.zzik.backend.domain.memory.dto.response.MemoryDetailResponse;
+import com.zzik.backend.domain.memory.dto.response.MemoryPdfResponse;
 import com.zzik.backend.domain.memory.service.MemoryService;
 import com.zzik.backend.global.presentation.ApiResponse;
 import com.zzik.backend.global.security.utils.SecurityUtil;
@@ -36,6 +37,16 @@ public class MemoryController implements MemoryApi {
 	) {
 		Long memberId = SecurityUtil.getCurrentMemberId();
 		MemoryDetailResponse response = memoryService.getMyMemory(tripId, memberId);
+		return ResponseEntity.ok(ApiResponse.createSuccess(response));
+	}
+
+	@Override
+	@PostMapping("/{tripId}/convert/pdf")
+	public ResponseEntity<ApiResponse<MemoryPdfResponse>> convertMemoryToPdf(
+		@PathVariable Long tripId
+	) {
+		Long memberId = SecurityUtil.getCurrentMemberId();
+		MemoryPdfResponse response = memoryService.convertMemoryToPdf(tripId, memberId);
 		return ResponseEntity.ok(ApiResponse.createSuccess(response));
 	}
 }
