@@ -41,6 +41,7 @@ import com.zzik.backend.domain.cost.repository.CostRepository;
 import com.zzik.backend.domain.plan.entity.Trip;
 import com.zzik.backend.domain.plan.repository.TripRepository;
 import com.zzik.backend.domain.plan.service.TripMemberService;
+import com.zzik.backend.domain.user.service.UserService;
 import com.zzik.backend.global.cloud.s3.service.S3Directory;
 import com.zzik.backend.global.cloud.s3.service.S3Service;
 import com.zzik.backend.global.exception.BusinessException;
@@ -67,6 +68,7 @@ public class CostService {
 	private final MemberRepository memberRepository;
 	private final S3Service s3Service;
 	private final TripMemberService tripMemberService;
+	private final UserService userService;
 
 	// 사진 검증
 	public void validateReceiptImage(MultipartFile file) {
@@ -171,6 +173,10 @@ public class CostService {
 				}
 			}
 
+			if (items.isEmpty() && totalPrice != null && totalPrice > 0) {
+				items.add(new ReceiptItemDto("전체", "1", String.valueOf(totalPrice)));
+			}
+
 			String cardCompany = safeText(result, "paymentInfo", "cardInfo", "company", "text");
 			String cardNumber = safeText(result, "paymentInfo", "cardInfo", "number", "text");
 
@@ -213,8 +219,10 @@ public class CostService {
 
 		if (req == null)
 			throw BusinessException.from(ExceptionCode.RECEIPT_CONTEXT_INVALID);
-		if (req.getItems() == null || req.getItems().isEmpty())
+		if ((req.getItems() == null || req.getItems().isEmpty())
+			&& (req.getTotalAmount() == null || req.getTotalAmount() <= 0)) {
 			throw BusinessException.from(ExceptionCode.RECEIPT_CONTEXT_INVALID);
+		}
 		if (!StringUtils.hasText(req.getPlace()))
 			throw BusinessException.from(ExceptionCode.RECEIPT_CONTEXT_INVALID);
 		if (!StringUtils.hasText(req.getPaidAt()))
