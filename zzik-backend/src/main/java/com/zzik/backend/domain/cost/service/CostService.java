@@ -449,4 +449,20 @@ public class CostService {
 			.totalCostCount(costSummaries.size())
 			.build();
 	}
+
+	public Long deleteCost(Long tripId, Long costId) {
+		if (!tripRepository.existsById(tripId)) {
+			throw BusinessException.from(ExceptionCode.INVALID_TRIP);
+		}
+		Long curUserId = SecurityUtil.getCurrentMemberId();
+
+		tripMemberService.validateMembershipAndGet(curUserId, tripId);
+
+		Cost cost = costRepository.findByIdAndTripId(costId, tripId)
+			.orElseThrow(() -> BusinessException.from(ExceptionCode.COST_NOT_FOUND));
+
+		costRepository.delete(cost);
+
+		return cost.getId();
+	}
 }

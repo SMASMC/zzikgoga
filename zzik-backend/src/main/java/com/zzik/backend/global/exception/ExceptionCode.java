@@ -61,7 +61,7 @@ public enum ExceptionCode {
 	TRIP_COST_ALREADY_COMPLETED(HttpStatus.CONFLICT, 40312, "해당 여행의 정산이 완료되어 수정할 수 없습니다.",
 		"cost - trip.isCostCompleted = true"),
 	COST_MENU_NOT_FOUND(HttpStatus.NOT_FOUND, 40313, "존재하지 않는 결제 메뉴 항목입니다.", "cost - cost_menu not found"),
-
+	COST_NOT_FOUND(HttpStatus.NOT_FOUND, 40314, "존재하지 않는 결제 항목입니다.", "cost - cost not found"),
 	/* 4032x - cost - accept */
 	ALREADY_ACCEPTED_COST(HttpStatus.CONFLICT, 40320, "이미 정산에 수락 하셨습니다.", "cost - approval 이미 정산을 수락함"),
 

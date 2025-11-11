@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -132,4 +133,28 @@ public interface CostApi {
 	)
 	@GetMapping("/{tripId}/calculate")
 	ResponseEntity<ApiResponse<CostCalculateResponse>> calculate(@PathVariable Long tripId);
+
+	@Operation(
+		summary = "정산 내역 삭제",
+		description = "특정 여행(tripId)의 정산(costId) 내역을 삭제합니다."
+	)
+	@ApiResponseExplanations(
+		success = @ApiSuccessResponseExplanation(
+			description = "정산 삭제 성공",
+			responseClass = Long.class
+		),
+		errors = {
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.INVALID_TRIP),
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.NOT_TRIP_MEMBER),
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.COST_NOT_FOUND)
+		}
+	)
+	@DeleteMapping(
+		value = "/{tripId}/{costId}",
+		produces = MediaType.APPLICATION_JSON_VALUE
+	)
+	ResponseEntity<ApiResponse<Long>> deleteCost(
+		@PathVariable Long tripId,
+		@PathVariable Long costId
+	);
 }

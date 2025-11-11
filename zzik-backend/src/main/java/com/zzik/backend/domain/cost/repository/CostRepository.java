@@ -28,4 +28,6 @@ public interface CostRepository extends JpaRepository<Cost, Long> {
 	List<Cost> findAllWithMenusByTripId(Long tripId);
 
 	Optional<Cost> findByIdAndTripId(Long costId, Long tripId);
+
+	boolean existsByIdAndTripId(Long id, Long tripId);
 }
