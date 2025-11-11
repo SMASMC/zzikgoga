@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import * as Y from 'yjs'
 import { acquireProvider, releaseProvider } from '../stores/yjsStore'
 import type { Awareness } from 'y-protocols/awareness'
+import { dateKeyOf, formatLocalMinute, millisToHHMM, parseOffsetMinutes } from '../utils/time'
 
 export interface YBudgetItem {
   id: number | null
@@ -37,18 +38,6 @@ export interface TripInfoPlain {
 }
 
 const yTextToString = (v: unknown) => (v instanceof Y.Text ? v.toString() : String(v ?? ''))
-
-const toOffsetHHMM = (ms: number): string | null => {
-  if (!Number.isFinite(ms) || ms <= 0) return null
-  const totalMinutes = Math.floor(ms / 60000)
-  const hours = Math.floor(totalMinutes / 60)
-  const minutes = totalMinutes % 60
-  const hh = String(hours).padStart(2, '0')
-  const mm = String(minutes).padStart(2, '0')
-  return `${hh}:${mm}`
-}
-
-const dateKeyOf = (isoLocalMinute: string) => isoLocalMinute.slice(0, 10)
 
 const snapshotBudgets = (doc: Y.Doc): Record<string, YBudgetItem[]> => {
   const budgetsMap = doc.getMap('budgets') as Y.Map<Y.Array<Y.Map<unknown>>>
@@ -102,20 +91,6 @@ const snapshotSchedules = (doc: Y.Doc): Record<string, YScheduleItem[]> => {
   })
 
   return result
-}
-
-const parseOffsetMinutes = (value: unknown): number => {
-  if (typeof value !== 'string') return 0
-  const match = value.match(/^(\d{1,3}):(\d{2})$/)
-  if (!match) return 0
-  const hours = Number(match[1]) || 0
-  const minutes = Number(match[2]) || 0
-  return hours * 60 + minutes
-}
-
-const formatLocalMinute = (date: Date): string => {
-  const pad = (v: number) => String(v).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
 const reflowScheduleTimes = (yArr: Y.Array<Y.Map<unknown>>) => {
@@ -180,10 +155,16 @@ export const useYTripDoc = (roomId: string) => {
         end_date: (t.get('end_date') as string) ?? undefined,
       })
     }
+    const tripDeepObserver = (
+      _events: Y.YEvent<Y.Map<unknown>>[],
+      _transaction: Y.Transaction
+    ) => {
+      tripObserver()
+    }
 
     budgetsMap.observeDeep(budgetsObserver)
     schedulesMap.observeDeep(schedulesObserver)
-    tripMap.observe(tripObserver)
+    tripMap.observeDeep(tripDeepObserver)
 
     // Ensure each schedule item has a stable uid
     const ensureUids = () => {
@@ -202,7 +183,7 @@ export const useYTripDoc = (roomId: string) => {
     return () => {
       budgetsMap.unobserveDeep(budgetsObserver)
       schedulesMap.unobserveDeep(schedulesObserver)
-      tripMap.unobserve(tripObserver)
+      tripMap.unobserveDeep(tripDeepObserver)
       releaseProvider(roomId)
       providerRef.current = null
     }
@@ -228,6 +209,23 @@ export const useYTripDoc = (roomId: string) => {
     },
     []
   )
+
+  const removeBudget = useCallback((dateKey: string, index: number) => {
+    const entry = providerRef.current
+    if (!entry) return
+    const { doc } = entry
+    const budgetsMap = doc.getMap('budgets') as Y.Map<Y.Array<Y.Map<unknown>>>
+    const yArr = budgetsMap.get(dateKey)
+    if (!(yArr instanceof Y.Array)) return
+    if (index < 0 || index >= yArr.length) return
+
+    doc.transact(() => {
+      yArr.delete(index, 1)
+      if (yArr.length === 0) {
+        budgetsMap.delete(dateKey)
+      }
+    }, 'remove-budget')
+  }, [])
 
   const addSchedule = useCallback(
     (payload: {
@@ -258,17 +256,17 @@ export const useYTripDoc = (roomId: string) => {
       yItem.set('uid', `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
       yItem.set('start_time', payload.startTimeLocal)
 
-      let offset: string | null = null
-      if (payload.endTimeLocal) {
-        try {
-          const start = new Date(payload.startTimeLocal)
-          const end = new Date(payload.endTimeLocal)
-          const ms = end.getTime() - start.getTime()
-          offset = toOffsetHHMM(ms)
-        } catch {
-          offset = null
-        }
-      }
+       let offset: string | null = null
+       if (payload.endTimeLocal) {
+         try {
+           const start = new Date(payload.startTimeLocal)
+           const end = new Date(payload.endTimeLocal)
+           const ms = end.getTime() - start.getTime()
+           offset = millisToHHMM(ms)
+         } catch {
+           offset = null
+         }
+       }
       yItem.set('offset_time', offset)
       const initialMemo = (payload.memo ?? '').replace(/\r\n/g, '\n').replace(/\n+$/, '')
       yItem.set('memo', new Y.Text(initialMemo))
@@ -456,6 +454,27 @@ export const useYTripDoc = (roomId: string) => {
     []
   )
 
+  const removeSchedule = useCallback(
+    (dateKey: string, index: number) => {
+      const entry = providerRef.current
+      if (!entry) return
+      const { doc } = entry
+      const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
+      const yArr = schedulesMap.get(dateKey)
+      if (!(yArr instanceof Y.Array)) return
+      if (index < 0 || index >= yArr.length) return
+      doc.transact(() => {
+        yArr.delete(index, 1)
+        if (yArr.length === 0) {
+          schedulesMap.delete(dateKey)
+        } else {
+          reflowScheduleTimes(yArr)
+        }
+      }, 'remove-schedule')
+    },
+    []
+  )
+
   return {
     doc: providerRef.current?.doc ?? null,
     awareness: (providerRef.current?.awareness as Awareness) ?? null,
@@ -467,5 +486,7 @@ export const useYTripDoc = (roomId: string) => {
     updateScheduleTime,
     reorderSchedule,
     moveSchedule,
+    removeBudget,
+    removeSchedule,
   }
 }

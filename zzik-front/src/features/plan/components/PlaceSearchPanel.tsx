@@ -1,4 +1,4 @@
-import { useJsApiLoader, GoogleMap, Marker, Polyline } from '@react-google-maps/api'
+﻿import { useJsApiLoader, GoogleMap, Marker, Polyline } from '@react-google-maps/api'
 import type { Libraries } from '@react-google-maps/api'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import Input from '@/components/atoms/Input'
@@ -70,7 +70,7 @@ const PlaceSearchPanel = () => {
 
   const handleAddPlace = useCallback(() => {
     if (!selectedPlace) {
-      setToastMessage('먼저 장소를 선택해 주세요.')
+      setToastMessage('먼저 장소를 선택해주세요.')
       return
     }
     setIsModalOpen(true)
@@ -123,7 +123,7 @@ const PlaceSearchPanel = () => {
     } catch (error) {
       console.error(error)
       setErrorMessage(
-        error instanceof Error ? error.message : '검색 중 오류가 발생했습니다. 다시 시도해 주세요.'
+        error instanceof Error ? error.message : '검색 중 오류가 발생했습니다. 다시 시도해주세요.'
       )
     } finally {
       setHasSearched(true)
@@ -132,11 +132,9 @@ const PlaceSearchPanel = () => {
 
   if (!apiKey) {
     return (
-      <aside className="flex w-full flex-col gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-600 md:w-1/4">
-        <p>Google Maps API 키가 설정되지 않았습니다.</p>
-        <p>
-          루트 <code>.env</code> 파일에 <code>VITE_GOOGLE_MAP_KEY</code> 값을 입력한 뒤 개발 서버를
-          재시작해 주세요.
+      <aside className="flex w-full flex-col gap-4 border-r border-slate-200 bg-white p-4 md:w-1/3 lg:w-1/4">
+        <p className="text-sm text-slate-500">
+          Google Maps API 키가 설정되지 않았습니다. 환경 변수를 확인해주세요.
         </p>
       </aside>
     )
@@ -144,9 +142,10 @@ const PlaceSearchPanel = () => {
 
   if (loadError) {
     return (
-      <aside className="flex w-full flex-col gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-600 md:w-1/4">
-        <p>Google Maps 로딩 중 오류가 발생했습니다.</p>
-        <p className="text-xs text-red-500">
+      <aside className="flex w-full flex-col gap-4 border-r border-slate-200 bg-white p-4 md:w-1/3 lg:w-1/4">
+        <p className="text-sm text-red-500">
+          Google Maps 로딩 중 오류가 발생했습니다.
+          <br />
           {loadError instanceof Error ? loadError.message : 'Invalid Google Maps API key.'}
         </p>
       </aside>
@@ -155,26 +154,27 @@ const PlaceSearchPanel = () => {
 
   if (!isLoaded) {
     return (
-      <aside className="flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-500 md:w-1/4">
-        지도를 불러오는 중입니다...
+      <aside className="flex w-full items-center justify-center border-r border-slate-200 bg-white p-4 md:w-1/3 lg:w-1/4">
+        <p className="text-sm text-slate-500">Google Maps를 불러오는 중입니다...</p>
       </aside>
     )
   }
 
   return (
-    <aside className="flex w-full flex-col gap-4 border-r border-slate-200 bg-white p-4 md:w-1/4">
+    <aside className="flex w-full flex-col gap-6 border-r border-slate-200 bg-white p-4 md:w-1/3 lg:w-1/4">
       <ToastDock
         open={Boolean(toastMessage)}
-        variant="warning"
-        title="알림"
+        variant="hint"
+        title="안내"
         message={toastMessage ?? ''}
-        autoCloseMs={3000}
+        autoCloseMs={2500}
         offsetPx={16}
         onClose={() => setToastMessage(null)}
       />
+
       <header>
-        <h2 className="text-4xl font-bold text-slate-800">장소 검색</h2>
-        <p className="mt-1 text-sm text-slate-400">검색 후 지도를 클릭해 장소를 추가하세요.</p>
+        <h2 className="text-2xl font-extrabold text-slate-900">장소 검색</h2>
+        <p className="mt-1 text-sm text-slate-400">검색 후 리스트에서 장소를 클릭해 추가하세요.</p>
       </header>
 
       <div className="flex flex-col gap-2 sm:flex-row">
@@ -187,12 +187,12 @@ const PlaceSearchPanel = () => {
               handleSearch()
             }
           }}
-          placeholder="장소, 관광지, 주소 등을 입력해 주세요."
-          className="flex-1 placeholder:text-slate-400 rounded-full"
+          placeholder="장소, 관광지, 주소 등을 입력해주세요"
+          className="flex-1 rounded-full placeholder:text-slate-400"
         />
         <SolidButton
           onClick={handleSearch}
-          className="w-full whitespace-nowrap bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 sm:w-auto rounded-full"
+          className="w-full rounded-full bg-main-600 px-4 py-2 text-white hover:bg-main-700 sm:w-auto"
         >
           검색
         </SolidButton>
@@ -211,8 +211,8 @@ const PlaceSearchPanel = () => {
               key={place.id}
               type="button"
               onClick={() => handleSelectPlace(place)}
-              className={`w-full cursor-pointer border-b px-3 py-2 text-left transition hover:bg-blue-50 ${
-                selectedPlace?.id === place.id ? 'bg-blue-100' : ''
+              className={`w-full cursor-pointer border-b px-3 py-2 text-left transition hover:bg-main-50 ${
+                selectedPlace?.id === place.id ? 'bg-main-100' : ''
               }`}
             >
               <p className="font-medium text-slate-800">{place.displayName.text}</p>
@@ -222,16 +222,14 @@ const PlaceSearchPanel = () => {
         ) : hasSearched ? (
           <p className="px-3 py-2 text-center text-xs text-slate-400">검색 결과가 없습니다.</p>
         ) : (
-          <p className="px-3 py-2 text-center text-xs text-slate-300">
-            검색어를 입력하고 결과를 확인하세요.
-          </p>
+          <p className="px-3 py-2 text-center text-xs text-slate-300">검색어를 입력해 주세요.</p>
         )}
       </section>
 
       {selectedPlace ? (
         <SolidButton
           onClick={handleAddPlace}
-          className="w-full bg-emerald-500 px-4 py-2 text-white hover:bg-emerald-600 rounded-full"
+          className="w-full rounded-full bg-emerald-500 px-4 py-2 text-white hover:bg-emerald-600"
         >
           선택한 장소 추가
         </SolidButton>
@@ -242,15 +240,7 @@ const PlaceSearchPanel = () => {
           onLoad={(map) => {
             mapRef.current = map
           }}
-          mapContainerClassName="
-      w-full
-      h-[50vh]
-      sm:h-[55vh]
-      md:h-[60vh]
-      lg:h-[65vh]
-      xl:h-[70vh]
-      2xl:h-[75vh]
-    "
+          mapContainerClassName="w-full h-[50vh] sm:h-[55vh] md:h-[60vh] lg:h-[65vh] xl:h-[70vh] 2xl:h-[75vh]"
           center={mapCenter}
           zoom={selectedPlace ? 13 : 11}
           onDragEnd={() => {
@@ -277,11 +267,7 @@ const PlaceSearchPanel = () => {
                 lat: place.location.latitude,
                 lng: place.location.longitude,
               }))}
-              options={{
-                strokeColor: '#2563eb',
-                strokeOpacity: 0.7,
-                strokeWeight: 4,
-              }}
+              options={{ strokeColor: '#2563eb', strokeOpacity: 0.7, strokeWeight: 4 }}
             />
           )}
         </GoogleMap>

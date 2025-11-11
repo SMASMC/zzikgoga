@@ -1,9 +1,10 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import SolidButton from '@/components/atoms/SolidButton'
 import Input from '@/components/atoms/Input'
 import { ToastDock } from '@/components/blocks/ToastDock'
 import { DropdownSelect } from '@/components/blocks/DropdownSelect'
+import Calendar from '@/components/atoms/Calendar'
 import { useYTripDoc } from '../hooks/useYTripDoc'
 import YTextEditor from './YTextEditor'
 import * as Y from 'yjs'
@@ -24,13 +25,15 @@ const BudgetPanel = () => {
     [tripId]
   )
 
-  const { budgetsByDate, addBudget, doc, tripInfo } = useYTripDoc(roomId)
+  const { budgetsByDate, addBudget, doc, tripInfo, removeBudget } = useYTripDoc(roomId)
 
   const [date, setDate] = useState<string>(todayKey())
   const [category, setCategory] = useState<CostCategory>('ETC')
   const [amount, setAmount] = useState<string>('')
   const [description, setDescription] = useState<string>('')
   const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [showCalendar, setShowCalendar] = useState(false)
+  const calendarRef = useRef<HTMLDivElement | null>(null)
 
   const isWithinTripRange = useCallback(
     (targetDate: string) => {
@@ -67,6 +70,37 @@ const BudgetPanel = () => {
     setDescription('')
   }
 
+  const handleCalendarSelect = (selectedStart: Date) => {
+    const nextDate = selectedStart.toISOString().slice(0, 10)
+    setDate(nextDate)
+    setShowCalendar(false)
+    if (!isWithinTripRange(nextDate)) {
+      notifyOutOfRange()
+    }
+  }
+
+  useEffect(() => {
+    if (!showCalendar) return
+    const handleClickOutside = (event: MouseEvent) => {
+      if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
+        setShowCalendar(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showCalendar])
+
+  const dateLabel = (() => {
+    if (!date) return '날짜 선택'
+    try {
+      return new Date(date).toLocaleDateString('ko-KR')
+    } catch {
+      return date
+    }
+  })()
+
   return (
     <aside className="flex w-full flex-col gap-4 border-l border-slate-200 bg-white p-4 md:w-1/4">
       <ToastDock
@@ -85,7 +119,36 @@ const BudgetPanel = () => {
 
       <div className="flex flex-col gap-2 rounded-lg border border-slate-200 p-3">
         <div className="grid grid-cols-2 gap-2">
-          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <div className="col-span-2" ref={calendarRef}>
+            <button
+              type="button"
+              onClick={() => setShowCalendar((prev) => !prev)}
+              className="flex w-full items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-left text-sm font-semibold text-slate-600 transition hover:border-point-400 hover:bg-background-500"
+            >
+              <span>{dateLabel}</span>
+              <svg
+                className={`h-4 w-4 transition-transform ${showCalendar ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {showCalendar ? (
+              <div className="relative mt-2">
+                <div className="absolute z-20">
+                  <Calendar
+                    mode="single"
+                    initialStartDate={date ? new Date(date) : undefined}
+                    initialEndDate={date ? new Date(date) : undefined}
+                    onDateSelect={(start) => handleCalendarSelect(start)}
+                  />
+                </div>
+              </div>
+            ) : null}
+          </div>
           <DropdownSelect
             options={CATEGORY_OPTIONS}
             value={category}
@@ -141,11 +204,20 @@ const BudgetPanel = () => {
                           key={`${d}-${it.id ?? 'n'}-${idx}`}
                           className="rounded border border-slate-100 bg-white p-2"
                         >
-                          <div className="flex items-center justify-between">
+                          <div className="flex items-center justify-between gap-3">
                             <span className="text-slate-700">
                               {COST_CATEGORY_LABELS[it.category as CostCategory] || it.category}
                             </span>
-                            <span className="text-slate-600">{it.amount.toLocaleString()}원</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-600">{it.amount.toLocaleString()}원</span>
+                              <button
+                                type="button"
+                                onClick={() => removeBudget(d, idx)}
+                                className="rounded-full border border-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-500 transition hover:border-red-300 hover:bg-red-50"
+                              >
+                                삭제
+                              </button>
+                            </div>
                           </div>
                           {yDesc ? (
                             <div className="mt-1">
