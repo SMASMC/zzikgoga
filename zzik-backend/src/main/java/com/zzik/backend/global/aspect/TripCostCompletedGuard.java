@@ -20,7 +20,9 @@ public class TripCostCompletedGuard {
 	private final TripRepository tripRepository;
 
 	@Before("execution(* com.zzik.backend.domain.cost.service.CostService.*(..)) || " +
-		"execution(* com.zzik.backend.domain.cost.service.CostEditService.*(..))")
+		"execution(* com.zzik.backend.domain.cost.service.CostEditService.*(..))" +
+		"   && !execution(* com.zzik.backend.domain.cost.service.CostService.read*(..)) " +
+		"   && !execution(* com.zzik.backend.domain.cost.service.CostService.get*(..)) ")
 	public void validate(JoinPoint jp) {
 		Object[] args = jp.getArgs();
 		if (args.length == 0 || !(args[0] instanceof Long tripId))
