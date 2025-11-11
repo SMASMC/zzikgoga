@@ -19,6 +19,7 @@ import com.zzik.backend.domain.cost.dto.response.CostListResponse;
 import com.zzik.backend.domain.cost.dto.response.ReceiptOcrResponse;
 import com.zzik.backend.domain.cost.service.CostCalculateService;
 import com.zzik.backend.domain.cost.service.CostService;
+import com.zzik.backend.domain.user.service.UserService;
 import com.zzik.backend.global.presentation.ApiResponse;
 import com.zzik.backend.global.security.utils.SecurityUtil;
 
@@ -31,6 +32,7 @@ public class CostController implements CostApi {
 
 	private final CostService costService;
 	private final CostCalculateService costCalculateService;
+	private final UserService userService;
 
 	@Override
 	public ResponseEntity<ApiResponse<ReceiptOcrResponse>> uploadReceiptAndSave(
@@ -72,5 +74,14 @@ public class CostController implements CostApi {
 		Long userId = SecurityUtil.getCurrentMemberId();
 		CostCalculateResponse content = costCalculateService.calculate(tripId, userId);
 		return ResponseEntity.ok(ApiResponse.createSuccess(content));
+	}
+
+	@Override
+	public ResponseEntity<ApiResponse<Long>> deleteCost(
+		@PathVariable Long tripId,
+		@PathVariable Long costId
+	) {
+		Long deletedId = costService.deleteCost(tripId, costId);
+		return ResponseEntity.ok(ApiResponse.createSuccess(deletedId));
 	}
 }
