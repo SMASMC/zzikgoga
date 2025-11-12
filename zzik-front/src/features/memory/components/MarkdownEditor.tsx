@@ -108,10 +108,10 @@ const MarkdownEditor = ({ value, onChange }: Props) => {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="grid grid-cols-2 gap-3 h-full">
+      <div className="grid grid-cols-2 gap-3 h-full min-h-0">
         <textarea
           ref={textareaRef}
-          className="col-span-1 w-full h-full resize-none p-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scrollbar"
+          className="col-span-1 w-full h-full overflow-y-auto resize-none p-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scrollbar"
           placeholder="# 제목\n내용을 마크다운으로 입력하세요"
           value={value}
           onChange={e => onChange(e.target.value)}

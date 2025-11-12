@@ -147,13 +147,13 @@ const MemoryPage = () => {
   }
 
   return (
-    <div className="h-[calc(100vh-80px)] p-4">
-      <div className="h-full grid grid-cols-12 gap-4">
-        <aside className="col-span-4 rounded-xl bg-white shadow border overflow-hidden">
+    <div className="h-[calc(100vh-80px)] p-4 overflow-hidden">
+      <div className="h-full grid grid-cols-12 gap-4 min-h-0">
+        <aside className="col-span-4 rounded-xl bg-white shadow border overflow-hidden flex flex-col min-h-0">
           {safeTripId && <MemoryPhotoGallery tripId={safeTripId} />}
         </aside>
-        <section className="col-span-8 flex flex-col">
-          <div className="mb-3 flex items-center gap-2">
+        <section className="col-span-8 flex flex-col min-h-0 overflow-hidden">
+          <div className="mb-3 flex items-center gap-2 shrink-0">
             <Input
               placeholder="제목을 입력하세요"
               value={title}
@@ -166,7 +166,7 @@ const MemoryPage = () => {
           </div>
           {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
           {savedId && <div className="text-green-700 text-sm mb-2">저장 완료 (ID: {savedId})</div>}
-          <div className="flex-1">
+          <div className="flex-1 min-h-0 overflow-hidden">
             <MarkdownEditor value={markdown} onChange={setMarkdown} />
           </div>
         </section>
