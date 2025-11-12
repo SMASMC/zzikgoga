@@ -70,7 +70,8 @@
         .item-card input[type="text"],
         .item-card input[type="number"],
         .item-card input[type="datetime-local"],
-        .item-card input[type="date"] {
+        .item-card input[type="date"],
+        .item-card select {
             width: 95%;
             padding: 6px;
             border: 1px solid #ccc;
@@ -120,10 +121,14 @@
         <h2>Trip Info (tripInfo)</h2>
         <div id="tripInfo-container">
             <label>ID:</label> <span data-field="id">...</span><br>
+            <label>Owner ID:</label> <span data-field="owner_id">...</span><br>
             <label>Title (Tiptap):</label>
             <div id="tiptap-title" class="tiptap-editor"></div>
-            <label>Start Date:</label> <input type="date" data-field="start_date">
-            <label>End Date:</label> <input type="date" data-field="end_date">
+            <label>Start Date:</label> <input type="date" data-field="start_date"><br>
+            <label>End Date:</label> <input type="date" data-field="end_date"><br>
+            <label>Male Count:</label> <input type="number" data-field="male_count" min="0"><br>
+            <label>Female Count:</label> <input type="number" data-field="female_count" min="0"><br>
+            <label><input type="checkbox" data-field="is_cost_completed"> Cost Completed</label>
         </div>
     </div>
     <div class="container">
@@ -151,8 +156,15 @@
         // --- [수정] 디버깅을 위해 ydoc을 전역(window)에 노출 ---
         window.ydoc = ydoc;
 
+        // URL에서 tripId 파라미터 읽기 (예: test.html?tripId=2)
+        const urlParams = new URLSearchParams(window.location.search);
+        const tripId = urlParams.get('tripId') || '1';
+        const roomId = `trip-${tripId}`;
+
+        console.log(`[Test] Connecting to room: ${roomId}`);
+
         const provider = new WebsocketProvider(
-            'ws://localhost:3100', 'trip-101', ydoc
+            'ws://localhost:3100', roomId, ydoc
         );
 
         const statusEl = document.getElementById('status');
@@ -224,7 +236,13 @@
             yMap.observe(event => { if (event.keysChanged.has(field)) updateInput(); });
             updateInput();
             input.addEventListener('input', () => {
-                const value = input.type === 'number' ? parseFloat(input.value) || 0 : input.value;
+                let value = input.type === 'number' ? parseFloat(input.value) || 0 : input.value;
+                // amount 필드는 NUMERIC(12,0) 범위 검증
+                if (field === 'amount' && typeof value === 'number') {
+                    if (value < 0) value = 0;
+                    if (value > 999999999999) value = 999999999999;
+                    value = Math.floor(value); // 정수로 변환
+                }
                 yMap.set(field, value);
             });
         }
@@ -245,90 +263,214 @@
         let isBudgetsBound = false;
 
         provider.on('sync', (isSynced) => {
+            console.log('🔄 [Debug] Sync event fired. isSynced:', isSynced);
             if (isSynced) {
-                console.log('✅ [Debug] Yjs Synced. Waiting for data...');
+                console.log('✅ [Debug] Yjs Synced. Checking Y.Doc contents...');
+                const yTripInfo = ydoc.getMap('tripInfo');
+                const ySchedulesMap = ydoc.getMap('schedules');
+                const yBudgetsMap = ydoc.getMap('budgets');
+                console.log('[Debug] Y.Doc contents:', {
+                    hasTripInfo: yTripInfo.size > 0,
+                    tripId: yTripInfo.get('id'),
+                    title: yTripInfo.get('title')?.toString(),
+                    scheduleDates: Array.from(ySchedulesMap.keys()),
+                    budgetDates: Array.from(yBudgetsMap.keys())
+                });
                 setupDocObserver();
                 setupAddButtons();
             }
         });
 
-        function setupDocObserver() {
-            console.log('[Debug] setupDocObserver() called.'); // [디버그 1]
+        function checkAndBindData() {
+            console.log('[Debug] 🔍 checkAndBindData() called');
 
             const yTripInfo = ydoc.getMap('tripInfo');
             const ySchedulesMap = ydoc.getMap('schedules');
             const yBudgetsMap = ydoc.getMap('budgets');
 
-            ydoc.on('update', (update, origin, doc) => {
-                // [디버그 2] 서버에서 데이터가 오면 이 로그가 *반드시* 찍혀야 합니다.
-                console.log(`[Debug] ydoc.on('update') FIRED. Origin: ${origin}`);
-
-                if (!isTripInfoBound && yTripInfo.has('id')) {
-                    isTripInfoBound = true;
-                    console.log('[Debug] TripInfo data detected. Binding UI...'); // [디버그 3]
-                    bindTripInfoUI(yTripInfo);
-                }
-                if (!isSchedulesBound && ySchedulesMap.size > 0) {
-                    isSchedulesBound = true;
-                    console.log('[Debug] Schedules data detected. Rendering UI...'); // [디버그 4]
-                    renderSchedulesMap(ySchedulesMap);
-                }
-                if (!isBudgetsBound && yBudgetsMap.size > 0) {
-                    isBudgetsBound = true;
-                    console.log('[Debug] Budgets data detected. Rendering UI...'); // [디버그 5]
-                    renderBudgetsMap(yBudgetsMap);
-                }
+            console.log('[Debug] Current binding status:', {
+                isTripInfoBound,
+                isSchedulesBound,
+                isBudgetsBound
             });
 
-            console.log('[Debug] Checking for pre-existing data (e.g. reconnect)...'); // [디버그 6]
+            console.log('[Debug] Current Y.Doc data:', {
+                hasTripInfoId: yTripInfo.has('id'),
+                tripInfoSize: yTripInfo.size,
+                schedulesSize: ySchedulesMap.size,
+                budgetsSize: yBudgetsMap.size,
+                tripId: yTripInfo.get('id'),
+                titleType: yTripInfo.get('title')?.constructor?.name
+            });
+
             if (!isTripInfoBound && yTripInfo.has('id')) {
                 isTripInfoBound = true;
-                console.log('[Debug] Pre-existing TripInfo data found. Binding UI...'); // [디버그 7]
+                console.log('[Debug] ✅ Binding TripInfo UI...');
                 bindTripInfoUI(yTripInfo);
+            } else if (!isTripInfoBound) {
+                console.log('[Debug] ⏳ TripInfo not ready yet (no id)');
+            } else {
+                console.log('[Debug] ⏭️ TripInfo already bound');
             }
+
             if (!isSchedulesBound && ySchedulesMap.size > 0) {
                 isSchedulesBound = true;
-                console.log('[Debug] Pre-existing Schedules data found. Rendering UI...'); // [디버그 8]
+                console.log('[Debug] ✅ Rendering Schedules UI...');
                 renderSchedulesMap(ySchedulesMap);
+            } else if (!isSchedulesBound) {
+                console.log('[Debug] ⏳ Schedules not ready yet (empty map)');
+            } else {
+                console.log('[Debug] ⏭️ Schedules already bound');
             }
+
+            console.log('[Debug] Budget Map status:', {
+                size: yBudgetsMap.size,
+                keys: Array.from(yBudgetsMap.keys()),
+                isBound: isBudgetsBound
+            });
+
             if (!isBudgetsBound && yBudgetsMap.size > 0) {
                 isBudgetsBound = true;
-                console.log('[Debug] Pre-existing Budgets data found. Rendering UI...'); // [디버그 9]
+                console.log('[Debug] ✅ Rendering Budgets UI...');
+                // 각 날짜별 내용 확인
+                yBudgetsMap.forEach((yDayArray, dateKey) => {
+                    console.log(`[Debug] Budget ${dateKey}:`, {
+                        type: yDayArray?.constructor?.name,
+                        length: yDayArray?.length,
+                        isYArray: yDayArray instanceof Y.Array
+                    });
+                });
                 renderBudgetsMap(yBudgetsMap);
+            } else if (!isBudgetsBound) {
+                console.log('[Debug] ⏳ Budgets not ready yet (empty map)');
+            } else {
+                console.log('[Debug] ⏭️ Budgets already bound');
             }
+        }
+
+        function setupDocObserver() {
+            console.log('[Debug] setupDocObserver() called.');
+
+            // Listen for future updates
+            ydoc.on('update', (update, origin, doc) => {
+                console.log(`[Debug] 📩 ydoc.on('update') FIRED. Origin: ${origin}`);
+                checkAndBindData();
+            });
+
+            // Check for data that already exists
+            console.log('[Debug] Checking for pre-existing data...');
+            checkAndBindData();
         }
 
         function bindTripInfoUI(yTripInfo) {
-            console.log('[Debug] bindTripInfoUI() called.'); // [디버그 10]
-            const container = document.getElementById('tripInfo-container');
-            const idEl = container.querySelector('[data-field="id"]');
-            idEl.textContent = yTripInfo.get('id');
+            console.log('[Debug] 🎯 bindTripInfoUI() called');
+            console.log('[Debug] yTripInfo contents:', {
+                id: yTripInfo.get('id'),
+                title: yTripInfo.get('title'),
+                titleType: yTripInfo.get('title')?.constructor?.name,
+                start_date: yTripInfo.get('start_date'),
+                end_date: yTripInfo.get('end_date'),
+                allKeys: Array.from(yTripInfo.keys())
+            });
 
-            bindInput(container.querySelector('[data-field="start_date"]'), yTripInfo, 'start_date');
-            bindInput(container.querySelector('[data-field="end_date"]'), yTripInfo, 'end_date');
+            const container = document.getElementById('tripInfo-container');
+            if (!container) {
+                console.error('[Debug] ❌ tripInfo-container not found!');
+                return;
+            }
+
+            const idEl = container.querySelector('[data-field="id"]');
+            if (idEl) {
+                idEl.textContent = yTripInfo.get('id');
+                console.log('[Debug] ✅ Set trip ID:', yTripInfo.get('id'));
+            }
+
+            const ownerIdEl = container.querySelector('[data-field="owner_id"]');
+            if (ownerIdEl) {
+                ownerIdEl.textContent = yTripInfo.get('owner_id');
+                console.log('[Debug] ✅ Set owner ID:', yTripInfo.get('owner_id'));
+            }
+
+            const startDateInput = container.querySelector('[data-field="start_date"]');
+            const endDateInput = container.querySelector('[data-field="end_date"]');
+            const maleCountInput = container.querySelector('[data-field="male_count"]');
+            const femaleCountInput = container.querySelector('[data-field="female_count"]');
+            const isCostCompletedCheckbox = container.querySelector('[data-field="is_cost_completed"]');
+
+            if (startDateInput) {
+                bindInput(startDateInput, yTripInfo, 'start_date');
+                console.log('[Debug] ✅ Bound start_date input');
+            }
+            if (endDateInput) {
+                bindInput(endDateInput, yTripInfo, 'end_date');
+                console.log('[Debug] ✅ Bound end_date input');
+            }
+            if (maleCountInput) {
+                bindInput(maleCountInput, yTripInfo, 'male_count');
+                console.log('[Debug] ✅ Bound male_count input');
+            }
+            if (femaleCountInput) {
+                bindInput(femaleCountInput, yTripInfo, 'female_count');
+                console.log('[Debug] ✅ Bound female_count input');
+            }
+            if (isCostCompletedCheckbox) {
+                bindCheckbox(isCostCompletedCheckbox, yTripInfo, 'is_cost_completed');
+                console.log('[Debug] ✅ Bound is_cost_completed checkbox');
+            }
 
             const yTitle = yTripInfo.get('title');
+            console.log('[Debug] Title object:', yTitle);
+            console.log('[Debug] Is Y.Text?', yTitle instanceof Y.Text);
+
             if (yTitle instanceof Y.Text) {
-                console.log('[Debug] title is Y.Text. Binding Tiptap.'); // [디버그 11]
-                bindTiptapEditor(document.getElementById('tiptap-title'), yTitle, ydoc);
+                console.log('[Debug] ✅ Title is Y.Text, binding Tiptap...');
+                const titleEl = document.getElementById('tiptap-title');
+                if (titleEl) {
+                    bindTiptapEditor(titleEl, yTitle, ydoc);
+                    console.log('[Debug] ✅ Tiptap editor bound for title');
+                } else {
+                    console.error('[Debug] ❌ tiptap-title element not found!');
+                }
             } else {
-                // 이것이 콘솔에 찍히지 않는다고 하셨습니다.
-                console.error('[Debug] Failed: tripInfo.title is not Y.Text', yTitle);
-                document.getElementById('tiptap-title').textContent = '[Error: title이 Y.Text가 아닙니다]';
+                console.error('[Debug] ❌ Title is NOT Y.Text!', {
+                    type: typeof yTitle,
+                    constructor: yTitle?.constructor?.name,
+                    value: yTitle
+                });
+                const titleEl = document.getElementById('tiptap-title');
+                if (titleEl) {
+                    titleEl.textContent = '[Error: title이 Y.Text가 아닙니다: ' + typeof yTitle + ']';
+                }
             }
+
+            console.log('[Debug] ✅ bindTripInfoUI() completed');
         }
 
         function renderSchedulesMap(ySchedulesMap) {
+            console.log('[Debug] 📅 renderSchedulesMap() called');
+            console.log('[Debug] Schedules dates:', Array.from(ySchedulesMap.keys()));
+
             const container = document.getElementById('schedules-container');
+            if (!container) {
+                console.error('[Debug] ❌ schedules-container not found!');
+                return;
+            }
+
             ySchedulesMap.observe(event => {
                 if (event.keysChanged.size > 0) {
                     console.log('[Debug] Schedules Map keys changed, re-rendering...');
                     _renderSchedules();
                 }
             });
+
             function _renderSchedules() {
+                console.log('[Debug] 🔄 _renderSchedules() - clearing and rebuilding...');
                 container.innerHTML = '';
-                Array.from(ySchedulesMap.entries()).sort().forEach(([dateKey, yDayArray]) => {
+                const entries = Array.from(ySchedulesMap.entries()).sort();
+                console.log('[Debug] Rendering', entries.length, 'schedule dates');
+
+                entries.forEach(([dateKey, yDayArray]) => {
+                    console.log('[Debug] Rendering schedule date:', dateKey, 'with', yDayArray.length, 'items');
                     const dateHeader = document.createElement('h3');
                     dateHeader.textContent = dateKey;
                     container.appendChild(dateHeader);
@@ -339,21 +481,36 @@
                     });
                     renderDayArray(dayContainer, yDayArray, createScheduleItemElement);
                 });
+                console.log('[Debug] ✅ Schedules rendering complete');
             }
             _renderSchedules();
         }
 
         function renderBudgetsMap(yBudgetsMap) {
+            console.log('[Debug] 💰 renderBudgetsMap() called');
+            console.log('[Debug] Budget dates:', Array.from(yBudgetsMap.keys()));
+
             const container = document.getElementById('budgets-container');
+            if (!container) {
+                console.error('[Debug] ❌ budgets-container not found!');
+                return;
+            }
+
             yBudgetsMap.observe(event => {
                 if (event.keysChanged.size > 0) {
                     console.log('[Debug] Budgets Map keys changed, re-rendering...');
                     _renderBudgets();
                 }
             });
+
             function _renderBudgets() {
+                console.log('[Debug] 🔄 _renderBudgets() - clearing and rebuilding...');
                 container.innerHTML = '';
-                Array.from(yBudgetsMap.entries()).sort().forEach(([dateKey, yDayArray]) => {
+                const entries = Array.from(yBudgetsMap.entries()).sort();
+                console.log('[Debug] Rendering', entries.length, 'budget dates');
+
+                entries.forEach(([dateKey, yDayArray]) => {
+                    console.log('[Debug] Rendering budget date:', dateKey, 'with', yDayArray.length, 'items');
                     const dateHeader = document.createElement('h3');
                     dateHeader.textContent = dateKey;
                     container.appendChild(dateHeader);
@@ -362,6 +519,7 @@
                     yDayArray.observe(() => renderDayArray(dayContainer, yDayArray, createBudgetItemElement));
                     renderDayArray(dayContainer, yDayArray, createBudgetItemElement);
                 });
+                console.log('[Debug] ✅ Budgets rendering complete');
             }
             _renderBudgets();
         }
@@ -418,7 +576,16 @@
                 }
             });
             el.querySelector('.btn-delete').addEventListener('click', () => {
-                yParentArray.delete(index, 1);
+                console.log('[Client] Delete button clicked for schedule item:', yItem.get('id'));
+                const currentIndex = yParentArray.toArray().indexOf(yItem);
+                console.log('[Client] Current index in array:', currentIndex);
+                if (currentIndex !== -1) {
+                    console.log('[Client] Calling yParentArray.delete(' + currentIndex + ', 1)');
+                    yParentArray.delete(currentIndex, 1);
+                    console.log('[Client] Delete called successfully');
+                } else {
+                    console.warn('[Delete] Schedule item not found in array');
+                }
             });
             return el;
         }
@@ -429,8 +596,16 @@
             el.innerHTML = `
                 <div style="float: right;"><button class="btn btn-delete">Delete</button></div>
                 <div>ID: <span data-field="id">${yItem.get('id') || '...'}</span></div>
-                <label>Category:</label> <input type="text" data-field="category">
-                <label>Amount:</label> <input type="number" data-field="amount">
+                <label>Category:</label>
+                <select data-field="category">
+                    <option value="STAY">숙박 (STAY)</option>
+                    <option value="FOOD">식비 (FOOD)</option>
+                    <option value="TRANSPORT">교통 (TRANSPORT)</option>
+                    <option value="SHOPPING">쇼핑 (SHOPPING)</option>
+                    <option value="LEISURE">여가 (LEISURE)</option>
+                    <option value="ETC">기타 (ETC)</option>
+                </select>
+                <label>Amount:</label> <input type="number" data-field="amount" min="0" max="999999999999" step="1">
                 <label>Description (Tiptap):</label> <div class="tiptap-editor" data-tiptap-field="description"></div>
             `;
             bindInput(el.querySelector('[data-field="category"]'), yItem, 'category');
@@ -445,7 +620,16 @@
                 }
             });
             el.querySelector('.btn-delete').addEventListener('click', () => {
-                yParentArray.delete(index, 1);
+                console.log('[Client] Delete button clicked for budget item:', yItem.get('id'));
+                const currentIndex = yParentArray.toArray().indexOf(yItem);
+                console.log('[Client] Current index in array:', currentIndex);
+                if (currentIndex !== -1) {
+                    console.log('[Client] Calling yParentArray.delete(' + currentIndex + ', 1)');
+                    yParentArray.delete(currentIndex, 1);
+                    console.log('[Client] Delete called successfully');
+                } else {
+                    console.warn('[Delete] Budget item not found in array');
+                }
             });
             return el;
         }
@@ -474,7 +658,7 @@
                     yBudgetsMap.set(testDateKey, yDayArray);
                 }
                 const newItem = new Y.Map();
-                newItem.set('category', '식비');
+                newItem.set('category', 'FOOD');
                 newItem.set('amount', 10000);
                 newItem.set('description', new Y.Text('새 예산 항목'));
                 yDayArray.push([newItem]);

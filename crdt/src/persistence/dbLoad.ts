@@ -119,7 +119,7 @@ export async function loadYDocFromDB(tripId: number, doc: Y.Doc): Promise<Y.Doc>
             [tripId]
         );
 
-        // 3. budgets
+        // 3. budgets (삭제되지 않은 것만)
         const budgetRes = await client.query<Pick<Budget, 'id' | 'trip_id' | 'date' | 'category' | 'description' | 'amount'>>(
             'SELECT id, trip_id, date, category, description, amount FROM budget WHERE trip_id = $1 ORDER BY date ASC, id ASC',
             [tripId]
