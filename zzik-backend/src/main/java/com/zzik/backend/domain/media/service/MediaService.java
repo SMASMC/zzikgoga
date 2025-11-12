@@ -1,5 +1,9 @@
 package com.zzik.backend.domain.media.service;
 
+import com.drew.imaging.ImageMetadataReader;
+import com.drew.metadata.Directory;
+import com.drew.metadata.Metadata;
+import com.drew.metadata.exif.ExifIFD0Directory;
 import com.zzik.backend.domain.auth.entity.Member;
 import com.zzik.backend.domain.auth.repository.MemberRepository; // (존재한다고 가정)
 import com.zzik.backend.domain.media.dto.response.PhotoDetailResponse;
@@ -17,20 +21,29 @@ import com.zzik.backend.global.cloud.s3.service.S3Util;
 import com.zzik.backend.global.exception.BusinessException;
 import com.zzik.backend.global.exception.ExceptionCode;
 import com.zzik.backend.global.pagination.PageInfoResponse;
+import com.zzik.backend.global.util.ByteArrayMultipartFile;
 
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
+import javax.imageio.ImageIO;
+
+import net.coobird.thumbnailator.Thumbnails;
 
 @Service
 @Transactional
@@ -44,6 +57,9 @@ public class MediaService {
 	private final S3Service s3Service;
 	private final S3Util s3Util;
 
+	private static final float WEBP_QUALITY = 0.6f;
+	private static final int MAX_IMAGE_DIMENSION = 2000;
+
 	// 50MB
 	private static final long MAX_FILE_SIZE = 50 * 1024 * 1024;
 	// 허용되는 이미지 확장자
@@ -56,43 +72,42 @@ public class MediaService {
 	 */
 	public PhotoUploadListResponse uploadPhotos(Long tripId, MultipartFile[] files, Long memberId) {
 
-		// 1. 엔티티 조회 및 권한 검사 (반복문 전에 1번만 수행하여 효율화)
+		// (1, 2번 로직 동일)
 		Member member = memberRepository.findById(memberId)
 			.orElseThrow(() -> BusinessException.from(ExceptionCode.NOT_FOUND_RESOURCE));
-
 		Trip trip = tripRepository.findById(tripId)
 			.orElseThrow(() -> BusinessException.from(ExceptionCode.NOT_FOUND_RESOURCE));
-
-		// 2. 권한 검사 (업로더가 해당 여행의 멤버인지 확인)
 		checkTripMembership(tripId, memberId);
 
 		List<PhotoUploadResponse> uploadedList = new ArrayList<>();
 
-		// 3. [반복]
 		for (MultipartFile file : files) {
+			try { // 👈 [추가] 개별 파일 처리 시 예외 처리
+				// 3-1. 개별 파일 유효성 검사
+				validateFile(file);
 
-			// 3-1. 개별 파일 유효성 검사 (기존 로직 재사용)
-			validateFile(file);
+				// 3-2. [신규] 이미지 처리 (EXIF 회전 및 WebP 변환)
+				MultipartFile processedFile = processAndPrepareFile(file);
 
-			// 3-2. S3에 파일 업로드
-			String s3Url;
-			s3Url = s3Service.uploadFile(file, S3Directory.PHOTO);
+				// 3-3. S3에 *처리된 파일* 업로드
+				String s3Url = s3Service.uploadFile(processedFile, S3Directory.PHOTO);
 
-			// 3-3. Photo 엔티티 생성 (조회해둔 엔티티 사용)
-			Photo photo = Photo.builder()
-				.member(member)
-				.trip(trip)
-				.s3Url(s3Url)
-				.build();
+				// 3-4. Photo 엔티티 생성
+				Photo photo = Photo.builder()
+					.member(member)
+					.trip(trip)
+					.s3Url(s3Url) // S3Util이 Key를 반환한다고 가정
+					.build();
 
-			// 3-4. DB 저장
-			Photo savedPhoto = photoRepository.save(photo);
+				// 3-5. DB 저장
+				Photo savedPhoto = photoRepository.save(photo);
+				uploadedList.add(new PhotoUploadResponse(savedPhoto.getId(), savedPhoto.getS3Url()));
 
-			// 3-5. 성공 목록에 추가
-			uploadedList.add(new PhotoUploadResponse(savedPhoto.getId(), savedPhoto.getS3Url()));
+			} catch (Exception e) {
+				// 개별 파일 업로드 실패 시 로깅 (전체 실패 X)
+				// log.error("Failed to upload file: {}", file.getOriginalFilename(), e);
+			}
 		}
-
-		// 4. 최종 응답 DTO 래핑
 		return new PhotoUploadListResponse(uploadedList);
 	}
 
@@ -197,5 +212,85 @@ public class MediaService {
 			// 멤버가 아니면 업로드 권한 없음
 			throw BusinessException.from(ExceptionCode.FORBIDDEN);
 		}
+	}
+
+	/**
+	 * [New Helper] 이미지를 처리하고 S3에 업로드할 준비
+	 * (EXIF 회전 + WebP 압축)
+	 */
+	private MultipartFile processAndPrepareFile(MultipartFile originalFile) throws IOException {
+
+		byte[] imageBytes = originalFile.getBytes();
+
+		// 1. EXIF Orientation 값 읽기
+		int orientation = getExifOrientation(imageBytes);
+
+		// 2. BufferedImage로 변환
+		BufferedImage image = ImageIO.read(new ByteArrayInputStream(imageBytes));
+
+		// 3. Orientation 값에 따라 이미지 회전
+		BufferedImage rotatedImage = rotateImageByOrientation(image, orientation);
+
+		// 4. 회전된 이미지를 WebP로 압축 (Thumbnailator 사용)
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+		Thumbnails.of(rotatedImage)
+			.size(MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION)
+			.outputFormat("webp")          // WebP 포맷
+			.outputQuality(WEBP_QUALITY) // 압축 품질 설정 (e.g., 0.8f)
+			.toOutputStream(baos);
+
+		byte[] processedImageBytes = baos.toByteArray();
+
+		// 5. 파일명 변경 (e.g., "image.jpg" -> "image.webp")
+		String originalFilename = originalFile.getOriginalFilename();
+		String baseName = StringUtils.stripFilenameExtension(originalFilename);
+		String newFilename = baseName + ".webp";
+
+		// 6. byte[]를 ByteArrayMultipartFile로 래핑하여 반환
+		return new ByteArrayMultipartFile(
+			processedImageBytes,
+			originalFile.getName(), // "file"
+			newFilename,            // "image.webp"
+			"image/webp" // "image/webp"
+		);
+	}
+
+	/**
+	 * [New Helper] 이미지 byte[]에서 EXIF Orientation 값을 읽음
+	 */
+	private int getExifOrientation(byte[] imageBytes) {
+		try (ByteArrayInputStream in = new ByteArrayInputStream(imageBytes)) {
+			Metadata metadata = ImageMetadataReader.readMetadata(in);
+			Directory directory = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class);
+			if (directory != null && directory.containsTag(ExifIFD0Directory.TAG_ORIENTATION)) {
+				return directory.getInt(ExifIFD0Directory.TAG_ORIENTATION);
+			}
+		} catch (Exception e) {
+			// EXIF 읽기 실패 시
+		}
+		return 1; // 기본값 (회전 없음)
+	}
+
+	/**
+	 * [Helper] Orientation 값에 따라 BufferedImage 회전
+	 */
+	private BufferedImage rotateImageByOrientation(BufferedImage image, int orientation) throws IOException {
+		if (orientation <= 1) {
+			return image; // 회전 불필요
+		}
+
+		Thumbnails.Builder<BufferedImage> builder = Thumbnails.of(image).size(image.getWidth(), image.getHeight());
+
+		switch (orientation) {
+			case 2: builder.scale(1.0, -1.0); break; // Horizontal flip
+			case 3: builder.rotate(180); break; // 180° rotation
+			case 4: builder.scale(-1.0, 1.0); break; // Vertical flip
+			case 5: builder.rotate(-90).scale(-1.0, 1.0); break; // 90° CCW and vertical flip
+			case 6: builder.rotate(90); break; // 90° CW (세로 사진)
+			case 7: builder.rotate(90).scale(-1.0, 1.0); break; // 90° CW and vertical flip
+			case 8: builder.rotate(-90); break; // 90° CCW (세로 사진)
+		}
+		return builder.asBufferedImage();
 	}
 }

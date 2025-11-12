@@ -3,6 +3,7 @@ package com.zzik.backend.global.util;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -19,6 +20,13 @@ public class ByteArrayMultipartFile implements MultipartFile {
 	private final String contentType;
 
 	public ByteArrayMultipartFile(byte[] bytes, String originalFilename, String contentType) {
+		this.bytes = bytes;
+		this.name = originalFilename;
+		this.originalFilename = originalFilename;
+		this.contentType = contentType;
+	}
+
+	public ByteArrayMultipartFile(byte[] bytes, String name, String originalFilename, String contentType) {
 		this.bytes = bytes;
 		this.name = originalFilename;
 		this.originalFilename = originalFilename;
@@ -62,7 +70,8 @@ public class ByteArrayMultipartFile implements MultipartFile {
 
 	@Override
 	public void transferTo(File dest) throws IOException, IllegalStateException {
-		// S3 업로드 시 이 메서드는 사용되지 않으므로 구현 생략
-		throw new UnsupportedOperationException("transferTo() is not supported");
+		try (FileOutputStream fos = new FileOutputStream(dest)) {
+			fos.write(bytes);
+		}
 	}
 }
