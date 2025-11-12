@@ -1,62 +1,103 @@
-// TravelCard.tsx
+﻿// TravelCard.tsx
 // 여행 생성 카드와 기존 여행 카드를 위한 컴포넌트
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TravelAddCardProps, TravelCardProps } from '../types/mypage'
 import SolidButton from '@/components/atoms/SolidButton'
+import { Camera } from 'lucide-react'
+import { MediaService } from '@/features/memory/services/memoryService'
 
 const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCardProps) => {
   const navigate = useNavigate()
   const [isButtonHovered, setIsButtonHovered] = useState(false)
   const [imageSrc, setImageSrc] = useState(img || '/pwa-512x512.png')
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [uploading, setUploading] = useState(false)
 
-  // 카드 클릭 시 여행 계획 페이지로 이동
   const handleCardClick = () => {
-    const travelMeta = {
-      travelTitle: title,
-      startDate,
-      endDate,
-    }
+    const travelMeta = { travelTitle: title, startDate, endDate }
     sessionStorage.setItem(`plan-meta-${tripId}`, JSON.stringify(travelMeta))
     navigate(`/plan/${tripId}`, { state: travelMeta })
   }
 
-  // TODO: 정산하기 버튼 클릭 시 실행할 함수
   const handleSettlementClick = (e: React.MouseEvent) => {
-    e.stopPropagation() // 카드 클릭 이벤트 전파 방지
-    console.log(`정산하기 버튼 클릭 - 정산 페이지로 이동 (tripId: ${tripId})`)
+    e.stopPropagation()
     navigate(`/cost/${tripId}`)
   }
 
-  // 사진 버튼 클릭 시 실행할 함수
   const handlePhotoClick = (e: React.MouseEvent) => {
-    e.stopPropagation() // 카드 클릭 이벤트 전파 방지
-    console.log(`사진 버튼 클릭 - 사진 갤러리로 이동 (tripId: ${tripId})`)
+    e.stopPropagation()
     navigate(`/memory/${tripId}`)
-    // 여기에 사진 갤러리 이동 함수 추가 (예: navigate(`/gallery/${tripId}`))
   }
 
-  // 이미지 로드 실패 시 기본 이미지로 대체
-  const handleImageError = () => {
-    setImageSrc('/pwa-512x512.png')
+  const handleCameraButtonClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.stopPropagation()
+    const files = Array.from(e.target.files ?? [])
+    if (files.length === 0) return
+    try {
+      setUploading(true)
+      console.log('Uploading media files:', files.map(f => ({ name: f.name, size: f.size })))
+      await MediaService.uploadMedia(String(tripId), files)
+      e.target.value = ''
+    } catch (err) {
+      console.error(err)
+      alert('사진 업로드에 실패했습니다.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleImageError = () => setImageSrc('/pwa-512x512.png')
+
+  const handleRootClick = () => {
+    if (uploading) return
+    handleCardClick()
   }
 
   return (
     <div
-      onClick={handleCardClick}
+      onClick={handleRootClick}
       className={`group bg-white rounded-3xl shadow-lg overflow-hidden w-72 p-5 flex flex-col cursor-pointer transition-all duration-300 ${
         !isButtonHovered ? 'hover:shadow-xl hover:scale-105' : ''
       }`}
     >
-      <img
-        src={imageSrc}
-        alt={title}
-        className="rounded-2xl h-48 object-cover mb-4"
-        onError={handleImageError}
-      />
-      <h3 className="font-bmjua text-text-500">{title}</h3>
-      <p className="text-gray-500 text-sm mb-3">{date}</p>
+      <img src={imageSrc} alt={title} className="rounded-2xl h-48 object-cover mb-4" onError={handleImageError} />
+      <div className="mb-3 flex items-start justify-between gap-2">
+        <div>
+          <h3 className="font-bmjua text-text-500">{title}</h3>
+          <p className="text-gray-500 text-sm">{date}</p>
+        </div>
+        <div>
+          <button
+            type="button"
+            onClick={handleCameraButtonClick}
+            onMouseDown={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            onMouseEnter={() => setIsButtonHovered(true)}
+            onMouseLeave={() => setIsButtonHovered(false)}
+            className="p-2 rounded-full border bg-white hover:bg-slate-50 text-slate-700 shadow-sm disabled:opacity-50"
+            disabled={uploading}
+            aria-label="사진 업로드"
+          >
+            <Camera size={16} />
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={handleFileChange}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      </div>
       <div className="flex justify-center gap-2 mb-2">
         <SolidButton
           onClick={handleSettlementClick}
@@ -89,18 +130,12 @@ const TravelAddCard = ({ onCreateTravel }: TravelAddCardProps) => {
       className="group backdrop-blur-md bg-white/30 border border-white/40 rounded-3xl w-72 h-[400px] shadow-xl flex flex-col justify-center items-center cursor-pointer hover:shadow-2xl hover:scale-105 hover:bg-white transition-all duration-300"
     >
       <div className="bg-gradient-to-br from-hover-600 to-point-600 w-20 h-20 rounded-3xl flex justify-center items-center mb-6 shadow-lg">
-        <svg
-          className="w-12 h-12 text-white"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          strokeWidth="3"
-        >
+        <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
         </svg>
       </div>
       <h3 className="font-bmjua text-text-500 text-lg mb-2">여행 시작하기</h3>
-      <p className="text-text-600 text-sm font-medium">새로운 추억을 만들어보세요</p>
+      <p className="text-text-600 text-sm font-medium">바로 추억을 만들어보아요</p>
     </div>
   )
 }

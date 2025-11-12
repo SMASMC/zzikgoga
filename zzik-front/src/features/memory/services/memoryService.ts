@@ -24,3 +24,13 @@ export class MemoryPhotoService {
     return res
   }
 }
+
+export class MediaService {
+  static async uploadMedia(tripId: string, files: File[]): Promise<void> {
+    const fd = new FormData()
+    for (const f of files) {
+      fd.append('files', f)
+    }
+    await apiClient.post<void>(`/media/${tripId}`, fd)
+  }
+}
