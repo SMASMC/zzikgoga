@@ -11,6 +11,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { PublicOnlyRoute } from '@/components/auth/PublicOnlyRoute'
 import CostPage from '@/pages/cost/CostPage'
 import { InviteCallbackPage } from '@/pages/plan/InviteCallbackPage'
+import MemoryPage from '@/pages/memory/MemoryPage'
 
 type BackgroundShellProps = {
   header?: ReactNode
@@ -48,6 +49,14 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute>
               <CostPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/memory/:tripId"
+          element={
+            <ProtectedRoute>
+              <MemoryPage />
             </ProtectedRoute>
           }
         />
