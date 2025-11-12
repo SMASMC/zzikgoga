@@ -72,6 +72,9 @@ const snapshotSchedules = (doc: Y.Doc): Record<string, YScheduleItem[]> => {
   schedulesMap.forEach((yArr, dateKey) => {
     const items: YScheduleItem[] = []
     yArr.forEach((yMap) => {
+      // ⭐ _deleted 플래그가 있으면 스킵
+      if (yMap.get('_deleted') === true) return
+
       const id = (yMap.get('id') as number) ?? null
       const uid = (yMap.get('uid') as string) ?? ''
       const start_time = (yMap.get('start_time') as string) ?? ''
@@ -556,31 +559,43 @@ export const useYTripDoc = (roomId: string) => {
     []
   )
 
-  const removeSchedule = useCallback((dateKey: string, index: number) => {
+  // id or uid로 탐색해서 _deleted 플래그 설정 (Update 방식)
+  const removeSchedule = useCallback((dateKey: string, keyOrId: string | number) => {
     const entry = providerRef.current
     if (!entry) {
       console.warn('[removeSchedule] No provider available')
       return
     }
     const { doc } = entry
+
     const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
     const yArr = schedulesMap.get(dateKey)
     if (!(yArr instanceof Y.Array)) {
       console.warn(`[removeSchedule] No schedule array for dateKey: ${dateKey}`)
       return
     }
-    if (index < 0 || index >= yArr.length) {
-      console.warn(`[removeSchedule] Invalid index: ${index} (array length: ${yArr.length})`)
+
+    // id/uid로 탐색
+    let target: Y.Map<unknown> | null = null
+    for (let i = 0; i < yArr.length; i++) {
+      const m = yArr.get(i)
+      if (!(m instanceof Y.Map)) continue
+      const id = m.get('id') as number | null
+      const uid = m.get('uid') as string | undefined
+      if (id === keyOrId || uid === keyOrId) {
+        target = m
+        break
+      }
+    }
+
+    if (!target) {
+      console.warn('[removeSchedule] target not found in Y.Array', { dateKey, keyOrId })
       return
     }
 
+    // Update 방식으로 삭제: _deleted 플래그 설정
     doc.transact(() => {
-      yArr.delete(index, 1)
-      if (yArr.length === 0) {
-        schedulesMap.delete(dateKey)
-      } else {
-        reflowScheduleTimes(yArr)
-      }
+      target!.set('_deleted', true)
     }, 'remove-schedule')
   }, [])
 
