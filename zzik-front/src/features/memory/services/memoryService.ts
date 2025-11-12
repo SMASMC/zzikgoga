@@ -2,6 +2,7 @@ import { apiClient } from '@/shared/api/client'
 import {
   CreateMemoryRequest,
   MemoryEntity,
+  MemoryPdfResponse,
   TripPhotoListResponse,
 } from '@/features/memory/types/memory'
 
@@ -15,6 +16,11 @@ export class MemoryService {
     const res = await apiClient.get<MemoryEntity>(`/memory/${tripId}`)
     return res
   }
+
+  static async convertToPdf(tripId: string): Promise<MemoryPdfResponse> {
+    const res = await apiClient.post<MemoryPdfResponse>(`/memory/${tripId}/convert/pdf`)
+    return res
+  }
 }
 
 export class MemoryPhotoService {
@@ -22,5 +28,15 @@ export class MemoryPhotoService {
     const query = typeof cursor === 'number' ? `?cursor=${cursor}` : ''
     const res = await apiClient.get<TripPhotoListResponse>(`/media/${tripId}${query}`)
     return res
+  }
+}
+
+export class MediaService {
+  static async uploadMedia(tripId: string, files: File[]): Promise<void> {
+    const fd = new FormData()
+    for (const f of files) {
+      fd.append('files', f)
+    }
+    await apiClient.post<void>(`/media/${tripId}`, fd)
   }
 }

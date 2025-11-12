@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import Input from '@/components/atoms/Input'
 import SolidButton from '@/components/atoms/SolidButton'
@@ -14,6 +14,7 @@ const MemoryPage = () => {
   const [title, setTitle] = useState('')
   const [markdown, setMarkdown] = useState<string>('')
   const [saving, setSaving] = useState(false)
+  const [pdfLoading, setPdfLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [savedId, setSavedId] = useState<number | null>(null)
 
@@ -146,6 +147,29 @@ const MemoryPage = () => {
     }
   }
 
+  const handleGeneratePdf = async () => {
+    if (!safeTripId) return
+    setPdfLoading(true)
+    setError(null)
+    try {
+      const res = await MemoryService.convertToPdf(safeTripId)
+      const url = res.pdfUrl
+      if (!url) throw new Error('PDF URL을 찾을 수 없습니다.')
+      const a = document.createElement('a')
+      a.href = url
+      a.target = '_blank'
+      a.rel = 'noopener'
+      a.download = `memory-${res.memoryId ?? ''}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'failed to generate pdf')
+    } finally {
+      setPdfLoading(false)
+    }
+  }
+
   return (
     <div className="h-[calc(100vh-80px)] p-4 overflow-hidden">
       <div className="h-full grid grid-cols-12 gap-4 min-h-0">
@@ -161,7 +185,10 @@ const MemoryPage = () => {
               className="rounded-xl"
             />
             <SolidButton onClick={handleSave} disabled={!canSave || saving}>
-              {saving ? '저장 중...' : '저장'}
+              {saving ? '임시저장 중...' : '임시저장'}
+            </SolidButton>
+            <SolidButton onClick={handleGeneratePdf} disabled={!safeTripId || pdfLoading}>
+              {pdfLoading ? 'PDF 생성 중...' : 'PDF 생성'}
             </SolidButton>
           </div>
           {error && <div className="text-red-600 text-sm mb-2">{error}</div>}

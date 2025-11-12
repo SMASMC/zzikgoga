@@ -42,6 +42,12 @@ export type MemoryEntity = {
   updatedAt: string
 }
 
+export type MemoryPdfResponse = {
+  memoryId: number
+  pdfUrl: string
+  storageType: string
+}
+
 export type TripPhoto = {
   id: number
   memberId: number
