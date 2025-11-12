@@ -110,6 +110,18 @@ async function upsertScheduleItem(
     const has_location = !!scheduleItem.get('has_location')
     const locationObj = scheduleItem.get('location') || null
 
+    const isDeleted = scheduleItem.get('_deleted') === true
+
+    if (isDeleted && id) {
+        try {
+            await deleteSchedule(id)
+            console.log(`[DB] Schedule deleted: ${id}`)
+        } catch (err) {
+            console.error('[DB] Failed to delete schedule:', err)
+        }
+        return
+    }
+
     try {
         let scheduleId = id
         if (!scheduleId) {
@@ -141,8 +153,6 @@ async function upsertScheduleItem(
                     scheduleItem.set('location', { ...locationObj, id: newLocId })
                 }, DB_UPDATE_ORIGIN)
             }
-        } else {
-            await deleteLocationByScheduleId(scheduleId)
         }
     } catch (err) {
         console.error('[DB] upsertScheduleItem failed:', err)
