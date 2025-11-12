@@ -13,7 +13,6 @@ import ScheduleMemoEditor from './ScheduleMemoEditor'
 import FriendInviteModal from './FriendInviteModal'
 import { ToastDock } from '@/components/blocks/ToastDock'
 import CloseButton from '@/components/atoms/CloseButton'
-import { TravelService } from '@/features/mypage/services/travelService'
 import SolidButton from '@/components/atoms/SolidButton'
 
 const CHAT_AUTO_HIDE_MS = 5000
@@ -123,9 +122,21 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
     removeSchedule,
   } = useYTripDoc(roomId)
 
+  const { self, sendMessage, selfMessage, participants } = cursorSession
+  const metaStorageKey = tripId ? `plan-meta-${tripId}` : null
+
+  const boardRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const autoHideTimerRef = useRef<number | null>(null)
+  const dragItemRef = useRef<{ dateKey: string; index: number } | null>(null)
+  const titlePersistTimerRef = useRef<number | null>(null)
+  const lastSyncedTitleRef = useRef<string>('')
+  const hasRestoredCacheRef = useRef(false)
+
   /**
    * 1) 제목 필드 보장: doc이 준비되면 tripInfo.title이 Y.Text로 존재하도록 보장
    *    - 없으면 새 Y.Text를 생성해 넣습니다. (데이터 없을 때 예외 처리 포함)
+   *    - sessionStorage의 캐시된 값도 고려
    */
   useEffect(() => {
     if (!doc) return
@@ -134,16 +145,31 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
     if (!(existing instanceof Y.Text)) {
       doc.transact(() => {
         const ytext = new Y.Text()
-        // 초기값: 기존 문자열이 있으면 반영
+
+        // 우선순위: 1) 기존 문자열 2) tripInfo.title 3) sessionStorage 캐시
         if (typeof existing === 'string' && existing.trim().length > 0) {
           ytext.insert(0, existing)
         } else if (tripInfo?.title && tripInfo.title.trim().length > 0) {
           ytext.insert(0, tripInfo.title)
+        } else if (metaStorageKey && typeof window !== 'undefined') {
+          // sessionStorage에서 캐시된 제목 가져오기
+          try {
+            const cached = window.sessionStorage.getItem(metaStorageKey)
+            if (cached) {
+              const parsed = JSON.parse(cached)
+              if (parsed.travelTitle && parsed.travelTitle.trim().length > 0) {
+                ytext.insert(0, parsed.travelTitle)
+              }
+            }
+          } catch {
+            // ignore
+          }
         }
+
         tripMap.set('title', ytext)
       })
     }
-  }, [doc, tripInfo?.title])
+  }, [doc, tripInfo?.title, metaStorageKey])
 
   /**
    * 2) 매 렌더마다 최신 Y.Text 핸들 가져오기 (다른 클라이언트가 문자열->Y.Text로 전환해도 즉시 반영)
@@ -155,24 +181,28 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
     return value instanceof Y.Text ? value : null
   })()
 
-  const boardRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const autoHideTimerRef = useRef<number | null>(null)
-  const dragItemRef = useRef<{ dateKey: string; index: number } | null>(null)
-  const titlePersistTimerRef = useRef<number | null>(null)
-  const lastSyncedTitleRef = useRef<string>('')
+  // sessionStorage에서 캐시된 여행 제목 가져오기 (깜빡임 방지)
+  const [titleDraft, setTitleDraft] = useState(() => {
+    if (!metaStorageKey || typeof window === 'undefined') return ''
+    try {
+      const cached = window.sessionStorage.getItem(metaStorageKey)
+      if (cached) {
+        const parsed = JSON.parse(cached)
+        return parsed.travelTitle || ''
+      }
+    } catch {
+      // ignore
+    }
+    return ''
+  })
 
   const [selfCursor, setSelfCursor] = useState<{ x: number; y: number } | null>(null)
   const [isChatOpen, setIsChatOpen] = useState(false)
   const [isRosterOpen, setIsRosterOpen] = useState(false)
-  const [titleDraft, setTitleDraft] = useState('')
   const [chatValue, setChatValue] = useState('')
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [editStart, setEditStart] = useState('')
   const [editOffset, setEditOffset] = useState('')
-
-  const { self, sendMessage, selfMessage, participants } = cursorSession
-  const metaStorageKey = tripId ? `plan-meta-${tripId}` : null
 
   const updatePersistedMeta = useCallback(
     (nextTitle: string) => {
@@ -221,14 +251,29 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
 
   useEffect(() => {
     if (!titleYText) {
-      setTitleDraft('')
+      // titleYText가 없을 때는 titleDraft를 덮어쓰지 않음 (sessionStorage 캐시 유지)
       return
     }
     const syncState = () => {
-      setTitleDraft(titleYText.toString())
+      const ytextValue = titleYText.toString()
+      // 초기 마운트 시에만: Y.Text가 비어있고 titleDraft에 캐시 값이 있으면 복원
+      if (
+        !hasRestoredCacheRef.current &&
+        ytextValue.trim().length === 0 &&
+        titleDraft.trim().length > 0
+      ) {
+        titleYText.doc?.transact(() => {
+          titleYText.insert(0, titleDraft)
+        }, 'restore-cached-title')
+        hasRestoredCacheRef.current = true
+        return
+      }
+      setTitleDraft(ytextValue)
     }
     syncState()
-    const observer = () => syncState()
+    const observer = () => {
+      setTitleDraft(titleYText.toString())
+    }
     titleYText.observe(observer)
     return () => {
       titleYText.unobserve(observer)
@@ -258,19 +303,6 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
       if (titlePersistTimerRef.current !== null) {
         window.clearTimeout(titlePersistTimerRef.current)
       }
-
-      titlePersistTimerRef.current = window.setTimeout(async () => {
-        if (!tripId) return
-        const numericTripId = Number(tripId)
-        if (!Number.isFinite(numericTripId)) return
-        try {
-          await TravelService.updateTravelTitle(numericTripId, {
-            title: nextTitle.trim() || '제목 없음',
-          })
-        } catch (error) {
-          console.error('여행 제목 동기화 실패', error)
-        }
-      }, 800)
     }
 
     persistTitle()
@@ -556,20 +588,15 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
                   - doc이 아직 없으면 읽기 전용 안전 뷰
               */}
               <div className="min-w-0 flex-1 max-w-full md:max-w-[32rem]">
-                {titleYText ? (
-                  <input
-                    type="text"
-                    value={titleDraft}
-                    onChange={(event) => handleTitleChange(event.target.value)}
-                    maxLength={MAX_TITLE_LENGTH}
-                    placeholder="여행 제목을 입력해주세요"
-                    className="w-full rounded-full border-2 border-slate-300 bg-white px-5 py-2.5 text-lg font-semibold text-slate-900 shadow-sm transition-all placeholder:text-slate-400 hover:border-blue-300 hover:shadow-md focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                  />
-                ) : (
-                  <div className="w-full rounded-full border-2 border-slate-300 bg-white px-5 py-2.5 text-lg font-semibold text-slate-900 shadow-sm">
-                    {tripInfo?.title?.trim() ? tripInfo.title : `Trip #${tripInfo?.id ?? ''}`}
-                  </div>
-                )}
+                <input
+                  type="text"
+                  value={titleDraft}
+                  onChange={(event) => handleTitleChange(event.target.value)}
+                  maxLength={MAX_TITLE_LENGTH}
+                  placeholder="여행 제목을 입력해주세요"
+                  disabled={!titleYText}
+                  className="w-full rounded-full border-2 border-slate-300 bg-white px-5 py-2.5 text-lg font-semibold text-slate-900 shadow-sm transition-all placeholder:text-slate-400 hover:border-blue-300 hover:shadow-md focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-wait disabled:opacity-70"
+                />
               </div>
             </header>
 

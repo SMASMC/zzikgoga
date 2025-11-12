@@ -23,11 +23,4 @@ export class TravelService {
     const response = await apiClient.post<unknown>('/plan', data)
     return response
   }
-
-  /**
-   * 여행 제목 수정
-   */
-  public static async updateTravelTitle(tripId: number, payload: { title: string }) {
-    return apiClient.patch(`/plan/${tripId}`, payload)
-  }
 }

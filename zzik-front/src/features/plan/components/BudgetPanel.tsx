@@ -212,7 +212,7 @@ const BudgetPanel = () => {
                               <span className="text-slate-600">{it.amount.toLocaleString()}원</span>
                               <button
                                 type="button"
-                                onClick={() => removeBudget(d, idx)}
+                                onClick={() => removeBudget(d, it.id ?? it.uid!)}
                                 className="rounded-full border border-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-500 transition hover:border-red-300 hover:bg-red-50"
                               >
                                 삭제
