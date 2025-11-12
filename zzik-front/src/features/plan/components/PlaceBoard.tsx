@@ -405,13 +405,12 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
   )
 
   const handleRemoveSchedule = useCallback(
-    (dateKey: string, index: number) => {
-      if (editingKey === `${dateKey}:${index}`) {
-        setEditingKey(null)
-      }
-      removeSchedule(dateKey, index)
+    (dateKey: string, keyOrId: string | number) => {
+      // editingKey 체크는 uid로 변경해야 하지만, 기존 코드와 호환성을 위해 제거
+      setEditingKey(null)
+      removeSchedule(dateKey, keyOrId)
     },
-    [editingKey, removeSchedule]
+    [removeSchedule]
   )
 
   const handlePointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
@@ -666,7 +665,7 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
                                   <button
                                     type="button"
                                     className="rounded-full border border-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-500 transition hover:border-red-300 hover:bg-red-50"
-                                    onClick={() => handleRemoveSchedule(date, originalIndex)}
+                                    onClick={() => handleRemoveSchedule(date, it.id ?? it.uid!)}
                                   >
                                     삭제
                                   </button>
