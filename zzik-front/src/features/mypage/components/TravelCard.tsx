@@ -42,7 +42,10 @@ const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCard
     if (files.length === 0) return
     try {
       setUploading(true)
-      console.log('Uploading media files:', files.map(f => ({ name: f.name, size: f.size })))
+      console.log(
+        'Uploading media files:',
+        files.map((f) => ({ name: f.name, size: f.size }))
+      )
       await MediaService.uploadMedia(String(tripId), files)
       e.target.value = ''
     } catch (err) {
@@ -67,7 +70,12 @@ const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCard
         !isButtonHovered ? 'hover:shadow-xl hover:scale-105' : ''
       }`}
     >
-      <img src={imageSrc} alt={title} className="rounded-2xl h-48 object-cover mb-4" onError={handleImageError} />
+      <img
+        src={imageSrc}
+        alt={title}
+        className="rounded-2xl h-48 object-cover mb-4"
+        onError={handleImageError}
+      />
       <div className="mb-3 flex items-start justify-between gap-2">
         <div>
           <h3 className="font-bmjua text-text-500">{title}</h3>
@@ -130,7 +138,13 @@ const TravelAddCard = ({ onCreateTravel }: TravelAddCardProps) => {
       className="group backdrop-blur-md bg-white/30 border border-white/40 rounded-3xl w-72 h-[400px] shadow-xl flex flex-col justify-center items-center cursor-pointer hover:shadow-2xl hover:scale-105 hover:bg-white transition-all duration-300"
     >
       <div className="bg-gradient-to-br from-hover-600 to-point-600 w-20 h-20 rounded-3xl flex justify-center items-center mb-6 shadow-lg">
-        <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
+        <svg
+          className="w-12 h-12 text-white"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          strokeWidth="3"
+        >
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
         </svg>
       </div>

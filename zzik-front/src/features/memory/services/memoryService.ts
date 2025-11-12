@@ -2,6 +2,7 @@ import { apiClient } from '@/shared/api/client'
 import {
   CreateMemoryRequest,
   MemoryEntity,
+  MemoryPdfResponse,
   TripPhotoListResponse,
 } from '@/features/memory/types/memory'
 
@@ -13,6 +14,11 @@ export class MemoryService {
 
   static async getMemory(tripId: string): Promise<MemoryEntity> {
     const res = await apiClient.get<MemoryEntity>(`/memory/${tripId}`)
+    return res
+  }
+
+  static async convertToPdf(tripId: string): Promise<MemoryPdfResponse> {
+    const res = await apiClient.post<MemoryPdfResponse>(`/memory/${tripId}/convert/pdf`)
     return res
   }
 }
