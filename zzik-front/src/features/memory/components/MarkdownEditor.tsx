@@ -57,15 +57,18 @@ const MarkdownEditor = ({ value, onChange }: Props) => {
     [insertAtCursor]
   )
 
-  const handlePaste = useCallback((e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const text = e.clipboardData?.getData('text/plain')
-    if (!text) return
-    const isHttp = /^https?:\/\//i.test(text.trim())
-    if (isHttp) {
-      e.preventDefault()
-      insertAtCursor(`\n\n![image](${text.trim()})\n\n`)
-    }
-  }, [insertAtCursor])
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+      const text = e.clipboardData?.getData('text/plain')
+      if (!text) return
+      const isHttp = /^https?:\/\//i.test(text.trim())
+      if (isHttp) {
+        e.preventDefault()
+        insertAtCursor(`\n\n![image](${text.trim()})\n\n`)
+      }
+    },
+    [insertAtCursor]
+  )
 
   const mdComponents = useMemo(
     () => ({
@@ -79,7 +82,10 @@ const MarkdownEditor = ({ value, onChange }: Props) => {
         <h3 {...props} className={`text-xl font-bold mt-3 mb-2 ${props.className ?? ''}`} />
       ),
       p: (props: React.HTMLAttributes<HTMLParagraphElement>) => (
-        <p {...props} className={`text-base leading-7 my-2 whitespace-pre-wrap ${props.className ?? ''}`} />
+        <p
+          {...props}
+          className={`text-base leading-7 my-2 whitespace-pre-wrap ${props.className ?? ''}`}
+        />
       ),
       ul: (props: React.HTMLAttributes<HTMLUListElement>) => (
         <ul {...props} className={`list-disc ml-6 my-2 ${props.className ?? ''}`} />
@@ -100,7 +106,10 @@ const MarkdownEditor = ({ value, onChange }: Props) => {
         <code {...props} className={`px-1 py-0.5 rounded bg-slate-100 ${props.className ?? ''}`} />
       ),
       pre: (props: React.HTMLAttributes<HTMLPreElement>) => (
-        <pre {...props} className={`p-3 rounded bg-slate-900 text-slate-100 overflow-auto ${props.className ?? ''}`} />
+        <pre
+          {...props}
+          className={`p-3 rounded bg-slate-900 text-slate-100 overflow-auto ${props.className ?? ''}`}
+        />
       ),
     }),
     []
@@ -114,7 +123,7 @@ const MarkdownEditor = ({ value, onChange }: Props) => {
           className="col-span-1 w-full h-full overflow-y-auto resize-none p-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scrollbar"
           placeholder="# 제목\n내용을 마크다운으로 입력하세요"
           value={value}
-          onChange={e => onChange(e.target.value)}
+          onChange={(e) => onChange(e.target.value)}
           onDrop={handleDrop}
           onPaste={handlePaste}
         />

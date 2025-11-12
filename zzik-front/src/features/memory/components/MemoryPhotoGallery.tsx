@@ -20,10 +20,10 @@ const MemoryPhotoGallery = ({ tripId }: Props) => {
     setError(null)
     try {
       const res = await MemoryPhotoService.getTripPhotos(tripId, cursor)
-      setPhotos(prev => {
+      setPhotos((prev) => {
         const merged: TripPhoto[] = [...prev, ...res.photos]
         const map = new Map<number, TripPhoto>()
-        merged.forEach(p => map.set(p.id, { ...p }))
+        merged.forEach((p) => map.set(p.id, { ...p }))
         return Array.from(map.values())
       })
       setNextCursor(res.pageInfo?.nextCursor ?? null)
@@ -49,19 +49,22 @@ const MemoryPhotoGallery = ({ tripId }: Props) => {
     e.dataTransfer.effectAllowed = 'copy'
   }, [])
 
-  const totalPages = useMemo(() => Math.max(1, Math.ceil(photos.length / pageSize)), [photos.length, pageSize])
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil(photos.length / pageSize)),
+    [photos.length, pageSize]
+  )
   const start = page * pageSize
   const end = start + pageSize
   const pagePhotos = photos.slice(start, end)
 
-  const goPrev = () => setPage(p => Math.max(0, p - 1))
+  const goPrev = () => setPage((p) => Math.max(0, p - 1))
   const goNext = async () => {
     const nextPage = page + 1
     const needed = (nextPage + 1) * pageSize
     if (photos.length < needed && nextCursor) {
       await fetchPage(nextCursor)
     }
-    setPage(p => ((p + 1) * pageSize <= photos.length || nextCursor ? p + 1 : p))
+    setPage((p) => ((p + 1) * pageSize <= photos.length || nextCursor ? p + 1 : p))
   }
 
   return (
@@ -74,7 +77,7 @@ const MemoryPhotoGallery = ({ tripId }: Props) => {
           <select
             className="border rounded px-2 py-1 text-sm"
             value={pageSize}
-            onChange={e => {
+            onChange={(e) => {
               const size = Number(e.target.value)
               setPageSize(size)
               setPage(0)
@@ -86,10 +89,17 @@ const MemoryPhotoGallery = ({ tripId }: Props) => {
           </select>
         </div>
         <div className="flex items-center gap-2">
-          <button className="px-2 py-1 text-sm border rounded disabled:opacity-50" disabled={page === 0} onClick={goPrev}>
+          <button
+            className="px-2 py-1 text-sm border rounded disabled:opacity-50"
+            disabled={page === 0}
+            onClick={goPrev}
+          >
             이전
           </button>
-          <span className="text-sm text-slate-600">{page + 1} / {totalPages}{nextCursor ? '+' : ''}</span>
+          <span className="text-sm text-slate-600">
+            {page + 1} / {totalPages}
+            {nextCursor ? '+' : ''}
+          </span>
           <button
             className="px-2 py-1 text-sm border rounded disabled:opacity-50"
             onClick={goNext}
@@ -102,15 +112,19 @@ const MemoryPhotoGallery = ({ tripId }: Props) => {
 
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         <div className="grid grid-cols-2 gap-3">
-          {pagePhotos.map(p => (
+          {pagePhotos.map((p) => (
             <div
               key={p.id}
               className="w-full aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-grab active:cursor-grabbing"
               draggable
-              onDragStart={e => handleDragStart(e, p)}
+              onDragStart={(e) => handleDragStart(e, p)}
               title="드래그하여 에디터에 넣기"
             >
-              <ImageWithFallback src={p.s3Url} alt={`photo-${p.id}`} className="w-full h-full object-cover" />
+              <ImageWithFallback
+                src={p.s3Url}
+                alt={`photo-${p.id}`}
+                className="w-full h-full object-cover"
+              />
             </div>
           ))}
         </div>

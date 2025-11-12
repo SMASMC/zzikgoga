@@ -111,7 +111,7 @@ const MemoryPage = () => {
         const res = await MemoryService.getMemory(safeTripId)
         if (cancelled || !res) return
         setTitle(res.title ?? '')
-        const blocks = (res.content as any)?.blocks as MemoryBlock[] | undefined
+        const blocks = res.content?.blocks
         if (Array.isArray(blocks) && blocks.length > 0) {
           setMarkdown(blocksToMarkdown(blocks))
         } else {
