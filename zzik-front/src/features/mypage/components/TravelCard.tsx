@@ -33,6 +33,7 @@ const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCard
   const handlePhotoClick = (e: React.MouseEvent) => {
     e.stopPropagation() // 카드 클릭 이벤트 전파 방지
     console.log(`사진 버튼 클릭 - 사진 갤러리로 이동 (tripId: ${tripId})`)
+    navigate(`/memory/${tripId}`)
     // 여기에 사진 갤러리 이동 함수 추가 (예: navigate(`/gallery/${tripId}`))
   }
 
