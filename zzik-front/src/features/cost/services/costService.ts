@@ -4,6 +4,7 @@ import {
   CostListApiResponse,
   CostReciptResponse,
   CostReciptRequest,
+  CostDetailResponse,
 } from '@/features/cost/types/cost'
 
 export class CostPlusService {
@@ -28,9 +29,10 @@ export class CostReciptService {
     const response = await apiClient.post<CostReciptResponse>(`/cost/${tripId}/receipt`, formData)
     return response
   }
-
-  //   public static async getCostDetail(tripId: string): Promise<CostReciptResponse> {
-  //     const response = await apiClient.get<CostReciptResponse>(`/cost/${tripId}/receipt`)
-  //     return response
-  //   }
+}
+export class CostDetailService {
+    public static async getCostDetail(tripId: number, costId: number): Promise<CostDetailResponse> {
+        const response = await apiClient.get<CostDetailResponse>(`/cost/${tripId}/${costId}`)
+        return response
+    }
 }

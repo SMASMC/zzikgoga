@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import CostPlusForm from './CostPlusForm'
 import CloseButton from '@/components/atoms/CloseButton'
 
@@ -7,11 +8,11 @@ interface CostPlusModalProps {
   tripId: string
 }
 
-const CostPlusModal = ({ isOpen, onClose, tripId }: CostPlusModalProps): JSX.Element | null => {
+const CostPlusModal = ({ isOpen, onClose, tripId }: CostPlusModalProps) => {
   if (!isOpen) return null
 
-  return (
-    <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4">
+  const modalContent = (
+    <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-[100] p-4">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
 
@@ -30,6 +31,8 @@ const CostPlusModal = ({ isOpen, onClose, tripId }: CostPlusModalProps): JSX.Ele
       </div>
     </div>
   )
+
+  return createPortal(modalContent, document.body)
 }
 
 export default CostPlusModal

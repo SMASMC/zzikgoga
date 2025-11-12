@@ -120,9 +120,7 @@ const CostAdd = () => {
                   {isUploading ? '업로드 중...' : '영수증으로 추가하기'}
                 </h3>
                 <p className="text-xs text-text-600">
-                  {isUploading
-                    ? '영수증을 처리하고 있습니다...'
-                    : '영수증 사진을 업로드하면 자동으로 정보가 입력됩니다'}
+                  {isUploading ? '영수증을 처리하고 있습니다...' : '영수증을 업로드 해주세요'}
                 </p>
               </div>
             </div>
@@ -151,11 +149,7 @@ const CostAdd = () => {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-text-500 font-bmjua mb-1">직접 추가하기</h3>
-                <p className="text-xs text-text-600">
-                  카테고리, 금액, 설명 등을
-                  <br />
-                  직접 입력하여 추가합니다
-                </p>
+                <p className="text-xs text-text-600">정산 할 내용을 직접 추가해주세요</p>
               </div>
             </div>
           </div>

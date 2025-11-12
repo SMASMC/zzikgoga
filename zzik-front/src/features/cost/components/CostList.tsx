@@ -3,7 +3,8 @@
 // 전체 정산 내역 및 상세 조회
 import { useState, useEffect } from 'react'
 import { CostListService } from '../services/costService'
-import { CostListResponse, COST_CATEGORY_LABELS } from '../types/cost'
+import { CostListResponse } from '../types/cost'
+import CostDetailModal from './CostDetailModal'
 
 interface CostListProps {
   tripId: string
@@ -14,6 +15,8 @@ const CostList = ({ tripId }: CostListProps) => {
   const [totalCostCount, setTotalCostCount] = useState(0)
   const [totalCost, setTotalCost] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedCostId, setSelectedCostId] = useState<number | null>(null)
 
   useEffect(() => {
     const loadCostList = async () => {
@@ -56,6 +59,16 @@ const CostList = ({ tripId }: CostListProps) => {
     return amount.toLocaleString('ko-KR')
   }
 
+  const handleCostClick = (costId: number) => {
+    setSelectedCostId(costId)
+    setIsModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false)
+    setSelectedCostId(null)
+  }
+
   return (
     <div className="bg-white rounded-3xl shadow-lg p-6 h-full">
       <div className="mb-6">
@@ -65,9 +78,9 @@ const CostList = ({ tripId }: CostListProps) => {
             <span className="text-text-600">총 건수: </span>
             <span className="font-bold text-blue-600">{totalCostCount}건</span>
           </div>
-          <div className="bg-green-50 px-4 py-2 rounded-lg">
+          <div className="bg-blue-50 px-4 py-2 rounded-lg">
             <span className="text-text-600">총 금액: </span>
-            <span className="font-bold text-green-600">{formatAmount(totalCost)}원</span>
+            <span className="font-bold text-blue-600">{formatAmount(totalCost)}원</span>
           </div>
         </div>
       </div>
@@ -81,7 +94,8 @@ const CostList = ({ tripId }: CostListProps) => {
           {costs.map((cost) => (
             <div
               key={cost.costId}
-              className="p-4 bg-gray-50 rounded-xl border border-gray-200 hover:shadow-md transition-shadow"
+              onClick={() => handleCostClick(cost.costId)}
+              className="p-4 bg-gray-50 rounded-xl border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3 flex-1">
@@ -104,9 +118,9 @@ const CostList = ({ tripId }: CostListProps) => {
                     <div className="flex items-center gap-2 mb-1">
                       <p className="font-bold text-text-500 truncate">{cost.payerName}</p>
                       <span className="text-xs text-text-600">결제</span>
-                      <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">
-                        {COST_CATEGORY_LABELS[cost.category]}
-                      </span>
+                      {/* <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">
+                      //   {/* {COST_CATEGORY_LABELS[cost.category]} */}
+                      {/* // </span>  */}
                     </div>
                     <p className="text-sm text-text-600 truncate">{cost.place}</p>
                     <p className="text-xs text-gray-500">{formatDate(cost.paidAt)}</p>
@@ -121,6 +135,16 @@ const CostList = ({ tripId }: CostListProps) => {
             </div>
           ))}
         </div>
+      )}
+
+      {/* CostDetailModal */}
+      {isModalOpen && selectedCostId !== null && (
+        <CostDetailModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          tripId={tripId}
+          costId={selectedCostId}
+        />
       )}
     </div>
   )

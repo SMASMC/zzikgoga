@@ -43,14 +43,16 @@ const AppRoutes = () => {
             </PublicOnlyRoute>
           }
         />
-        <Route
-          path="/cost/:tripId"
-          element={
-            <ProtectedRoute>
-              <CostPage />
-            </ProtectedRoute>
-          }
-        />
+        <Route element={<BackgroundShell header={null} />}>
+          <Route
+            path="/cost/:tripId"
+            element={
+              <ProtectedRoute>
+                <CostPage />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
       </Route>
 
       {/* Plan 페이지는 Header를 직접 렌더링하여 커서 공유 */}
