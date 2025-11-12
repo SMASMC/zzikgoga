@@ -31,8 +31,8 @@ export class CostReciptService {
   }
 }
 export class CostDetailService {
-    public static async getCostDetail(tripId: number, costId: number): Promise<CostDetailResponse> {
-        const response = await apiClient.get<CostDetailResponse>(`/cost/${tripId}/${costId}`)
-        return response
-    }
+  public static async getCostDetail(tripId: number, costId: number): Promise<CostDetailResponse> {
+    const response = await apiClient.get<CostDetailResponse>(`/cost/${tripId}/${costId}`)
+    return response
+  }
 }

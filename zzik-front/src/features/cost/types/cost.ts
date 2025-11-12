@@ -77,15 +77,15 @@ export interface CostReciptResponse {
 }
 
 export interface CostDetailResponse {
-    costId: number
-    createdBy: number
-    payerId: number
-    paidAt: string
-    place: string
-    totalAmount: number
-    memo: string | null
-    receiptJson: string | null
-    items: CostItem[]
+  costId: number
+  createdBy: number
+  payerId: number
+  paidAt: string
+  place: string
+  totalAmount: number
+  memo: string | null
+  receiptJson: string | null
+  items: CostItem[]
 }
 // 결제 내역 수정
 export interface CostModifyRequest {
@@ -104,14 +104,14 @@ export interface CostMenu {
 }
 
 export interface CostModifyResponse {
-    costId: number
-    paidAt: string
-    place: string
-    payerId: number
-    payerName: string
-    totalAmount: number
-    memo: string | null
-    menus: ModifyCostMenu[]
+  costId: number
+  paidAt: string
+  place: string
+  payerId: number
+  payerName: string
+  totalAmount: number
+  memo: string | null
+  menus: ModifyCostMenu[]
 }
 export interface ModifyCostMenu {
   costMenuId: number

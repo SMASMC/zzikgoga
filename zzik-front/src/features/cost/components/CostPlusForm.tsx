@@ -217,7 +217,7 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
         newErrors.items = itemErrors.join(' ')
       } else {
         // 품목별 금액 합계 계산
-        const itemsTotal = formData.items.reduce((sum, item) => sum + (item.amount || 0), 0)
+        const itemsTotal = formData.items.reduce((sum, item) => sum + (item.amount || 0) * (item.count || 0), 0)
 
         // 품목별 금액 합계가 총 금액과 일치하는지 검증
         if (itemsTotal !== formData.totalAmount) {
@@ -555,6 +555,24 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
                     updateItem(index, 'amount', value)
                     // 에러 제거
                     if (errors.items && errors.items.includes(`품목 ${index + 1}: 금액`)) {
+                      setErrors({ ...errors, items: undefined })
+                    }
+                  }
+                }}
+                className="w-full px-3 py-2 bg-gray-50 border border-blue-300 rounded-lg text-sm outline-none focus:outline-none focus:ring-0 focus:border-blue-400"
+              />
+              <label className="text-xs text-text-500 mb-1 block">수량</label>
+              <input
+                type="number"
+                min="0"
+                value={item.count || ''}
+                onChange={(e) => {
+                  const value = e.target.value === '' ? 0 : Number(e.target.value)
+                  // 음수값 방지
+                  if (value >= 0) {
+                    updateItem(index, 'count', value)
+                    // 에러 제거
+                    if (errors.items && errors.items.includes(`품목 ${index + 1}: 수량`)) {
                       setErrors({ ...errors, items: undefined })
                     }
                   }
