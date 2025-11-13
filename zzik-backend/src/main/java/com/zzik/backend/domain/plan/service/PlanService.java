@@ -14,6 +14,9 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +44,7 @@ import com.zzik.backend.domain.plan.repository.TripThemaRepository;
 import com.zzik.backend.global.cloud.s3.service.S3Util;
 import com.zzik.backend.global.exception.BusinessException;
 import com.zzik.backend.global.exception.ExceptionCode;
+import com.zzik.backend.global.pagination.PageInfoResponse;
 import com.zzik.backend.global.security.jwt.invite.InviteTokenProvider;
 
 import jakarta.persistence.EntityManager;
@@ -74,27 +78,51 @@ public class PlanService {
 	private String inviteBaseUrl;
 
 	@Transactional(readOnly = true)
-	public TripListResponse getTripList(Long memberId) {
-		List<Trip> trips = tripRepository.findDistinctByTripMembersMemberIdOrderByCreatedAtDesc(memberId);
+	public TripListResponse getTripList(Long memberId, Long cursor, int size) {
+
+		if (cursor != null && cursor <= 0) {
+			cursor = null;
+		}
+
+		Pageable pageRequest = PageRequest.of(0, size + 1, Sort.by(Sort.Direction.DESC, "id"));
+
+		List<Trip> trips = tripRepository.findByMemberIdCursorPaged(memberId, cursor, pageRequest);
+
+		boolean hasNext = trips.size() > size;
+		List<Trip> responseTrips = hasNext ? trips.subList(0, size) : trips;
+
+		Long nextCursor = null;
+		if (hasNext && !responseTrips.isEmpty()) {
+			nextCursor = responseTrips.get(responseTrips.size() - 1).getId();
+		}
 
 		List<TripSummaryResponse> items = new ArrayList<>();
-		for (Trip t : trips) {
+
+		for (Trip t : responseTrips) {
 			List<Photo> photos = photoRepository.findByTripId(t.getId());
+
 			Photo photo = null;
 			if (!photos.isEmpty()) {
 				photo = photos.get(
 					ThreadLocalRandom.current().nextInt(photos.size())
 				);
 			}
+
 			items.add(TripSummaryResponse.builder()
 				.tripId(t.getId())
 				.title(t.getTitle())
 				.startDate(t.getStartDate())
 				.endDate(t.getEndDate())
-				.thumbnail((photo != null) ? s3Util.generatePresignedUrl(photo.getS3Url()) : null)
+				.thumbnail(photo != null
+					? s3Util.generatePresignedUrl(photo.getS3Url())
+					: null)
 				.build());
 		}
-		return TripListResponse.builder().trip(items).build();
+
+		return TripListResponse.builder()
+			.trip(items)
+			.pageInfo(new PageInfoResponse(nextCursor))
+			.build();
 	}
 
 	@Transactional

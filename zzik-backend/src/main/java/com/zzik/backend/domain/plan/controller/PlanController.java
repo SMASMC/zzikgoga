@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.zzik.backend.domain.plan.api.PlanApi;
@@ -27,9 +28,12 @@ public class PlanController implements PlanApi {
 	private final PlanService planService;
 
 	@Override
-	public ResponseEntity<ApiResponse<TripListResponse>> getTripList() {
+	public ResponseEntity<ApiResponse<TripListResponse>> getTripList(
+		@RequestParam(required = false) Long cursor,
+		@RequestParam(defaultValue = "7") int size
+	) {
 		Long ownerId = SecurityUtil.getCurrentMemberId();
-		TripListResponse list = planService.getTripList(ownerId);
+		TripListResponse list = planService.getTripList(ownerId, cursor, size);
 		return ResponseEntity.ok(ApiResponse.createSuccess(list));
 	}
 
