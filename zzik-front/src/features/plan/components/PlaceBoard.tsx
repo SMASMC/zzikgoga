@@ -155,6 +155,7 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
   const titlePersistTimerRef = useRef<number | null>(null)
   const lastSyncedTitleRef = useRef<string>('')
 
+  // titleYText는 doc이 변경될 때만 다시 가져오기 (Y.Text 객체는 동일하므로 안전)
   const titleYText = useMemo(() => {
     if (!doc) return null
     const tripMap = doc.getMap('tripInfo') as Y.Map<unknown>
@@ -172,9 +173,8 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
         const ytext = new Y.Text()
         if (typeof existing === 'string' && existing.trim().length > 0) {
           ytext.insert(0, existing)
-        } else if (tripInfo?.title && tripInfo.title.trim().length > 0) {
-          ytext.insert(0, tripInfo.title)
         } else if (metaStorageKey && typeof window !== 'undefined') {
+          // sessionStorage에서 캐시된 제목 가져오기
           try {
             const cached = window.sessionStorage.getItem(metaStorageKey)
             if (cached) {
@@ -190,7 +190,8 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
         tripMap.set('title', ytext)
       })
     }
-  }, [doc, tripInfo?.title, metaStorageKey])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc, metaStorageKey])
 
   // 제목 드래프트 상태 + 동기화
   const [titleDraft, setTitleDraft] = useState(() => {
@@ -473,9 +474,9 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
 
   // 삭제 핸들러(일정/예산)
   const handleRemoveSchedule = useCallback(
-    (dateKey: string, keyOrId: string | number) => {
+    (dateKey: string, realIndex: number) => {
       setEditingKey(null)
-      removeSchedule(dateKey, keyOrId)
+      removeSchedule(dateKey, realIndex)
     },
     [removeSchedule]
   )
@@ -694,14 +695,16 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
                       .map((it, originalIndex) => ({ it, originalIndex }))
                       .sort((a, b) => a.it.start_time.localeCompare(b.it.start_time))
                       .map(({ it, originalIndex }) => {
+                        // 실제 Y.Array 인덱스 사용 (삭제된 항목이 있어도 정확한 인덱스)
+                        const realIndex = it.yArrayIndex ?? originalIndex
                         const listKey = `${selectedDateKey}-${it.id ?? 'n'}-${originalIndex}`
-                        const isEditing = editingKey === `${selectedDateKey}:${originalIndex}`
+                        const isEditing = editingKey === `${selectedDateKey}:${realIndex}`
                         return (
                           <li
                             key={listKey}
                             className="rounded-xl border-2 border-slate-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
                             draggable={!isEditing}
-                            onDragStart={() => handleDragStart(selectedDateKey, originalIndex)}
+                            onDragStart={() => handleDragStart(selectedDateKey, realIndex)}
                             onDragEnd={handleDragEnd}
                             onDragOver={(event) => {
                               if (!dragItemRef.current) return
@@ -710,7 +713,7 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
                             onDrop={(event) => {
                               event.preventDefault()
                               event.stopPropagation()
-                              handleDropWithinDate(selectedDateKey, originalIndex)
+                              handleDropWithinDate(selectedDateKey, realIndex)
                             }}
                           >
                             <div className="flex items-center justify-between">
@@ -731,9 +734,7 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
                               <button
                                 type="button"
                                 className="rounded-full border border-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-500 transition hover:border-red-300 hover:bg-red-50"
-                                onClick={() =>
-                                  handleRemoveSchedule(selectedDateKey, it.id ?? it.uid!)
-                                }
+                                onClick={() => handleRemoveSchedule(selectedDateKey, realIndex)}
                               >
                                 삭제
                               </button>
@@ -745,8 +746,8 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
                                   doc={doc}
                                   awareness={awareness}
                                   dateKey={selectedDateKey}
-                                  index={originalIndex}
-                                  fieldKey={`memo-${it.uid || `${selectedDateKey}-${originalIndex}`}`}
+                                  index={realIndex}
+                                  fieldKey={`memo-${it.uid || `${selectedDateKey}-${realIndex}`}`}
                                   initialText={it.memo}
                                 />
                               ) : null}
@@ -768,7 +769,7 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
                                     onBlur={(e) => {
                                       const iso = e.currentTarget.value
                                       if (!iso) return
-                                      updateScheduleTime(selectedDateKey, originalIndex, {
+                                      updateScheduleTime(selectedDateKey, realIndex, {
                                         startTimeLocal: iso,
                                       })
                                     }}
@@ -789,7 +790,7 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
                                     onBlur={(e) => {
                                       const v = e.currentTarget.value.trim()
                                       if (v === '') {
-                                        updateScheduleTime(selectedDateKey, originalIndex, {
+                                        updateScheduleTime(selectedDateKey, realIndex, {
                                           offsetHHMM: null,
                                         })
                                         return
@@ -803,7 +804,7 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
                                         })
                                         return
                                       }
-                                      updateScheduleTime(selectedDateKey, originalIndex, {
+                                      updateScheduleTime(selectedDateKey, realIndex, {
                                         offsetHHMM: off,
                                       })
                                     }}
@@ -816,7 +817,7 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
                               </div>
                             </div>
 
-                            {editingKey === `${selectedDateKey}:${originalIndex}` ? (
+                            {editingKey === `${selectedDateKey}:${realIndex}` ? (
                               <div className="mt-2 flex flex-wrap items-center gap-2 rounded border border-slate-100 bg-slate-50/60 p-2">
                                 <label className="text-[11px] text-slate-500">start_time</label>
                                 <input
@@ -857,7 +858,7 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
                                         })
                                         return
                                       }
-                                      updateScheduleTime(selectedDateKey, originalIndex, {
+                                      updateScheduleTime(selectedDateKey, realIndex, {
                                         startTimeLocal: iso,
                                         offsetHHMM: editOffset ? off : null,
                                       })

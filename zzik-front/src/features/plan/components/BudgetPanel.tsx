@@ -171,11 +171,13 @@ const BudgetPanel = () => {
               ) : (
                 <ul className="space-y-2 text-sm">
                   {budgetsByDate[d].map((it, idx) => {
+                      // 실제 Y.Array 인덱스 사용
+                      const realIndex = it.yArrayIndex ?? idx
                       let yDesc: Y.Text | null = null
                       if (doc) {
                         const yMap = doc.getMap('budgets') as Y.Map<unknown>
                         const yArr = yMap.get(d) as Y.Array<Y.Map<unknown>> | undefined
-                        const yItem = yArr?.get(idx) as Y.Map<unknown> | undefined
+                        const yItem = yArr?.get(realIndex) as Y.Map<unknown> | undefined
                         const desc = yItem?.get('description')
                         if (desc instanceof Y.Text) yDesc = desc
                       }

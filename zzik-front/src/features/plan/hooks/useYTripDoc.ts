@@ -11,6 +11,7 @@ export interface YBudgetItem {
   category: string
   amount: number
   description: string
+  yArrayIndex?: number // 실제 Y.Array 인덱스 (삭제된 항목 포함)
 }
 
 export interface YLocationItem {
@@ -30,6 +31,7 @@ export interface YScheduleItem {
   has_location: boolean
   location: YLocationItem | null
   memo: string
+  yArrayIndex?: number // 실제 Y.Array 인덱스 (삭제된 항목 포함)
 }
 
 export interface TripInfoPlain {
@@ -47,7 +49,7 @@ const snapshotBudgets = (doc: Y.Doc): Record<string, YBudgetItem[]> => {
 
   budgetsMap.forEach((yArr, dateKey) => {
     const items: YBudgetItem[] = []
-    yArr.forEach((yMap) => {
+    yArr.forEach((yMap, yArrayIndex) => {
       // ⭐ _deleted 플래그가 있으면 스킵
       if (yMap.get('_deleted') === true) return
 
@@ -57,7 +59,7 @@ const snapshotBudgets = (doc: Y.Doc): Record<string, YBudgetItem[]> => {
       const amountRaw = yMap.get('amount') as unknown
       const amount = typeof amountRaw === 'number' ? amountRaw : Number(amountRaw ?? 0)
       const description = yTextToString(yMap.get('description'))
-      items.push({ id, uid, category, amount, description })
+      items.push({ id, uid, category, amount, description, yArrayIndex })
     })
     result[dateKey] = items
   })
@@ -71,7 +73,7 @@ const snapshotSchedules = (doc: Y.Doc): Record<string, YScheduleItem[]> => {
 
   schedulesMap.forEach((yArr, dateKey) => {
     const items: YScheduleItem[] = []
-    yArr.forEach((yMap) => {
+    yArr.forEach((yMap, yArrayIndex) => {
       // ⭐ _deleted 플래그가 있으면 스킵
       if (yMap.get('_deleted') === true) return
 
@@ -94,7 +96,7 @@ const snapshotSchedules = (doc: Y.Doc): Record<string, YScheduleItem[]> => {
           longitude: (obj.longitude as number) ?? null,
         }
       })()
-      items.push({ id, uid, start_time, offset_time, has_location, location, memo })
+      items.push({ id, uid, start_time, offset_time, has_location, location, memo, yArrayIndex })
     })
     result[dateKey] = items
   })
@@ -293,7 +295,7 @@ export const useYTripDoc = (roomId: string) => {
     []
   )
 
-  // id or key(or category)로 탐색해서 _deleted 플래그 설정 (Update 방식)
+  // keyOrId를 받아서 _deleted 플래그 설정 (Update 방식)
   const removeBudget = useCallback((dateKey: string, keyOrId: string | number) => {
     const entry = providerRef.current
     if (!entry) return
@@ -306,11 +308,15 @@ export const useYTripDoc = (roomId: string) => {
       return
     }
 
-    // id/uid로 탐색
     let target: Y.Map<unknown> | null = null
+
+    // 1) id/uid로 우선 탐색
     for (let i = 0; i < yArr.length; i++) {
       const m = yArr.get(i)
       if (!(m instanceof Y.Map)) continue
+      // _deleted 항목은 스킵
+      if (m.get('_deleted') === true) continue
+
       const id = m.get('id') as number | null
       const uid = m.get('uid') as string | undefined
       if (id === keyOrId || uid === keyOrId) {
@@ -319,9 +325,20 @@ export const useYTripDoc = (roomId: string) => {
       }
     }
 
-    // 임시 호환: 숫자면 인덱스로 찾기
-    if (!target && typeof keyOrId === 'number' && keyOrId >= 0 && keyOrId < yArr.length) {
-      target = yArr.get(keyOrId) as Y.Map<unknown>
+    // 2) 못 찾았고 숫자면 visible index로 간주
+    if (!target && typeof keyOrId === 'number') {
+      let visibleCount = 0
+      for (let i = 0; i < yArr.length; i++) {
+        const m = yArr.get(i)
+        if (!(m instanceof Y.Map)) continue
+        if (m.get('_deleted') === true) continue
+
+        if (visibleCount === keyOrId) {
+          target = m
+          break
+        }
+        visibleCount++
+      }
     }
 
     if (!target) {
@@ -559,8 +576,8 @@ export const useYTripDoc = (roomId: string) => {
     []
   )
 
-  // id or uid로 탐색해서 _deleted 플래그 설정 (Update 방식)
-  const removeSchedule = useCallback((dateKey: string, keyOrId: string | number) => {
+  // visible index를 받아서 _deleted 플래그 설정 (Update 방식)
+  const removeSchedule = useCallback((dateKey: string, visibleIndex: number) => {
     const entry = providerRef.current
     if (!entry) {
       console.warn('[removeSchedule] No provider available')
@@ -575,21 +592,27 @@ export const useYTripDoc = (roomId: string) => {
       return
     }
 
-    // id/uid로 탐색
+    // visible index를 실제 Y.Array 인덱스로 변환
+    // _deleted가 아닌 항목들 중에서 visibleIndex번째 항목 찾기
+    let visibleCount = 0
     let target: Y.Map<unknown> | null = null
+
     for (let i = 0; i < yArr.length; i++) {
       const m = yArr.get(i)
       if (!(m instanceof Y.Map)) continue
-      const id = m.get('id') as number | null
-      const uid = m.get('uid') as string | undefined
-      if (id === keyOrId || uid === keyOrId) {
+
+      // _deleted 항목은 스킵
+      if (m.get('_deleted') === true) continue
+
+      if (visibleCount === visibleIndex) {
         target = m
         break
       }
+      visibleCount++
     }
 
     if (!target) {
-      console.warn('[removeSchedule] target not found in Y.Array', { dateKey, keyOrId })
+      console.warn('[removeSchedule] target not found in Y.Array', { dateKey, visibleIndex })
       return
     }
 
