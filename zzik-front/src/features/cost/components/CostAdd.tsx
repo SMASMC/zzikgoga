@@ -102,11 +102,20 @@ const CostAdd = ({ onCostAdded }: CostAddProps) => {
         <div className="space-y-4">
           {/* 영수증으로 추가하기 */}
           <button
-            onClick={handleReceiptUpload}
-            disabled={isUploading || !tripId}
-            className={`w-full group bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-blue-200 hover:border-blue-400 active:scale-[0.98] ${
-              isUploading || !tripId ? 'opacity-50 cursor-not-allowed' : ''
+            type="button"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              if (!isUploading && tripId) {
+                handleReceiptUpload()
+              }
+            }}
+            className={`relative z-10 w-full group bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 transition-all duration-300 border-2 touch-manipulation ${
+              isUploading || !tripId
+                ? 'opacity-50 cursor-not-allowed border-blue-200'
+                : 'cursor-pointer border-blue-200 hover:border-blue-400 hover:shadow-lg active:scale-[0.98]'
             }`}
+            aria-disabled={isUploading || !tripId}
           >
             <div className="flex flex-col items-center text-center space-y-3">
               <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">

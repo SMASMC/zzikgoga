@@ -80,7 +80,7 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
 
   const handleDelete = async (e: React.MouseEvent, costId: number) => {
     e.stopPropagation() // 클릭 이벤트 버블링 방지 (모달이 열리지 않도록)
-    
+
     if (!confirm('정말로 이 결제 내역을 삭제하시겠습니까?')) {
       return
     }
@@ -123,8 +123,12 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
           {costs.map((cost) => (
             <div
               key={cost.costId}
-              onClick={() => handleCostClick(cost.costId)}
-              className="p-4 bg-gray-50 rounded-xl border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                handleCostClick(cost.costId)
+              }}
+              className="relative z-10 p-4 bg-gray-50 rounded-xl border border-gray-200 hover:shadow-md transition-shadow cursor-pointer touch-manipulation active:scale-[0.98]"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3 flex-1">
@@ -160,9 +164,10 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
                     {formatAmount(cost.totalAmount)}원
                   </p>
                   <button
+                    type="button"
                     onClick={(e) => handleDelete(e, cost.costId)}
                     disabled={deletingCostId === cost.costId}
-                    className="px-3 py-1.5 text-sm font-bmjua rounded-lg bg-red-500 text-white hover:bg-red-600 shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
+                    className="relative z-20 px-3 py-1.5 text-sm font-bmjua rounded-lg bg-red-500 text-white hover:bg-red-600 shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 touch-manipulation"
                     title="삭제"
                   >
                     {deletingCostId === cost.costId ? '삭제 중...' : '삭제'}

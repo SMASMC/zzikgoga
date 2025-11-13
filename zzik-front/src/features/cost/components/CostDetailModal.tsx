@@ -520,7 +520,7 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
                                   {menu.payerIds.map((memberId) => {
                                     const member = members.find((m) => m.memberId === memberId)
                                     if (!member) return null
-    return (
+                                    return (
                                       <div
                                         key={memberId}
                                         className="flex items-center space-x-2 px-2 py-1 bg-blue-50 rounded-lg border border-blue-200"
@@ -666,7 +666,7 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
                   </div>
 
                   {costDetail.memo && (
-        <div> 
+                    <div>
                       <p className="text-sm text-text-600 mb-1">메모</p>
                       <p className="text-base text-text-500">{costDetail.memo}</p>
                     </div>
@@ -729,8 +729,8 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
             </>
           ) : null}
         </div>
-        </div>
-        
+      </div>
+
       {/* 결제자 선택 모달 */}
       {isPayerModalOpen && (
         <PayerSelectModal
