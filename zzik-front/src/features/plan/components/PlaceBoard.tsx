@@ -10,14 +10,10 @@ import { ToastDock } from '@/components/blocks/ToastDock'
 import SolidButton from '@/components/atoms/SolidButton'
 import WeekCalendar from './WeekCalendar'
 import { toLocalDateKey, addDays } from '../utils/time'
-// import { syncYTextContent, MAX_TITLE_LENGTH } from '../utils/ytext'
 import { CHAT_AUTO_HIDE_MS, getRoomId } from '../utils/constants'
 import { EmptyScheduleState, ScheduleList } from './place-board'
 import { ChatPanel, ParticipantRoster } from './collaboration'
-// import { TripTitleEditor } from './travel-header'
 import YTextEditor from './YTextEditor'
-
-/** ===================== 컴포넌트 ===================== */
 
 interface PlaceBoardProps {
   cursorSession: SharedCursorSession
@@ -58,8 +54,6 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
   const inputRef = useRef<HTMLInputElement>(null)
   const autoHideTimerRef = useRef<number | null>(null)
   const dragItemRef = useRef<{ dateKey: string; index: number } | null>(null)
-  // const titlePersistTimerRef = useRef<number | null>(null)
-  // const lastSyncedTitleRef = useRef<string>('')
 
   // titleYText는 변경될 때만 다시 가져오기 (Y.Text 객체는 동일하므로 안전)
   const titleYText = (() => {
@@ -100,21 +94,6 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
     }
   }, [doc, metaStorageKey])
 
-  // 제목 드래프트 상태 + 동기화
-  // const [titleDraft, setTitleDraft] = useState(() => {
-  //   if (!metaStorageKey || typeof window === 'undefined') return ''
-  //   try {
-  //     const cached = window.sessionStorage.getItem(metaStorageKey)
-  //     if (cached) {
-  //       const parsed = JSON.parse(cached)
-  //       return parsed.travelTitle || ''
-  //     }
-  //   } catch {
-  //     // ignore
-  //   }
-  //   return ''
-  // })
-
   const [selfCursor, setSelfCursor] = useState<{ x: number; y: number } | null>(null)
   const [isChatOpen, setIsChatOpen] = useState(false)
   const [isRosterOpen, setIsRosterOpen] = useState(false)
@@ -122,27 +101,6 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [editStart, setEditStart] = useState('')
   const [editOffset, setEditOffset] = useState('')
-  // const hasRestoredCacheRef = useRef(false)
-
-  // const updatePersistedMeta = useCallback(
-  //   (nextTitle: string) => {
-  //     if (!metaStorageKey || typeof window === 'undefined') return
-  //     try {
-  //       const existingRaw = window.sessionStorage.getItem(metaStorageKey)
-  //       const parsed = existingRaw ? JSON.parse(existingRaw) : {}
-  //       window.sessionStorage.setItem(
-  //         metaStorageKey,
-  //         JSON.stringify({
-  //           ...parsed,
-  //           travelTitle: nextTitle,
-  //         })
-  //       )
-  //     } catch {
-  //       // ignore
-  //     }
-  //   },
-  //   [metaStorageKey]
-  // )
 
   const rosterEntries = useMemo(() => {
     if (!participants || participants.length === 0) {
@@ -231,63 +189,6 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
       // ignore
     }
   }, [metaStorageKey, selectedDateKey, tripId])
-
-  // 제목 드래프트 ↔ Y.Text 동기화
-  // useEffect(() => {
-  //   if (!titleYText) return
-  //   const syncState = () => {
-  //     const ytextValue = titleYText.toString()
-  //     if (
-  //       !hasRestoredCacheRef.current &&
-  //       ytextValue.trim().length === 0 &&
-  //       titleDraft.trim().length > 0
-  //     ) {
-  //       titleYText.doc?.transact(() => {
-  //         titleYText.insert(0, titleDraft)
-  //       }, 'restore-cached-title')
-  //       hasRestoredCacheRef.current = true
-  //       return
-  //     }
-  //     setTitleDraft(ytextValue)
-  //   }
-  //   syncState()
-  //   const observer = () => setTitleDraft(titleYText.toString())
-  //   titleYText.observe(observer)
-  //   return () => titleYText.unobserve(observer)
-  // }, [titleYText])
-
-  // const handleTitleChange = useCallback(
-  //   (value: string) => {
-  //     const nextValue = value.slice(0, MAX_TITLE_LENGTH)
-  //     setTitleDraft(nextValue)
-  //     // Y.Text가 준비된 후에만 CRDT 반영
-  //     if (titleYText) {
-  //       syncYTextContent(titleYText, nextValue)
-  //     }
-  //   },
-  //   [titleYText]
-  // )
-
-  // 제목 로컬 캐시 반영
-  // useEffect(() => {
-  //   if (!titleYText) return
-  //   const persistTitle = () => {
-  //     const nextTitle = titleYText.toString()
-  //     if (nextTitle === lastSyncedTitleRef.current) return
-  //     lastSyncedTitleRef.current = nextTitle
-  //     updatePersistedMeta(nextTitle)
-  //     if (titlePersistTimerRef.current !== null) window.clearTimeout(titlePersistTimerRef.current)
-  //   }
-  //   persistTitle()
-  //   titleYText.observe(persistTitle)
-  //   return () => {
-  //     titleYText.unobserve(persistTitle)
-  //     if (titlePersistTimerRef.current !== null) {
-  //       window.clearTimeout(titlePersistTimerRef.current)
-  //       titlePersistTimerRef.current = null
-  //     }
-  //   }
-  // }, [titleYText, tripId, updatePersistedMeta])
 
   // 친구 초대/토스트
   const [isFriendModalOpen, setIsFriendModalOpen] = useState(false)
@@ -534,11 +435,6 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
             {/* 헤더 / 제목 */}
             <header className="flex flex-col gap-3 md:flex-row md:items-start md:gap-4 md:pr-56 lg:pr-[360px]">
               <h2 className="text-4xl font-extrabold text-slate-900 flex-shrink-0">여행 일정</h2>
-              {/* <TripTitleEditor
-                titleYText={titleYText}
-                titleDraft={titleDraft}
-                onTitleChange={handleTitleChange}
-              /> */}
               {titleYText ? (
                 <div className="min-w-0 flex-1 max-w-full md:max-w-[32rem]">
                   <YTextEditor ytext={titleYText} />
