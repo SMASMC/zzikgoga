@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -18,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.zzik.backend.domain.auth.entity.Member;
+import com.zzik.backend.domain.media.entity.Photo;
+import com.zzik.backend.domain.media.repository.PhotoRepository;
 import com.zzik.backend.domain.plan.dto.request.CreateTripRequest;
 import com.zzik.backend.domain.plan.dto.response.ExitTripResponse;
 import com.zzik.backend.domain.plan.dto.response.InviteAcceptResponse;
@@ -35,6 +38,7 @@ import com.zzik.backend.domain.plan.repository.TripCompanionRepository;
 import com.zzik.backend.domain.plan.repository.TripMemberRepository;
 import com.zzik.backend.domain.plan.repository.TripRepository;
 import com.zzik.backend.domain.plan.repository.TripThemaRepository;
+import com.zzik.backend.global.cloud.s3.service.S3Util;
 import com.zzik.backend.global.exception.BusinessException;
 import com.zzik.backend.global.exception.ExceptionCode;
 import com.zzik.backend.global.security.jwt.invite.InviteTokenProvider;
@@ -55,6 +59,8 @@ public class PlanService {
 	private final EntityManager em;
 	private final InviteTokenProvider inviteTokenProvider;
 	private final StringRedisTemplate redisTemplate;
+	private final PhotoRepository photoRepository;
+	private final S3Util s3Util;
 
 	private String tokenKey(Long tripId) {
 		return "invite:trip:%d:token".formatted(tripId);
@@ -73,12 +79,19 @@ public class PlanService {
 
 		List<TripSummaryResponse> items = new ArrayList<>();
 		for (Trip t : trips) {
+			List<Photo> photos = photoRepository.findByTripId(t.getId());
+			Photo photo = null;
+			if (!photos.isEmpty()) {
+				photo = photos.get(
+					ThreadLocalRandom.current().nextInt(photos.size())
+				);
+			}
 			items.add(TripSummaryResponse.builder()
 				.tripId(t.getId())
 				.title(t.getTitle())
 				.startDate(t.getStartDate())
 				.endDate(t.getEndDate())
-				.thumbnail(null)
+				.thumbnail((photo != null) ? s3Util.generatePresignedUrl(photo.getS3Url()) : null)
 				.build());
 		}
 		return TripListResponse.builder().trip(items).build();
