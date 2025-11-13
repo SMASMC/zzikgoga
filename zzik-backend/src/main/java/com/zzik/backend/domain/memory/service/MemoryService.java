@@ -3,8 +3,6 @@ package com.zzik.backend.domain.memory.service;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Base64;
 import java.util.List;
@@ -293,23 +291,24 @@ public class MemoryService {
 	 * PDF 호환 포맷(JPEG)으로 변환 후 Base64로 인코딩
 	 */
 	private String processImageForPdf(String imageUrl) throws Exception {
-		// 1) URL 을 직접 연결하지 않고 HttpURLConnection 강제 GET 요청
-		HttpURLConnection conn = (HttpURLConnection)new URL(imageUrl).openConnection();
-		conn.setRequestMethod("GET");
-		conn.setDoInput(true);
-		conn.setUseCaches(false);
-		conn.connect();
+		URL url = new URL(imageUrl);
 
-		try (InputStream in = conn.getInputStream()) {
-			BufferedImage image = ImageIO.read(in);
-			if (image == null) {
-				throw new IOException("Could not decode image from URL: " + imageUrl);
-			}
+		// 1. S3에서 이미지 다운로드 및 디코딩
+		// (build.gradle에 'webp-imageio' 의존성이 있으므로
+		// ImageIO.read가 WebP URL을 인식하고 BufferedImage로 만듦)
+		BufferedImage image = ImageIO.read(url);
 
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			ImageIO.write(image, "jpeg", baos);
-			String base64 = Base64.getEncoder().encodeToString(baos.toByteArray());
-			return "data:image/jpeg;base64," + base64;
+		if (image == null) {
+			throw new IOException("Could not read image from URL: " + imageUrl);
 		}
+
+		// 2. 이미지를 PDF가 지원하는 'JPEG' 포맷으로 메모리상에서 변환
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		ImageIO.write(image, "jpeg", baos); // 👈 "jpeg" 또는 "png"
+		byte[] processedImageBytes = baos.toByteArray();
+
+		// 3. Base64로 인코딩하여 Data-URI 스킴으로 반환
+		String base64Image = Base64.getEncoder().encodeToString(processedImageBytes);
+		return "data:image/jpeg;base64," + base64Image;
 	}
 }

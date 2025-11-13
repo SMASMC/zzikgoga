@@ -106,7 +106,8 @@ dependencies {
     implementation 'net.coobird:thumbnailator:0.4.20'
 
     // 3. WebP 포맷 지원을 위한 ImageIO 플러그인 (Thumbnailator가 사용)
-    implementation 'org.sejda.imageio:webp-imageio:0.1.6'
+    implementation "com.twelvemonkeys.imageio:imageio-core:3.12.0"
+    implementation "com.twelvemonkeys.imageio:imageio-webp:3.12.0"
 }
 
 // QueryDSL 설정
