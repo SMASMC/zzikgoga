@@ -15,7 +15,7 @@ public class CostChangedListener {
 
 	private final TripMemberService tripMemberService;
 
-	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+	@TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT, fallbackExecution = true)
 	public void onCostChanged(CostChangedEvent event) {
 		tripMemberService.invalidateAllByTrip(event.getTripId());
 	}

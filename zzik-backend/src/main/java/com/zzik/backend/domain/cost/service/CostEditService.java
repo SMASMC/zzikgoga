@@ -95,10 +95,7 @@ public class CostEditService {
 		cost.recalcTotal();
 
 		// 8) invalidate approvals in case AOP didn't trigger
-		try {
-			tripMemberService.invalidateAllByTrip(tripId);
-		} catch (Exception ignored) {
-		}
+		tripMemberService.invalidateAllByTrip(tripId);
 
 		// 9) 응답
 		return toResponse(cost);
@@ -115,8 +112,14 @@ public class CostEditService {
 	}
 
 	private CostEditResponse toResponse(Cost cost) {
-		Map<Long, String> nameMap = cost.getTrip().getTripMembers().stream()
-			.collect(Collectors.toMap(tm -> tm.getMember().getId(), tm -> tm.getMember().getName()));
+		Long tripId = cost.getTrip().getId();
+		var tripMembers = tripMemberRepository.findAllWithMemberByTripId(tripId);
+
+		Map<Long, String> nameMap = tripMembers.stream()
+			.collect(Collectors.toMap(
+				tm -> tm.getMember().getId(),
+				tm -> tm.getMember().getName()
+			));
 
 		return CostEditResponse.builder()
 			.costId(cost.getId())

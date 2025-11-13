@@ -35,4 +35,12 @@ public interface TripMemberRepository extends JpaRepository<TripMember, Long> {
 		   and tm.isCostAccepted = true
 		""")
 	int invalidateAllAcceptsByTripId(@Param("tripId") Long tripId);
+
+	@Query("""
+		select tm
+		from TripMember tm
+		join fetch tm.member m
+		where tm.trip.id = :tripId
+		""")
+	List<TripMember> findAllWithMemberByTripId(@Param("tripId") Long tripId);
 }
