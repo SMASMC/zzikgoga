@@ -160,7 +160,7 @@ const BudgetPanel = () => {
       </div>
 
       <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto rounded-lg border border-slate-200 p-3">
-        {(!budgetsByDate[selectedDateKey] || budgetsByDate[selectedDateKey].length === 0) ? (
+        {!budgetsByDate[selectedDateKey] || budgetsByDate[selectedDateKey].length === 0 ? (
           <p className="text-center text-sm text-slate-400">설명을 입력하십시오.</p>
         ) : (
           [selectedDateKey].map((d) => (
@@ -171,43 +171,43 @@ const BudgetPanel = () => {
               ) : (
                 <ul className="space-y-2 text-sm">
                   {budgetsByDate[d].map((it, idx) => {
-                      // 실제 Y.Array 인덱스 사용
-                      const realIndex = it.yArrayIndex ?? idx
-                      let yDesc: Y.Text | null = null
-                      if (doc) {
-                        const yMap = doc.getMap('budgets') as Y.Map<unknown>
-                        const yArr = yMap.get(d) as Y.Array<Y.Map<unknown>> | undefined
-                        const yItem = yArr?.get(realIndex) as Y.Map<unknown> | undefined
-                        const desc = yItem?.get('description')
-                        if (desc instanceof Y.Text) yDesc = desc
-                      }
-                      return (
-                        <li
-                          key={`${d}-${it.id ?? 'n'}-${idx}`}
-                          className="rounded border border-slate-100 bg-white p-2"
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="text-slate-700">
-                              {COST_CATEGORY_LABELS[it.category as CostCategory] || it.category}
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <span className="text-slate-600">{it.amount.toLocaleString()}원</span>
-                              <button
-                                type="button"
-                                onClick={() => removeBudget(d, it.id ?? it.uid!)}
-                                className="rounded-full border border-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-500 transition hover:border-red-300 hover:bg-red-50"
-                              >
-                                삭제
-                              </button>
-                            </div>
+                    // 실제 Y.Array 인덱스 사용
+                    const realIndex = it.yArrayIndex ?? idx
+                    let yDesc: Y.Text | null = null
+                    if (doc) {
+                      const yMap = doc.getMap('budgets') as Y.Map<unknown>
+                      const yArr = yMap.get(d) as Y.Array<Y.Map<unknown>> | undefined
+                      const yItem = yArr?.get(realIndex) as Y.Map<unknown> | undefined
+                      const desc = yItem?.get('description')
+                      if (desc instanceof Y.Text) yDesc = desc
+                    }
+                    return (
+                      <li
+                        key={`${d}-${it.id ?? 'n'}-${idx}`}
+                        className="rounded border border-slate-100 bg-white p-2"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-slate-700">
+                            {COST_CATEGORY_LABELS[it.category as CostCategory] || it.category}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-600">{it.amount.toLocaleString()}원</span>
+                            <button
+                              type="button"
+                              onClick={() => removeBudget(d, it.id ?? it.uid!)}
+                              className="rounded-full border border-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-500 transition hover:border-red-300 hover:bg-red-50"
+                            >
+                              삭제
+                            </button>
                           </div>
-                          {yDesc ? (
-                            <div className="mt-1">
-                              <YTextEditor ytext={yDesc} />
-                            </div>
-                          ) : null}
-                        </li>
-                      )
+                        </div>
+                        {yDesc ? (
+                          <div className="mt-1">
+                            <YTextEditor ytext={yDesc} />
+                          </div>
+                        ) : null}
+                      </li>
+                    )
                   })}
                 </ul>
               )}

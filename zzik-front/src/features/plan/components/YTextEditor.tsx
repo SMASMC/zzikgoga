@@ -3,6 +3,7 @@ import * as Y from 'yjs'
 import { EditorContent, useEditor } from '@tiptap/react'
 import type { Editor as TTEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
+import Placeholder from '@tiptap/extension-placeholder'
 import { cn } from '@/shared/utils/cn'
 
 interface YTextEditorProps {
@@ -92,64 +93,72 @@ const YTextEditor = ({
     [ytext, maxLength, singleLine]
   )
 
-  const editor = useEditor({
-    extensions: [StarterKit.configure({})],
-    content: initialContent,
-    editorProps: {
-      attributes: {
-        class:
-          'prose prose-base max-w-none focus:outline-none min-h-[2.5rem] bg-transparent text-inherit leading-snug',
-      },
-      handleDOMEvents: {
-        compositionstart: () => {
-          isComposingRef.current = true
-          return false
+  const editor = useEditor(
+    {
+      extensions: [
+        StarterKit.configure({}),
+        Placeholder.configure({
+          placeholder: placeholder ?? '',
+        }),
+      ],
+      content: initialContent,
+      editorProps: {
+        attributes: {
+          class:
+            'prose prose-base max-w-none focus:outline-none min-h-[2.5rem] bg-transparent text-inherit leading-snug',
         },
-        compositionend: () => {
-          isComposingRef.current = false
-          if (editor) {
-            syncEditorToYText(editor)
-          }
-          if (pendingRemoteTextRef.current && editor) {
-            const pending = pendingRemoteTextRef.current
-            pendingRemoteTextRef.current = null
-            isRemoteRef.current = true
-            try {
-              const { from, to } = editor.state.selection
-              editor.commands.setContent(normalizeSingleLine(pending, singleLine), false)
-              const size = editor.state.doc.content.size
-              editor.commands.setTextSelection({
-                from: Math.min(from, size),
-                to: Math.min(to, size),
-              })
-            } finally {
-              isRemoteRef.current = false
+        handleDOMEvents: {
+          compositionstart: () => {
+            isComposingRef.current = true
+            return false
+          },
+          compositionend: () => {
+            isComposingRef.current = false
+            if (editor) {
+              syncEditorToYText(editor)
             }
-          }
-          return false
-        },
-        keydown: (_: unknown, event: KeyboardEvent) => {
-          if (singleLine && event.key === 'Enter') {
-            event.preventDefault()
-            return true
-          }
-          return false
+            if (pendingRemoteTextRef.current && editor) {
+              const pending = pendingRemoteTextRef.current
+              pendingRemoteTextRef.current = null
+              isRemoteRef.current = true
+              try {
+                const { from, to } = editor.state.selection
+                editor.commands.setContent(normalizeSingleLine(pending, singleLine), false)
+                const size = editor.state.doc.content.size
+                editor.commands.setTextSelection({
+                  from: Math.min(from, size),
+                  to: Math.min(to, size),
+                })
+              } finally {
+                isRemoteRef.current = false
+              }
+            }
+            return false
+          },
+          keydown: (_: unknown, event: KeyboardEvent) => {
+            if (singleLine && event.key === 'Enter') {
+              event.preventDefault()
+              return true
+            }
+            return false
+          },
         },
       },
+      onUpdate: ({
+        editor: editorInstance,
+        transaction,
+      }: {
+        editor: TTEditor
+        transaction: { docChanged?: boolean }
+      }) => {
+        if (isRemoteRef.current || isComposingRef.current || !transaction.docChanged) {
+          return
+        }
+        syncEditorToYText(editorInstance)
+      },
     },
-    onUpdate: ({
-      editor: editorInstance,
-      transaction,
-    }: {
-      editor: TTEditor
-      transaction: { docChanged?: boolean }
-    }) => {
-      if (isRemoteRef.current || isComposingRef.current || !transaction.docChanged) {
-        return
-      }
-      syncEditorToYText(editorInstance)
-    },
-  })
+    [placeholder]
+  )
 
   useEffect(() => {
     if (!editor) return
@@ -206,7 +215,6 @@ const YTextEditor = ({
           : 'w-full rounded-full border-2 border-slate-300 bg-white px-5 py-2.5 text-lg font-semibold text-slate-900 shadow-sm transition-all hover:border-blue-300 hover:shadow-md focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 flex items-center',
         className
       )}
-      data-placeholder={placeholder}
       onClick={() => {
         // 빈 에디터를 클릭했을 때도 포커스되도록
         if (editor && !editor.isFocused) {

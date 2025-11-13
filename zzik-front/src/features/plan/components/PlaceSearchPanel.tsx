@@ -1,4 +1,4 @@
-﻿import { useJsApiLoader, GoogleMap, Marker, Polyline } from '@react-google-maps/api'
+import { useJsApiLoader, GoogleMap, Marker, Polyline } from '@react-google-maps/api'
 import type { Libraries } from '@react-google-maps/api'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import Input from '@/components/atoms/Input'
@@ -204,21 +204,74 @@ const PlaceSearchPanel = () => {
         </div>
       ) : null}
 
-      <section className="max-h-64 overflow-y-auto rounded border">
+      {/* 선택된 장소 배지 */}
+      {selectedPlace ? (
+        <div className="flex items-center gap-2 rounded-full bg-emerald-50 text-emerald-700 px-3 py-1 text-xs font-semibold w-fit">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            className="h-4 w-4"
+          >
+            <path
+              fillRule="evenodd"
+              d="M16.704 4.153a.75.75 0 01.143 1.052l-7.5 9.5a.75.75 0 01-1.127.06l-3.5-3.75a.75.75 0 111.088-1.032l2.892 3.1 6.965-8.827a.75.75 0 011.039-.103z"
+              clipRule="evenodd"
+            />
+          </svg>
+          <span>선택된 장소: {selectedPlace.displayName.text}</span>
+        </div>
+      ) : null}
+
+      <section
+        className="max-h-64 overflow-y-auto rounded border"
+        role="listbox"
+        aria-label="장소 검색 결과"
+      >
         {places.length > 0 ? (
-          places.map((place) => (
-            <button
-              key={place.id}
-              type="button"
-              onClick={() => handleSelectPlace(place)}
-              className={`w-full cursor-pointer border-b px-3 py-2 text-left transition hover:bg-main-50 ${
-                selectedPlace?.id === place.id ? 'bg-main-100' : ''
-              }`}
-            >
-              <p className="font-medium text-slate-800">{place.displayName.text}</p>
-              <p className="text-xs text-slate-500">{place.formattedAddress}</p>
-            </button>
-          ))
+          places.map((place) => {
+            const isSelected = selectedPlace?.id === place.id
+            return (
+              <button
+                key={place.id}
+                type="button"
+                role="option"
+                aria-selected={isSelected}
+                onClick={() => handleSelectPlace(place)}
+                className={`w-full cursor-pointer border-b px-3 py-2 text-left transition hover:bg-main-50 flex items-start gap-2 ${
+                  isSelected ? 'bg-main-100 border-l-4 border-l-main-500' : ''
+                }`}
+              >
+                <span
+                  aria-hidden
+                  className={`mt-1 inline-flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border ${
+                    isSelected ? 'bg-main-600 border-main-600 text-white' : 'border-slate-300'
+                  }`}
+                >
+                  {isSelected ? (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      className="h-3 w-3"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M16.704 4.153a.75.75 0 01.143 1.052l-7.5 9.5a.75.75 0 01-1.127.06l-3.5-3.75a.75.75 0 111.088-1.032l2.892 3.1 6.965-8.827a.75.75 0 011.039-.103z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  ) : null}
+                </span>
+                <span className="min-w-0">
+                  <p className="font-medium text-slate-800 line-clamp-1">
+                    {place.displayName.text}
+                  </p>
+                  <p className="text-xs text-slate-500 line-clamp-1">{place.formattedAddress}</p>
+                </span>
+              </button>
+            )
+          })
         ) : hasSearched ? (
           <p className="px-3 py-2 text-center text-xs text-slate-400">검색 결과가 없습니다.</p>
         ) : (
