@@ -27,6 +27,7 @@ import com.zzik.backend.domain.auth.entity.Member;
 import com.zzik.backend.domain.auth.enums.Gender;
 import com.zzik.backend.domain.auth.enums.Provider;
 import com.zzik.backend.domain.auth.repository.MemberRepository;
+import com.zzik.backend.domain.wallet.service.WalletService;
 import com.zzik.backend.global.exception.BusinessException;
 import com.zzik.backend.global.exception.ExceptionCode;
 import com.zzik.backend.global.security.jwt.access.AccessTokenClaim;
@@ -51,6 +52,7 @@ public class AuthService {
 	private final RefreshTokenProvider refreshTokenProvider;
 	private final RestTemplate restTemplate = new RestTemplate();
 	private final StringRedisTemplate redis;
+	private final WalletService walletService;
 
 	@Value("${kakao.client-id}")
 	private String kakaoClientId;
@@ -110,6 +112,7 @@ public class AuthService {
 					.picture(picture)
 					.build();
 
+				walletService.verifyWallet(m.getWalletAddress(),m.getWalletPrivateKey());
 				return new AuthResult(accessToken, userDto);
 			}
 
@@ -142,6 +145,8 @@ public class AuthService {
 			throw BusinessException.from(ExceptionCode.ALREADY_REGISTERED_USER);
 		}
 
+		WalletService.WalletCreationResult walletData = walletService.createWallet();
+
 		Member newMember = Member.builder()
 			.provider(Provider.valueOf(provider))
 			.providerId(providerId)
@@ -151,6 +156,8 @@ public class AuthService {
 			.accountNum(req.accountNum())
 			.name(req.name())
 			.email(req.email())
+			.walletAddress(walletData.address()) // 생성된 지갑 주소
+			.walletPrivateKey(walletData.encryptedPrivateKey()) // 암호화된 개인키
 			.thumbnailUrl(req.picture())
 			.build();
 
