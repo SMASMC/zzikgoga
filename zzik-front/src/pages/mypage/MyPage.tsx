@@ -17,7 +17,9 @@ const MyPage = () => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
   const isFirstRender = useRef(true)
   const logout = useAuthStore((state) => state.logout)
-  const [toastVariant, setToastVariant] = useState<'warning' | 'error' | 'success' | 'hint'>('warning')
+  const [toastVariant, setToastVariant] = useState<'warning' | 'error' | 'success' | 'hint'>(
+    'warning'
+  )
   const [toastTitle, setToastTitle] = useState<string>('')
 
   const handleOpenTravelModal = () => setIsModalOpen(true)

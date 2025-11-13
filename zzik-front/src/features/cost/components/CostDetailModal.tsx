@@ -26,7 +26,7 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId }: CostDetailModalPro
   const [canEdit, setCanEdit] = useState(true) // 기본값을 true로 설정 (아무도 수정 중이 아닐 때는 수정 가능)
   const [isEditing, setIsEditing] = useState(false) // 수정 모드 여부
   const [isSubmitting, setIsSubmitting] = useState(false)
-  
+
   // 수정 폼 데이터
   const [formData, setFormData] = useState<CostModifyRequest>({
     paidAt: '',
@@ -93,9 +93,9 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId }: CostDetailModalPro
     }
   }, [isOpen, tripId, costId])
 
-  // 1분마다 자동으로 GET 요청 (polling)
+  // 1분마다 자동으로 GET 요청 (polling) - 읽기 모드일 때만
   useEffect(() => {
-    if (!isOpen || !tripId || !costId) return
+    if (!isOpen || !tripId || !costId || isEditing) return // 수정 모드일 때는 실행하지 않음
 
     const pollCostDetail = async () => {
       try {
@@ -118,7 +118,37 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId }: CostDetailModalPro
     return () => {
       clearInterval(intervalId)
     }
-  }, [isOpen, tripId, costId])
+  }, [isOpen, tripId, costId, isEditing])
+
+  // 수정 모드일 때 1분마다 락 갱신
+  useEffect(() => {
+    if (!isOpen || !tripId || !costId || !isEditing) return
+
+    const renewLock = async () => {
+      try {
+        await EditLockStateService.modifyLockState(Number(tripId), costId)
+        console.log('락 갱신 성공')
+      } catch (err) {
+        console.error('락 갱신 실패:', err)
+        // 락 갱신 실패 시 수정 모드 종료 및 락 해제 시도
+        try {
+          await EditLockStateService.releaseLockState(Number(tripId), costId)
+        } catch (releaseErr) {
+          console.error('락 해제 실패:', releaseErr)
+        }
+        setIsEditing(false)
+        setError('락 갱신에 실패했습니다. 수정 모드를 종료합니다.')
+      }
+    }
+
+    // 1분(60000ms)마다 락 갱신
+    const intervalId = setInterval(renewLock, 60000)
+
+    // cleanup: 수정 모드가 종료되면 interval 정리
+    return () => {
+      clearInterval(intervalId)
+    }
+  }, [isOpen, tripId, costId, isEditing])
 
   const handleEditClick = async () => {
     // 수정 상태 획득 요청
@@ -127,7 +157,7 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId }: CostDetailModalPro
       // 수정 모드로 전환
       setIsEditing(true)
       setError(null)
-      
+
       // 기존 데이터를 폼 데이터로 변환
       if (costDetail) {
         const payerMember = members.find((m) => m.memberId === costDetail.payerId)
@@ -141,9 +171,9 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId }: CostDetailModalPro
               }
             : null
         )
-        
+
         setFormData({
-          paidAt: costDetail.paidAt.replace(' ', 'T').slice(0, 16),
+          paidAt: formatDateForInput(costDetail.paidAt), // 원래 날짜 값을 datetime-local 형식으로 변환
           place: costDetail.place,
           payerId: costDetail.payerId,
           memo: costDetail.memo,
@@ -176,7 +206,7 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId }: CostDetailModalPro
   const handleSaveEdit = async () => {
     setIsSubmitting(true)
     setError(null)
-    
+
     try {
       // CostModifyRequest 형식으로 변환
       const modifyRequest: CostModifyRequest = {
@@ -186,12 +216,12 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId }: CostDetailModalPro
         memo: formData.memo || null,
         menus: formData.menus,
       }
-      
+
       await CostModifyService.modifyCost(Number(tripId), costId, modifyRequest)
-      
+
       // 수정 락 해제
       await EditLockStateService.releaseLockState(Number(tripId), costId)
-      
+
       // 수정 모드 종료 및 데이터 새로고침
       setIsEditing(false)
       const response = await CostDetailService.getCostDetail(Number(tripId), costId)
@@ -199,6 +229,13 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId }: CostDetailModalPro
     } catch (err) {
       console.error('비용 수정 실패:', err)
       setError('비용 수정에 실패했습니다. 다시 시도해주세요.')
+      
+      // 오류 발생 시 락 해제
+      try {
+        await EditLockStateService.releaseLockState(Number(tripId), costId)
+      } catch (releaseErr) {
+        console.error('락 해제 실패:', releaseErr)
+      }
     } finally {
       setIsSubmitting(false)
     }
@@ -242,6 +279,28 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId }: CostDetailModalPro
       return `${year}-${month}-${day} ${hours}:${minutes}`
     } catch {
       return dateString
+    }
+  }
+
+  // datetime-local input 형식으로 변환 (YYYY-MM-DDTHH:mm)
+  const formatDateForInput = (dateString: string): string => {
+    try {
+      // "2024-01-01 12:00:00" 형식을 "2024-01-01T12:00" 형식으로 변환
+      const date = new Date(dateString)
+      if (isNaN(date.getTime())) {
+        // Date 파싱 실패 시 직접 변환 시도
+        const normalized = dateString.replace(' ', 'T').replace(/:\d{2}$/, '') // 초 제거
+        return normalized.slice(0, 16) // "YYYY-MM-DDTHH:mm" 형식으로 자르기
+      }
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hours = String(date.getHours()).padStart(2, '0')
+      const minutes = String(date.getMinutes()).padStart(2, '0')
+      return `${year}-${month}-${day}T${hours}:${minutes}`
+    } catch {
+      // 변환 실패 시 기본 변환 시도
+      return dateString.replace(' ', 'T').slice(0, 16)
     }
   }
 
@@ -343,9 +402,7 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId }: CostDetailModalPro
                     <input
                       type="datetime-local"
                       value={formData.paidAt}
-                      onChange={(e) =>
-                        setFormData({ ...formData, paidAt: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, paidAt: e.target.value })}
                       className="w-full px-4 py-2.5 text-sm text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md"
                     />
                   </div>
@@ -449,9 +506,9 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId }: CostDetailModalPro
                                           type="button"
                                           onClick={() => {
                                             const newMenus = [...formData.menus]
-                                            newMenus[index].payerIds = newMenus[index].payerIds.filter(
-                                              (id) => id !== memberId
-                                            )
+                                            newMenus[index].payerIds = newMenus[
+                                              index
+                                            ].payerIds.filter((id) => id !== memberId)
                                             newMenus[index].count = newMenus[index].payerIds.length
                                             setFormData({ ...formData, menus: newMenus })
                                           }}
@@ -522,7 +579,7 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId }: CostDetailModalPro
                             menus: [
                               ...formData.menus,
                               {
-                                costMenuId: formData.menus.length,
+                                costMenuId: 0, // 새 메뉴는 0으로 설정 (서버에서 새 항목으로 인식)
                                 menuName: '',
                                 count: 1,
                                 amount: 0,

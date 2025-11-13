@@ -40,8 +40,15 @@ export class CostDetailService {
 }
 
 export class CostModifyService {
-  public static async modifyCost(tripId: number, costId: number, costRequest: CostModifyRequest): Promise<CostModifyResponse> {
-    const response = await apiClient.put<CostModifyResponse>(`/cost/${tripId}/${costId}`, costRequest)
+  public static async modifyCost(
+    tripId: number,
+    costId: number,
+    costRequest: CostModifyRequest
+  ): Promise<CostModifyResponse> {
+    const response = await apiClient.put<CostModifyResponse>(
+      `/cost/${tripId}/${costId}`,
+      costRequest
+    )
     return response
   }
 }

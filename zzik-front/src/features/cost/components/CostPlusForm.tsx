@@ -51,7 +51,7 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
     totalAmount: 0,
     memo: '',
     receiptJson: null,
-    items: [{ menuName: '', amount: 0, memberIds: [], count: 1 }],
+    items: [{ menuId: 0, menuName: '', amount: 0, memberIds: [], count: 1 }],
   })
 
   // 멤버 목록 로드
@@ -103,7 +103,7 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
   const addItem = () => {
     setFormData({
       ...formData,
-      items: [...formData.items, { menuName: '', amount: 0, memberIds: [], count: 1 }],
+      items: [...formData.items, { menuId: 0, menuName: '', amount: 0, memberIds: [], count: 1 }],
     })
   }
 
