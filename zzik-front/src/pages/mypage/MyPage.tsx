@@ -17,6 +17,8 @@ const MyPage = () => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
   const isFirstRender = useRef(true)
   const logout = useAuthStore((state) => state.logout)
+  const [toastVariant, setToastVariant] = useState<'warning' | 'error' | 'success' | 'hint'>('warning')
+  const [toastTitle, setToastTitle] = useState<string>('')
 
   const handleOpenTravelModal = () => setIsModalOpen(true)
   const handleCloseLoginModal = () => setIsLoginModalOpen(false)
@@ -36,6 +38,8 @@ const MyPage = () => {
     setIsModalOpen(false)
     await logout()
     setIsLoginModalOpen(true)
+    setToastVariant('warning')
+    setToastTitle('다시 로그인 필요')
   }, [logout])
 
   const loadTravels = useCallback(
@@ -90,6 +94,8 @@ const MyPage = () => {
     const saved = sessionStorage.getItem('toastAfterLogin')
     if (saved) {
       setToastMessage(saved)
+      setToastVariant('success')
+      setToastTitle('로그인 성공')
       sessionStorage.removeItem('toastAfterLogin')
     }
   }, [])
@@ -125,8 +131,8 @@ const MyPage = () => {
     <div>
       <ToastDock
         open={Boolean(toastMessage)}
-        variant="warning"
-        title="다시 로그인 필요"
+        variant={toastVariant}
+        title={toastTitle}
         message={toastMessage ?? ''}
         autoCloseMs={3000}
         offsetPx={16}

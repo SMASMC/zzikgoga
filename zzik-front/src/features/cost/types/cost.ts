@@ -23,6 +23,7 @@ export const COST_CATEGORIES: CostCategory[] = [
 ]
 
 export interface CostItem {
+  menuId: number
   menuName: string
   amount: number
   memberIds: string[]
@@ -87,6 +88,7 @@ export interface CostDetailResponse {
   receiptJson: string | null
   items: CostItem[]
 }
+
 // 결제 내역 수정
 export interface CostModifyRequest {
   paidAt: string
@@ -114,7 +116,7 @@ export interface CostModifyResponse {
   menus: ModifyCostMenu[]
 }
 export interface ModifyCostMenu {
-  costMenuId: number
+  costMenuId?: number
   menuName: string
   count: number
   amount: number

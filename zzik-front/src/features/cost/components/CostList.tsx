@@ -8,7 +8,7 @@ import CostDetailModal from './CostDetailModal'
 
 interface CostListProps {
   tripId: string
-  onRefresh?: () => void
+  onRefresh?: number
 }
 
 const CostList = ({ tripId, onRefresh }: CostListProps) => {
@@ -44,7 +44,7 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
 
   // onRefresh prop이 변경되면 목록 새로고침
   useEffect(() => {
-    if (onRefresh && tripId) {
+    if (onRefresh !== undefined && tripId) {
       loadCostList()
     }
   }, [onRefresh, tripId])

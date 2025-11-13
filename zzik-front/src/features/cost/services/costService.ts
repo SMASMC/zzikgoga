@@ -5,6 +5,8 @@ import {
   CostReciptResponse,
   CostReciptRequest,
   CostDetailResponse,
+  CostModifyRequest,
+  CostModifyResponse,
 } from '@/features/cost/types/cost'
 
 export class CostPlusService {
@@ -33,6 +35,13 @@ export class CostReciptService {
 export class CostDetailService {
   public static async getCostDetail(tripId: number, costId: number): Promise<CostDetailResponse> {
     const response = await apiClient.get<CostDetailResponse>(`/cost/${tripId}/${costId}`)
+    return response
+  }
+}
+
+export class CostModifyService {
+  public static async modifyCost(tripId: number, costId: number, costRequest: CostModifyRequest): Promise<CostModifyResponse> {
+    const response = await apiClient.put<CostModifyResponse>(`/cost/${tripId}/${costId}`, costRequest)
     return response
   }
 }
