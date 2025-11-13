@@ -1,3 +1,5 @@
+// src/features/plan/hooks/useYTripDoc.ts
+
 import { useEffect, useRef, useState, useCallback } from 'react'
 import * as Y from 'yjs'
 import { acquireProvider, releaseProvider } from '../stores/yjsStore'
@@ -92,19 +94,29 @@ const snapshotBudgets = (doc: Y.Doc): Record<string, YBudgetItem[]> => {
   return result
 }
 
+// useYTripDoc.ts 안
 const snapshotSchedules = (doc: Y.Doc): Record<string, YScheduleItem[]> => {
   const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
   const result: Record<string, YScheduleItem[]> = {}
-  schedulesMap.forEach((yArr, dateKey) => {
-    const items: YScheduleItem[] = []
+
+  const extractDayFromKey = (key: string): string => {
+    // 예: "2025-11-12 03:06:00+09" | "2025-11-12T03:06" → "2025-11-12"
+    const s = key.replace('T', ' ').trim()
+    return s.slice(0, 10)
+  }
+
+  schedulesMap.forEach((yArr, rawKey) => {
     yArr.forEach((yMap, yArrayIndex) => {
+      if (!(yMap instanceof Y.Map)) return
       if (yMap.get('_deleted') === true) return
+
       const id = (yMap.get('id') as number) ?? null
       const uid = (yMap.get('uid') as string) ?? ''
       const start_time = (yMap.get('start_time') as string) ?? ''
       const offset_time = (yMap.get('offset_time') as string | null) ?? null
       const has_location = Boolean(yMap.get('has_location'))
       const memo = yTextToString(yMap.get('memo'))
+      const dayKey = start_time ? dateKeyOf(start_time) : extractDayFromKey(String(rawKey))
 
       const location = ((): YLocationItem | null => {
         const raw = yMap.get('location') as unknown
@@ -140,12 +152,23 @@ const snapshotSchedules = (doc: Y.Doc): Record<string, YScheduleItem[]> => {
         }
       })()
 
-      items.push({ id, uid, start_time, offset_time, has_location, location, memo, yArrayIndex })
+      if (!result[dayKey]) result[dayKey] = [] // 재선언/중복 없이 최초만 생성
+      result[dayKey].push({
+        id,
+        uid,
+        start_time,
+        offset_time,
+        has_location,
+        location,
+        memo,
+        yArrayIndex,
+      })
     })
-    result[dateKey] = items
   })
+
   return result
 }
+
 
 /** ===== 순서 변경 시 시각 재흐름 ===== */
 const reflowScheduleTimes = (yArr: Y.Array<Y.Map<unknown>>) => {
