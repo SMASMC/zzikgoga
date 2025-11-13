@@ -108,6 +108,12 @@ dependencies {
     // 3. WebP 포맷 지원을 위한 ImageIO 플러그인 (Thumbnailator가 사용)
     implementation "com.twelvemonkeys.imageio:imageio-core:3.12.0"
     implementation "com.twelvemonkeys.imageio:imageio-webp:3.12.0"
+
+    // Web3j (Ethereum/Polygon)
+    implementation 'org.web3j:core:4.10.3' // 안정적인 최신 버전 사용 권장
+
+    // Spring Security Crypto (암호화)
+    implementation 'org.springframework.security:spring-security-crypto'
 }
 
 // QueryDSL 설정
