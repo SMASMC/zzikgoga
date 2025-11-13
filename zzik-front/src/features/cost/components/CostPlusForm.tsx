@@ -1,23 +1,24 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuthStore } from '@/shared/stores/useAuthStore'
 import { User } from '@/features/auth/types/auth'
-import { CostCategory, CostItem, CostPlusRequest } from '@/features/cost/types/cost'
+// import { CostCategory, CostItem, CostPlusRequest } from '@/features/cost/types/cost'
+import { CostItem, CostPlusRequest } from '@/features/cost/types/cost'
 import PayerSelectModal from './PayerSelectModal'
 import MemberSelectModal from './MemberSelectModal'
 import { PlanService } from '@/features/plan/services/planServices'
 import { CostPlusService } from '../services/costService'
 import { ToastDock } from '@/components/blocks/ToastDock'
-import { DropdownSelect } from '@/components/blocks/DropdownSelect'
-import { COST_CATEGORIES, COST_CATEGORY_LABELS } from '@/features/cost/types/cost'
+// import { DropdownSelect } from '@/components/blocks/DropdownSelect'
+// import { COST_CATEGORIES, COST_CATEGORY_LABELS } from '@/features/cost/types/cost'
 
 interface CostPlusFormProps {
   tripId: string
   onSuccess?: () => void
 }
-const CATEGORY_OPTIONS = COST_CATEGORIES.map((cat) => ({
-  label: COST_CATEGORY_LABELS[cat],
-  value: cat,
-}))
+// const CATEGORY_OPTIONS = COST_CATEGORIES.map((cat) => ({
+//   label: COST_CATEGORY_LABELS[cat],
+//   value: cat,
+// }))
 
 const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -46,11 +47,11 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
     payerId: user?.id || '',
     paidAt: new Date().toISOString().slice(0, 16).replace('T', ' ') + ':00',
     place: '',
-    category: 'ETC',
+    // category: 'ETC',
     totalAmount: 0,
     memo: '',
     receiptJson: null,
-    items: [{ menuName: '', amount: 0, memberIds: [], count: 1 }],
+    items: [{ menuId: 0, menuName: '', amount: 0, memberIds: [], count: 1 }],
   })
 
   // 멤버 목록 로드
@@ -102,7 +103,7 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
   const addItem = () => {
     setFormData({
       ...formData,
-      items: [...formData.items, { menuName: '', amount: 0, memberIds: [], count: 1 }],
+      items: [...formData.items, { menuId: 0, menuName: '', amount: 0, memberIds: [], count: 1 }],
     })
   }
 
@@ -216,7 +217,10 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
         newErrors.items = itemErrors.join(' ')
       } else {
         // 품목별 금액 합계 계산
-        const itemsTotal = formData.items.reduce((sum, item) => sum + (item.amount || 0), 0)
+        const itemsTotal = formData.items.reduce(
+          (sum, item) => sum + (item.amount || 0) * (item.count || 0),
+          0
+        )
 
         // 품목별 금액 합계가 총 금액과 일치하는지 검증
         if (itemsTotal !== formData.totalAmount) {
@@ -362,8 +366,8 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
           {errors.place && <p className="mt-1 text-sm text-red-500 font-bmjua">{errors.place}</p>}
         </div>
 
-        {/* 카테고리 */}
-        <div className="mb-4 sm:mb-6">
+        {/* 카테고리 (DB가 바뀌면 추가하기로 하기)*/}
+        {/* <div className="mb-4 sm:mb-6">
           <label className="block text-base sm:text-lg mb-2 sm:mb-3 text-text-600 font-bmjua">
             카테고리
           </label>
@@ -373,7 +377,7 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
             onChange={(value) => setFormData({ ...formData, category: value as CostCategory })}
             className="w-full"
           />
-        </div>
+        </div> */}
 
         {/* 총 금액 */}
         <div className="mb-4 sm:mb-6">
@@ -554,6 +558,24 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
                     updateItem(index, 'amount', value)
                     // 에러 제거
                     if (errors.items && errors.items.includes(`품목 ${index + 1}: 금액`)) {
+                      setErrors({ ...errors, items: undefined })
+                    }
+                  }
+                }}
+                className="w-full px-3 py-2 bg-gray-50 border border-blue-300 rounded-lg text-sm outline-none focus:outline-none focus:ring-0 focus:border-blue-400"
+              />
+              <label className="text-xs text-text-500 mb-1 block">수량</label>
+              <input
+                type="number"
+                min="0"
+                value={item.count || ''}
+                onChange={(e) => {
+                  const value = e.target.value === '' ? 0 : Number(e.target.value)
+                  // 음수값 방지
+                  if (value >= 0) {
+                    updateItem(index, 'count', value)
+                    // 에러 제거
+                    if (errors.items && errors.items.includes(`품목 ${index + 1}: 수량`)) {
                       setErrors({ ...errors, items: undefined })
                     }
                   }

@@ -8,7 +8,11 @@ import { useParams } from 'react-router-dom'
 import { CostReciptService } from '../services/costService'
 import { ToastDock } from '@/components/blocks/ToastDock'
 
-const CostAdd = () => {
+interface CostAddProps {
+  onCostAdded?: () => void
+}
+
+const CostAdd = ({ onCostAdded }: CostAddProps) => {
   const { tripId } = useParams<{ tripId: string }>()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -40,7 +44,10 @@ const CostAdd = () => {
         fileInputRef.current.value = ''
       }
 
-      // TODO: 목록 새로고침 (CostList 컴포넌트에 새로고침 함수 전달 필요)
+      // 목록 새로고침
+      if (onCostAdded) {
+        onCostAdded()
+      }
     } catch (error) {
       console.error('영수증 업로드 실패:', error)
       setToast({
@@ -59,6 +66,14 @@ const CostAdd = () => {
   const handleCloseModal = () => {
     // 모달 닫힐 때 정산 내역 전송해야 함
     setIsModalOpen(false)
+  }
+
+  const handleModalSuccess = () => {
+    setIsModalOpen(false)
+    // 목록 새로고침
+    if (onCostAdded) {
+      onCostAdded()
+    }
   }
 
   return (
@@ -120,9 +135,7 @@ const CostAdd = () => {
                   {isUploading ? '업로드 중...' : '영수증으로 추가하기'}
                 </h3>
                 <p className="text-xs text-text-600">
-                  {isUploading
-                    ? '영수증을 처리하고 있습니다...'
-                    : '영수증 사진을 업로드하면 자동으로 정보가 입력됩니다'}
+                  {isUploading ? '영수증을 처리하고 있습니다...' : '영수증을 업로드 해주세요'}
                 </p>
               </div>
             </div>
@@ -151,11 +164,7 @@ const CostAdd = () => {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-text-500 font-bmjua mb-1">직접 추가하기</h3>
-                <p className="text-xs text-text-600">
-                  카테고리, 금액, 설명 등을
-                  <br />
-                  직접 입력하여 추가합니다
-                </p>
+                <p className="text-xs text-text-600">정산 할 내용을 직접 추가해주세요</p>
               </div>
             </div>
           </div>
@@ -164,7 +173,12 @@ const CostAdd = () => {
 
       {/* 직접 추가 모달 */}
       {isModalOpen && tripId && (
-        <CostPlusModal isOpen={isModalOpen} onClose={handleCloseModal} tripId={tripId} />
+        <CostPlusModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          tripId={tripId}
+          onSuccess={handleModalSuccess}
+        />
       )}
     </>
   )

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import CostAdd from '@/features/cost/components/CostAdd'
 import CostList from '@/features/cost/components/CostList'
 import GradientBackground from '@/components/blocks/GradientBackground'
@@ -5,6 +6,7 @@ import { useParams } from 'react-router-dom'
 
 const CostPage = () => {
   const { tripId } = useParams<{ tripId: string }>()
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   if (!tripId) {
     return (
@@ -16,6 +18,10 @@ const CostPage = () => {
     )
   }
 
+  const handleRefresh = () => {
+    setRefreshTrigger((prev) => prev + 1)
+  }
+
   return (
     <GradientBackground>
       <main className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-12 mt-6 sm:mt-8 md:mt-10 pb-10">
@@ -25,12 +31,12 @@ const CostPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* CostAdd - 1/3 너비 */}
           <div className="lg:col-span-1">
-            <CostAdd />
+            <CostAdd onCostAdded={handleRefresh} />
           </div>
 
           {/* CostList - 2/3 너비 */}
           <div className="lg:col-span-2">
-            <CostList tripId={tripId} />
+            <CostList tripId={tripId} onRefresh={refreshTrigger} />
           </div>
         </div>
       </main>

@@ -4,6 +4,10 @@ import {
   CostListApiResponse,
   CostReciptResponse,
   CostReciptRequest,
+  CostDetailResponse,
+  CostModifyRequest,
+  CostModifyResponse,
+  CostDeleteResponse,
 } from '@/features/cost/types/cost'
 
 export class CostPlusService {
@@ -28,9 +32,29 @@ export class CostReciptService {
     const response = await apiClient.post<CostReciptResponse>(`/cost/${tripId}/receipt`, formData)
     return response
   }
+}
+export class CostDetailService {
+  public static async getCostDetail(tripId: number, costId: number): Promise<CostDetailResponse> {
+    const response = await apiClient.get<CostDetailResponse>(`/cost/${tripId}/${costId}`)
+    return response
+  }
 
-  //   public static async getCostDetail(tripId: string): Promise<CostReciptResponse> {
-  //     const response = await apiClient.get<CostReciptResponse>(`/cost/${tripId}/receipt`)
-  //     return response
-  //   }
+  public static async deleteCost(tripId: number, costId: number): Promise<CostDeleteResponse> {
+    const response = await apiClient.delete<CostDeleteResponse>(`/cost/${tripId}/${costId}`)
+    return response
+  }
+}
+
+export class CostModifyService {
+  public static async modifyCost(
+    tripId: number,
+    costId: number,
+    costRequest: CostModifyRequest
+  ): Promise<CostModifyResponse> {
+    const response = await apiClient.put<CostModifyResponse>(
+      `/cost/${tripId}/${costId}`,
+      costRequest
+    )
+    return response
+  }
 }
