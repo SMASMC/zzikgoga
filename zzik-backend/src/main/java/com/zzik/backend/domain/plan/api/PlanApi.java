@@ -40,11 +40,11 @@ public interface PlanApi {
 		errors = {
 		}
 	)
-    @GetMapping
-    ResponseEntity<ApiResponse<TripListResponse>> getTripList(
-        @RequestParam(required = false) Long cursor,
-        @RequestParam(defaultValue = "20") int size
-    );
+	@GetMapping
+	ResponseEntity<ApiResponse<TripListResponse>> getTripList(
+		@RequestParam(required = false) Long cursor,
+		@RequestParam(defaultValue = "7") int size
+	);
 
 	@Operation(summary = "여행 생성")
 	@ApiResponseExplanations(
