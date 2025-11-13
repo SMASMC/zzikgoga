@@ -212,4 +212,9 @@ public class CostCalculateService {
 			)
 			.build();
 	}
+
+	public boolean hasCalculateOfTripAndMember(Long tripId, Long memberId) {
+		String cached = redis.opsForValue().get(senderKey(tripId, memberId));
+		return (cached == null) ? false : true;
+	}
 }
