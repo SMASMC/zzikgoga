@@ -29,8 +29,8 @@ export interface YLocationItem {
 export interface YScheduleItem {
   id: number | null
   uid: string
-  start_time: string          // 'YYYY-MM-DDTHH:mm'
-  offset_time: string | null  // 'HH:MM' or null
+  start_time: string // 'YYYY-MM-DDTHH:mm'
+  offset_time: string | null // 'HH:MM' or null
   has_location: boolean
   location: YLocationItem | null
   memo: string
@@ -61,9 +61,12 @@ const normalizeOffsetToHHMM = (raw?: string | null) => {
     return `${hh}:${mm}`
   }
   // "24 hours" / "30 minutes" 등 보정
-  let h = 0, min = 0
-  const hr = String(raw).match(/(\d+)\s*hour/); if (hr) h = Number(hr[1]) || 0
-  const mn = String(raw).match(/(\d+)\s*minute/); if (mn) min = Number(mn[1]) || 0
+  let h = 0,
+    min = 0
+  const hr = String(raw).match(/(\d+)\s*hour/)
+  if (hr) h = Number(hr[1]) || 0
+  const mn = String(raw).match(/(\d+)\s*minute/)
+  if (mn) min = Number(mn[1]) || 0
   const total = h * 60 + min
   return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
 }
@@ -160,7 +163,8 @@ const reflowScheduleTimes = (yArr: Y.Array<Y.Map<unknown>>) => {
       const t = yItem.get('start_hhmm_text')
       const hhmm = hhmmFromIsoLocal(formatLocalMinute(startDate))
       if (t instanceof Y.Text) {
-        t.delete(0, t.length); t.insert(0, hhmm)
+        t.delete(0, t.length)
+        t.insert(0, hhmm)
       } else {
         yItem.set('start_hhmm_text', new Y.Text(hhmm))
       }
@@ -275,7 +279,9 @@ export const useYTripDoc = (roomId: string) => {
 
     // 5초 타임아웃
     let syncedFlag = provider.synced
-    const syncCheckHandler = (synced: boolean) => { syncedFlag = synced }
+    const syncCheckHandler = (synced: boolean) => {
+      syncedFlag = synced
+    }
     provider.on('sync', syncCheckHandler)
     const timeout = setTimeout(() => {
       if (!syncedFlag) {
@@ -298,26 +304,31 @@ export const useYTripDoc = (roomId: string) => {
   }, [roomId])
 
   /** ===== Budget ===== */
-  const addBudget = useCallback((dateKey: string, budget: { category: string; amount: number; description?: string }) => {
-    const entry = providerRef.current; if (!entry) return
-    const { doc } = entry
-    const budgetsMap = doc.getMap('budgets') as Y.Map<Y.Array<Y.Map<unknown>>>
-    let yArr = budgetsMap.get(dateKey)
-    if (!(yArr instanceof Y.Array)) {
-      yArr = new Y.Array<Y.Map<unknown>>()
-      budgetsMap.set(dateKey, yArr)
-    }
-    const yItem = new Y.Map<unknown>()
-    yItem.set('id', null)
-    yItem.set('uid', `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`)
-    yItem.set('category', budget.category)
-    yItem.set('amount', Number(budget.amount) || 0)
-    yItem.set('description', new Y.Text((budget.description ?? '').toString()))
-    yArr.push([yItem])
-  }, [])
+  const addBudget = useCallback(
+    (dateKey: string, budget: { category: string; amount: number; description?: string }) => {
+      const entry = providerRef.current
+      if (!entry) return
+      const { doc } = entry
+      const budgetsMap = doc.getMap('budgets') as Y.Map<Y.Array<Y.Map<unknown>>>
+      let yArr = budgetsMap.get(dateKey)
+      if (!(yArr instanceof Y.Array)) {
+        yArr = new Y.Array<Y.Map<unknown>>()
+        budgetsMap.set(dateKey, yArr)
+      }
+      const yItem = new Y.Map<unknown>()
+      yItem.set('id', null)
+      yItem.set('uid', `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`)
+      yItem.set('category', budget.category)
+      yItem.set('amount', Number(budget.amount) || 0)
+      yItem.set('description', new Y.Text((budget.description ?? '').toString()))
+      yArr.push([yItem])
+    },
+    []
+  )
 
   const removeBudget = useCallback((dateKey: string, keyOrId: string | number) => {
-    const entry = providerRef.current; if (!entry) return
+    const entry = providerRef.current
+    if (!entry) return
     const { doc } = entry
     const budgetsMap = doc.getMap('budgets') as Y.Map<Y.Array<Y.Map<unknown>>>
     const yArr = budgetsMap.get(dateKey)
@@ -329,7 +340,10 @@ export const useYTripDoc = (roomId: string) => {
       if (m.get('_deleted') === true) continue
       const id = m.get('id') as number | null
       const uid = m.get('uid') as string | undefined
-      if (id === keyOrId || uid === keyOrId) { target = m; break }
+      if (id === keyOrId || uid === keyOrId) {
+        target = m
+        break
+      }
     }
     if (!target && typeof keyOrId === 'number') {
       let visible = 0
@@ -337,195 +351,230 @@ export const useYTripDoc = (roomId: string) => {
         const m = yArr.get(i)
         if (!(m instanceof Y.Map)) continue
         if (m.get('_deleted') === true) continue
-        if (visible === keyOrId) { target = m; break }
+        if (visible === keyOrId) {
+          target = m
+          break
+        }
         visible++
       }
     }
     if (!target) return
-    doc.transact(() => { target!.set('_deleted', true) }, 'remove-budget')
+    doc.transact(() => {
+      target!.set('_deleted', true)
+    }, 'remove-budget')
   }, [])
 
   /** ===== Schedule ===== */
-  const addSchedule = useCallback((payload: {
-    startTimeLocal: string
-    endTimeLocal?: string | null
-    memo?: string
-    location?: {
-      name: string
-      full_address?: string
-      detail?: string
-      sido?: string
-      sigungu?: string
-      road_name?: string
-      building_num?: string
-      latitude?: number | null
-      longitude?: number | null
-    } | null
-  }) => {
-    const entry = providerRef.current; if (!entry) return
-    const { doc } = entry
-    const dateKey = dateKeyOf(payload.startTimeLocal)
-    const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
-    let yArr = schedulesMap.get(dateKey)
-    if (!(yArr instanceof Y.Array)) {
-      yArr = new Y.Array<Y.Map<unknown>>()
-      schedulesMap.set(dateKey, yArr)
-    }
-
-    const yItem = new Y.Map<unknown>()
-    yItem.set('id', null)
-    yItem.set('uid', `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
-    yItem.set('start_time', payload.startTimeLocal)
-
-    let offset: string | null = null
-    if (payload.endTimeLocal) {
-      try {
-        const start = new Date(payload.startTimeLocal)
-        const end = new Date(payload.endTimeLocal)
-        offset = millisToHHMM(end.getTime() - start.getTime())
-      } catch { offset = null }
-    }
-    yItem.set('offset_time', offset ?? '00:00')
-
-    // ✨ 아이템 고유 협업 텍스트(공유 금지)
-    yItem.set('start_hhmm_text', new Y.Text(hhmmFromIsoLocal(payload.startTimeLocal)))
-    yItem.set('offset_hhmm_text', new Y.Text(normalizeOffsetToHHMM(offset ?? '00:00')))
-
-    // memo
-    const initialMemo = (payload.memo ?? '').replace(/\r\n/g, '\n').replace(/\n+$/, '')
-    yItem.set('memo', new Y.Text(initialMemo))
-
-    // location
-    const loc = payload.location ?? null
-    const rawName = typeof loc?.name === 'string' ? loc.name.trim() : ''
-    const fallbackFromAddress = typeof loc?.full_address === 'string' ? loc.full_address.trim() : ''
-    const finalName = rawName || fallbackFromAddress || '장소명 없음'
-    const has_location = Boolean(loc && finalName.length > 0)
-    yItem.set('has_location', has_location)
-    if (has_location) {
-      const locationMap = new Y.Map<unknown>()
-      locationMap.set('id', null)
-      locationMap.set('name', new Y.Text(finalName))
-      locationMap.set('full_address', loc!.full_address ?? '')
-      locationMap.set('detail', loc!.detail ?? '')
-      locationMap.set('sido', loc!.sido ?? '')
-      locationMap.set('sigungu', loc!.sigungu ?? '')
-      locationMap.set('road_name', loc!.road_name ?? '')
-      locationMap.set('building_num', loc!.building_num ?? '')
-      locationMap.set('latitude', loc!.latitude ?? null)
-      locationMap.set('longitude', loc!.longitude ?? null)
-      yItem.set('location', locationMap)
-    } else {
-      yItem.set('location', null)
-    }
-
-    yArr.push([yItem])
-  }, [])
-
-  const updateScheduleTime = useCallback((
-    dateKey: string,
-    index: number,
-    updates: { startTimeLocal?: string; offsetHHMM?: string | null }
-  ) => {
-    const entry = providerRef.current; if (!entry) return
-    const { doc } = entry
-    const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
-    const yArr = schedulesMap.get(dateKey)
-    if (!(yArr instanceof Y.Array)) return
-    const yItem = yArr.get(index) as Y.Map<unknown> | undefined
-    if (!yItem) return
-
-    const applyOffset = (map: Y.Map<unknown>) => {
-      if (updates.offsetHHMM !== undefined) {
-        const next = updates.offsetHHMM ?? '00:00'
-        map.set('offset_time', next)
-        const t = map.get('offset_hhmm_text')
-        const val = normalizeOffsetToHHMM(next)
-        if (t instanceof Y.Text) { t.delete(0, t.length); t.insert(0, val) }
-        else { map.set('offset_hhmm_text', new Y.Text(val)) }
+  const addSchedule = useCallback(
+    (payload: {
+      startTimeLocal: string
+      endTimeLocal?: string | null
+      memo?: string
+      location?: {
+        name: string
+        full_address?: string
+        detail?: string
+        sido?: string
+        sigungu?: string
+        road_name?: string
+        building_num?: string
+        latitude?: number | null
+        longitude?: number | null
+      } | null
+    }) => {
+      const entry = providerRef.current
+      if (!entry) return
+      const { doc } = entry
+      const dateKey = dateKeyOf(payload.startTimeLocal)
+      const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
+      let yArr = schedulesMap.get(dateKey)
+      if (!(yArr instanceof Y.Array)) {
+        yArr = new Y.Array<Y.Map<unknown>>()
+        schedulesMap.set(dateKey, yArr)
       }
-    }
 
-    if (updates.startTimeLocal) {
-      const newDateKey = dateKeyOf(updates.startTimeLocal)
-      if (newDateKey === dateKey) {
-        doc.transact(() => {
-          yItem.set('start_time', updates.startTimeLocal!)
-          const t = yItem.get('start_hhmm_text')
-          const val = hhmmFromIsoLocal(updates.startTimeLocal!)
-          if (t instanceof Y.Text) { t.delete(0, t.length); t.insert(0, val) }
-          else { yItem.set('start_hhmm_text', new Y.Text(val)) }
-          applyOffset(yItem)
-        }, 'update-schedule-time')
+      const yItem = new Y.Map<unknown>()
+      yItem.set('id', null)
+      yItem.set('uid', `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
+      yItem.set('start_time', payload.startTimeLocal)
+
+      let offset: string | null = null
+      if (payload.endTimeLocal) {
+        try {
+          const start = new Date(payload.startTimeLocal)
+          const end = new Date(payload.endTimeLocal)
+          offset = millisToHHMM(end.getTime() - start.getTime())
+        } catch {
+          offset = null
+        }
+      }
+      yItem.set('offset_time', offset ?? '00:00')
+
+      // ✨ 아이템 고유 협업 텍스트(공유 금지)
+      yItem.set('start_hhmm_text', new Y.Text(hhmmFromIsoLocal(payload.startTimeLocal)))
+      yItem.set('offset_hhmm_text', new Y.Text(normalizeOffsetToHHMM(offset ?? '00:00')))
+
+      // memo
+      const initialMemo = (payload.memo ?? '').replace(/\r\n/g, '\n').replace(/\n+$/, '')
+      yItem.set('memo', new Y.Text(initialMemo))
+
+      // location
+      const loc = payload.location ?? null
+      const rawName = typeof loc?.name === 'string' ? loc.name.trim() : ''
+      const fallbackFromAddress =
+        typeof loc?.full_address === 'string' ? loc.full_address.trim() : ''
+      const finalName = rawName || fallbackFromAddress || '장소명 없음'
+      const has_location = Boolean(loc && finalName.length > 0)
+      yItem.set('has_location', has_location)
+      if (has_location) {
+        const locationMap = new Y.Map<unknown>()
+        locationMap.set('id', null)
+        locationMap.set('name', new Y.Text(finalName))
+        locationMap.set('full_address', loc!.full_address ?? '')
+        locationMap.set('detail', loc!.detail ?? '')
+        locationMap.set('sido', loc!.sido ?? '')
+        locationMap.set('sigungu', loc!.sigungu ?? '')
+        locationMap.set('road_name', loc!.road_name ?? '')
+        locationMap.set('building_num', loc!.building_num ?? '')
+        locationMap.set('latitude', loc!.latitude ?? null)
+        locationMap.set('longitude', loc!.longitude ?? null)
+        yItem.set('location', locationMap)
       } else {
-        // ✨ 다른 날짜로 이동 시, 모든 Y.Text는 새 인스턴스로 깊은 복제
-        doc.transact(() => {
-          const snapshot = {
-            id: (yItem.get('id') as number) ?? null,
-            uid: (yItem.get('uid') as string) ?? '',
-            has_location: Boolean(yItem.get('has_location')),
-            location: yItem.get('location') as unknown,
-            memo: yItem.get('memo') as unknown,
-            offset_time: (yItem.get('offset_time') as string | null) ?? null,
-          }
-
-          const newMap = new Y.Map<unknown>()
-          newMap.set('id', snapshot.id)
-          if (snapshot.uid) newMap.set('uid', snapshot.uid)
-          newMap.set('start_time', updates.startTimeLocal!)
-          newMap.set('has_location', snapshot.has_location)
-
-          const memoText = (snapshot.memo instanceof Y.Text ? snapshot.memo.toString() : String(snapshot.memo ?? ''))
-            .replace(/\r\n/g, '\n').replace(/\n+$/, '')
-          newMap.set('memo', new Y.Text(memoText))
-
-          if (snapshot.location instanceof Y.Map) {
-            const locOld = snapshot.location
-            const locNew = new Y.Map<unknown>()
-            locNew.set('id', locOld.get('id'))
-            const nameValue = locOld.get('name')
-            const nameText = nameValue instanceof Y.Text ? nameValue.toString() : String(nameValue ?? '')
-            locNew.set('name', new Y.Text(nameText))
-            locNew.set('full_address', locOld.get('full_address') ?? '')
-            locNew.set('detail', locOld.get('detail') ?? '')
-            locNew.set('sido', locOld.get('sido') ?? '')
-            locNew.set('sigungu', locOld.get('sigungu') ?? '')
-            locNew.set('road_name', locOld.get('road_name') ?? '')
-            locNew.set('building_num', locOld.get('building_num') ?? '')
-            locNew.set('latitude', locOld.get('latitude') ?? null)
-            locNew.set('longitude', locOld.get('longitude') ?? null)
-            newMap.set('location', locNew)
-          } else if (snapshot.location && typeof snapshot.location === 'object') {
-            newMap.set('location', { ...(snapshot.location as object) })
-          } else {
-            newMap.set('location', null)
-          }
-
-          const finalOffset = updates.offsetHHMM !== undefined ? updates.offsetHHMM : snapshot.offset_time
-          newMap.set('offset_time', finalOffset ?? '00:00')
-
-          // 새 협업 텍스트
-          newMap.set('start_hhmm_text', new Y.Text(hhmmFromIsoLocal(updates.startTimeLocal!)))
-          newMap.set('offset_hhmm_text', new Y.Text(normalizeOffsetToHHMM(finalOffset ?? '00:00')))
-
-          let nextArr = schedulesMap.get(newDateKey)
-          if (!(nextArr instanceof Y.Array)) {
-            nextArr = new Y.Array<Y.Map<unknown>>()
-            schedulesMap.set(newDateKey, nextArr)
-          }
-          nextArr.push([newMap])
-
-          yArr.delete(index, 1)
-          if (yArr.length === 0) schedulesMap.delete(dateKey)
-        }, 'move-schedule-day')
+        yItem.set('location', null)
       }
-    } else {
-      doc.transact(() => applyOffset(yItem), 'update-schedule-offset')
-    }
-  }, [])
+
+      yArr.push([yItem])
+    },
+    []
+  )
+
+  const updateScheduleTime = useCallback(
+    (
+      dateKey: string,
+      index: number,
+      updates: { startTimeLocal?: string; offsetHHMM?: string | null }
+    ) => {
+      const entry = providerRef.current
+      if (!entry) return
+      const { doc } = entry
+      const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
+      const yArr = schedulesMap.get(dateKey)
+      if (!(yArr instanceof Y.Array)) return
+      const yItem = yArr.get(index) as Y.Map<unknown> | undefined
+      if (!yItem) return
+
+      const applyOffset = (map: Y.Map<unknown>) => {
+        if (updates.offsetHHMM !== undefined) {
+          const next = updates.offsetHHMM ?? '00:00'
+          map.set('offset_time', next)
+          const t = map.get('offset_hhmm_text')
+          const val = normalizeOffsetToHHMM(next)
+          if (t instanceof Y.Text) {
+            t.delete(0, t.length)
+            t.insert(0, val)
+          } else {
+            map.set('offset_hhmm_text', new Y.Text(val))
+          }
+        }
+      }
+
+      if (updates.startTimeLocal) {
+        const newDateKey = dateKeyOf(updates.startTimeLocal)
+        if (newDateKey === dateKey) {
+          doc.transact(() => {
+            yItem.set('start_time', updates.startTimeLocal!)
+            const t = yItem.get('start_hhmm_text')
+            const val = hhmmFromIsoLocal(updates.startTimeLocal!)
+            if (t instanceof Y.Text) {
+              t.delete(0, t.length)
+              t.insert(0, val)
+            } else {
+              yItem.set('start_hhmm_text', new Y.Text(val))
+            }
+            applyOffset(yItem)
+          }, 'update-schedule-time')
+        } else {
+          // ✨ 다른 날짜로 이동 시, 모든 Y.Text는 새 인스턴스로 깊은 복제
+          doc.transact(() => {
+            const snapshot = {
+              id: (yItem.get('id') as number) ?? null,
+              uid: (yItem.get('uid') as string) ?? '',
+              has_location: Boolean(yItem.get('has_location')),
+              location: yItem.get('location') as unknown,
+              memo: yItem.get('memo') as unknown,
+              offset_time: (yItem.get('offset_time') as string | null) ?? null,
+            }
+
+            const newMap = new Y.Map<unknown>()
+            newMap.set('id', snapshot.id)
+            if (snapshot.uid) newMap.set('uid', snapshot.uid)
+            newMap.set('start_time', updates.startTimeLocal!)
+            newMap.set('has_location', snapshot.has_location)
+
+            const memoText = (
+              snapshot.memo instanceof Y.Text
+                ? snapshot.memo.toString()
+                : String(snapshot.memo ?? '')
+            )
+              .replace(/\r\n/g, '\n')
+              .replace(/\n+$/, '')
+            newMap.set('memo', new Y.Text(memoText))
+
+            if (snapshot.location instanceof Y.Map) {
+              const locOld = snapshot.location
+              const locNew = new Y.Map<unknown>()
+              locNew.set('id', locOld.get('id'))
+              const nameValue = locOld.get('name')
+              const nameText =
+                nameValue instanceof Y.Text ? nameValue.toString() : String(nameValue ?? '')
+              locNew.set('name', new Y.Text(nameText))
+              locNew.set('full_address', locOld.get('full_address') ?? '')
+              locNew.set('detail', locOld.get('detail') ?? '')
+              locNew.set('sido', locOld.get('sido') ?? '')
+              locNew.set('sigungu', locOld.get('sigungu') ?? '')
+              locNew.set('road_name', locOld.get('road_name') ?? '')
+              locNew.set('building_num', locOld.get('building_num') ?? '')
+              locNew.set('latitude', locOld.get('latitude') ?? null)
+              locNew.set('longitude', locOld.get('longitude') ?? null)
+              newMap.set('location', locNew)
+            } else if (snapshot.location && typeof snapshot.location === 'object') {
+              newMap.set('location', { ...(snapshot.location as object) })
+            } else {
+              newMap.set('location', null)
+            }
+
+            const finalOffset =
+              updates.offsetHHMM !== undefined ? updates.offsetHHMM : snapshot.offset_time
+            newMap.set('offset_time', finalOffset ?? '00:00')
+
+            // 새 협업 텍스트
+            newMap.set('start_hhmm_text', new Y.Text(hhmmFromIsoLocal(updates.startTimeLocal!)))
+            newMap.set(
+              'offset_hhmm_text',
+              new Y.Text(normalizeOffsetToHHMM(finalOffset ?? '00:00'))
+            )
+
+            let nextArr = schedulesMap.get(newDateKey)
+            if (!(nextArr instanceof Y.Array)) {
+              nextArr = new Y.Array<Y.Map<unknown>>()
+              schedulesMap.set(newDateKey, nextArr)
+            }
+            nextArr.push([newMap])
+
+            yArr.delete(index, 1)
+            if (yArr.length === 0) schedulesMap.delete(dateKey)
+          }, 'move-schedule-day')
+        }
+      } else {
+        doc.transact(() => applyOffset(yItem), 'update-schedule-offset')
+      }
+    },
+    []
+  )
 
   const reorderSchedule = useCallback((dateKey: string, fromIndex: number, toIndex: number) => {
-    const entry = providerRef.current; if (!entry) return
+    const entry = providerRef.current
+    if (!entry) return
     const { doc } = entry
     const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
     const yArr = schedulesMap.get(dateKey)
@@ -545,35 +594,40 @@ export const useYTripDoc = (roomId: string) => {
     }, 'reorder-schedule')
   }, [])
 
-  const moveSchedule = useCallback((sourceDateKey: string, fromIndex: number, targetDateKey: string, targetIndex: number) => {
-    const entry = providerRef.current; if (!entry) return
-    const { doc } = entry
-    const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
-    const sourceArr = schedulesMap.get(sourceDateKey)
-    if (!(sourceArr instanceof Y.Array)) return
-    const item = sourceArr.get(fromIndex)
-    if (!item) return
+  const moveSchedule = useCallback(
+    (sourceDateKey: string, fromIndex: number, targetDateKey: string, targetIndex: number) => {
+      const entry = providerRef.current
+      if (!entry) return
+      const { doc } = entry
+      const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
+      const sourceArr = schedulesMap.get(sourceDateKey)
+      if (!(sourceArr instanceof Y.Array)) return
+      const item = sourceArr.get(fromIndex)
+      if (!item) return
 
-    doc.transact(() => {
-      sourceArr.delete(fromIndex, 1)
-      if (sourceArr.length === 0) schedulesMap.delete(sourceDateKey)
-      else reflowScheduleTimes(sourceArr)
+      doc.transact(() => {
+        sourceArr.delete(fromIndex, 1)
+        if (sourceArr.length === 0) schedulesMap.delete(sourceDateKey)
+        else reflowScheduleTimes(sourceArr)
 
-      let targetArr = schedulesMap.get(targetDateKey)
-      if (!(targetArr instanceof Y.Array)) {
-        targetArr = new Y.Array<Y.Map<unknown>>()
-        schedulesMap.set(targetDateKey, targetArr)
-      }
-      let insertIndex = targetIndex
-      if (insertIndex < 0) insertIndex = 0
-      if (insertIndex > targetArr.length) insertIndex = targetArr.length
-      targetArr.insert(insertIndex, [item])
-      reflowScheduleTimes(targetArr)
-    }, 'move-schedule')
-  }, [])
+        let targetArr = schedulesMap.get(targetDateKey)
+        if (!(targetArr instanceof Y.Array)) {
+          targetArr = new Y.Array<Y.Map<unknown>>()
+          schedulesMap.set(targetDateKey, targetArr)
+        }
+        let insertIndex = targetIndex
+        if (insertIndex < 0) insertIndex = 0
+        if (insertIndex > targetArr.length) insertIndex = targetArr.length
+        targetArr.insert(insertIndex, [item])
+        reflowScheduleTimes(targetArr)
+      }, 'move-schedule')
+    },
+    []
+  )
 
   const removeSchedule = useCallback((dateKey: string, visibleIndex: number) => {
-    const entry = providerRef.current; if (!entry) return
+    const entry = providerRef.current
+    if (!entry) return
     const { doc } = entry
     const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
     const yArr = schedulesMap.get(dateKey)
@@ -585,11 +639,16 @@ export const useYTripDoc = (roomId: string) => {
       const m = yArr.get(i)
       if (!(m instanceof Y.Map)) continue
       if (m.get('_deleted') === true) continue
-      if (visibleCount === visibleIndex) { target = m; break }
+      if (visibleCount === visibleIndex) {
+        target = m
+        break
+      }
       visibleCount++
     }
     if (!target) return
-    doc.transact(() => { target!.set('_deleted', true) }, 'remove-schedule')
+    doc.transact(() => {
+      target!.set('_deleted', true)
+    }, 'remove-schedule')
   }, [])
 
   return {

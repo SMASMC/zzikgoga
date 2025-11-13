@@ -84,7 +84,9 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
                 ytext.insert(0, parsed.travelTitle)
               }
             }
-          } catch {}
+          } catch {
+            console.error('Failed to load cached trip title')
+          }
         }
         tripMap.set('title', ytext)
       })
@@ -152,7 +154,9 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
       } else {
         setSelectedDate(d)
       }
-    } catch {}
+    } catch {
+      console.error('Failed to load cached selected date')
+    }
   }, [metaStorageKey, tripInfo?.start_date, tripInfo?.end_date])
 
   // 선택 날짜 저장/브로드캐스트
@@ -165,13 +169,17 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
         metaStorageKey,
         JSON.stringify({ ...parsed, selectedDate: selectedDateKey })
       )
-    } catch {}
+    } catch {
+      console.error('Failed to save cached selected date')
+    }
     try {
       const ev = new CustomEvent('zzik-plan-selected-date', {
         detail: { tripId: tripId ?? null, dateKey: selectedDateKey },
       })
       window.dispatchEvent(ev)
-    } catch {}
+    } catch {
+      console.error('Failed to broadcast selected date')
+    }
   }, [metaStorageKey, selectedDateKey, tripId])
 
   // 친구 초대/토스트
