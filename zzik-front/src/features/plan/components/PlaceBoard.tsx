@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   PointerEvent as ReactPointerEvent,
   KeyboardEvent as ReactKeyboardEvent,
@@ -260,6 +260,70 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
   }, [participants, self.color, self.id, self.name, self.picture, selfCursor, selfMessage])
 
   const participantCount = rosterEntries.length
+
+  // 여행 기간 범위로 선택 날짜 보정
+  useEffect(() => {
+    if (!tripInfo?.start_date || !tripInfo?.end_date) return
+    const min = new Date(tripInfo.start_date)
+    const max = new Date(tripInfo.end_date)
+    const cur = new Date(selectedDate)
+    const curT = cur.setHours(0, 0, 0, 0)
+    const minT = min.setHours(0, 0, 0, 0)
+    const maxT = max.setHours(0, 0, 0, 0)
+    if (curT < minT || curT > maxT) {
+      setSelectedDate(min)
+    }
+  }, [selectedDate, tripInfo?.start_date, tripInfo?.end_date])
+
+  // 초기 진입 시 저장된 선택 날짜가 있으면 복원 (여행 범위 내인 경우만)
+  useEffect(() => {
+    if (!metaStorageKey || typeof window === 'undefined') return
+    try {
+      const raw = window.sessionStorage.getItem(metaStorageKey)
+      if (!raw) return
+      const parsed = JSON.parse(raw)
+      const stored: string | undefined = parsed?.selectedDate
+      if (!stored) return
+      const d = new Date(stored)
+      if (Number.isNaN(d.getTime())) return
+      // 범위 체크
+      if (tripInfo?.start_date && tripInfo?.end_date) {
+        if (tripInfo.start_date <= stored && stored <= tripInfo.end_date) {
+          setSelectedDate(d)
+        }
+      } else {
+        setSelectedDate(d)
+      }
+    } catch {
+      // ignore
+    }
+    // run once on mount or when trip range changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [metaStorageKey, tripInfo?.start_date, tripInfo?.end_date])
+
+  // 선택 날짜 변경 시 저장 및 브로드캐스트
+  useEffect(() => {
+    if (!metaStorageKey || typeof window === 'undefined') return
+    try {
+      const raw = window.sessionStorage.getItem(metaStorageKey)
+      const parsed = raw ? JSON.parse(raw) : {}
+      window.sessionStorage.setItem(
+        metaStorageKey,
+        JSON.stringify({ ...parsed, selectedDate: selectedDateKey })
+      )
+    } catch {
+      // ignore
+    }
+    // CustomEvent로 다른 패널에 알림
+    try {
+      const ev = new CustomEvent('zzik-plan-selected-date', {
+        detail: { tripId: tripId ?? null, dateKey: selectedDateKey },
+      })
+      window.dispatchEvent(ev)
+    } catch {
+      // ignore
+    }
+  }, [metaStorageKey, selectedDateKey, tripId])
 
   // 제목 드래프트 ↔ Y.Text 동기화
   useEffect(() => {
@@ -602,6 +666,8 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
               onDateSelect={handleDateSelect}
               onPrevWeek={handlePrevWeek}
               onNextWeek={handleNextWeek}
+              minDate={tripInfo?.start_date ? new Date(tripInfo.start_date) : undefined}
+              maxDate={tripInfo?.end_date ? new Date(tripInfo.end_date) : undefined}
             />
 
             <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto rounded-xl border-2 border-slate-200 p-4 bg-white/80">
