@@ -1,5 +1,5 @@
 import { pool } from '../../db'
-import type { Schedule, Location } from '../types'
+import { LocationEntity, ScheduleEntity } from '../../entities'
 
 /**
  * Schedule CRUD Operations
@@ -36,8 +36,8 @@ export async function createSchedule(data: {
 /**
  * Schedule ID로 조회
  */
-export async function getScheduleById(scheduleId: number): Promise<Schedule | null> {
-  const result = await pool.query<Schedule>(
+export async function getScheduleById(scheduleId: number): Promise<ScheduleEntity | null> {
+  const result = await pool.query<ScheduleEntity>(
     `SELECT id, trip_id, start_time, offset_time, memo, has_location, updated_at
      FROM schedule
      WHERE id = $1`,
@@ -49,8 +49,8 @@ export async function getScheduleById(scheduleId: number): Promise<Schedule | nu
 /**
  * Trip ID로 모든 Schedule 조회
  */
-export async function getSchedulesByTripId(tripId: number): Promise<Schedule[]> {
-  const result = await pool.query<Schedule>(
+export async function getSchedulesByTripId(tripId: number): Promise<ScheduleEntity[]> {
+  const result = await pool.query<ScheduleEntity>(
     `SELECT id, trip_id, start_time, offset_time, memo, has_location, updated_at
      FROM schedule
      WHERE trip_id = $1
@@ -124,9 +124,9 @@ export async function createLocation(data: {
   schedule_id: number
   name: string
   full_address: string
-  detail: string
-  latitude: number
-  longitude: number
+  detail?: string
+  latitude?: number
+  longitude?: number
   sido?: string
   sigungu?: string
   road_name?: string
@@ -160,8 +160,8 @@ export async function createLocation(data: {
 /**
  * Location ID로 조회
  */
-export async function getLocationById(locationId: number): Promise<Location | null> {
-  const result = await pool.query<Location>(
+export async function getLocationById(locationId: number): Promise<LocationEntity | null> {
+  const result = await pool.query<LocationEntity>(
     `SELECT id, schedule_id, name, full_address, detail, latitude, longitude,
             sido, sigungu, road_name, building_num
      FROM location
@@ -176,14 +176,15 @@ export async function getLocationById(locationId: number): Promise<Location | nu
  */
 export async function getLocationByScheduleId(
   scheduleId: number
-): Promise<Location | null> {
-  const result = await pool.query<Location>(
+): Promise<LocationEntity | null> {
+  const result = await pool.query<LocationEntity>(
     `SELECT id, schedule_id, name, full_address, detail, latitude, longitude,
             sido, sigungu, road_name, building_num
      FROM location
      WHERE schedule_id = $1`,
     [scheduleId]
   )
+  console.log(`result: ${JSON.stringify(result.rows[0])}`)
   return result.rows[0] || null
 }
 

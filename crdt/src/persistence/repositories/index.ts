@@ -1,27 +1,27 @@
 /**
- * CRUD Operations Export
- * 모든 CRUD 함수를 한 곳에서 import 가능
+ * Repository Pattern Export
+ * 모든 Repository 함수를 한 곳에서 import 가능
  */
 
-// Trip CRUD
+// Trip Repository
 export {
   createTrip,
   getTripById,
   updateTripTitle,
   updateTripField,
   deleteTrip,
-} from './tripCrud'
+} from './trip.repository'
 
-// Schedule CRUD
+// Schedule Repository
 export {
   createSchedule,
   getScheduleById,
   getSchedulesByTripId,
   updateSchedule,
   deleteSchedule,
-} from './scheduleCrud'
+} from './schedule.repository'
 
-// Location CRUD
+// Location Repository
 export {
   createLocation,
   getLocationById,
@@ -29,9 +29,9 @@ export {
   updateLocation,
   deleteLocation,
   deleteLocationByScheduleId,
-} from './scheduleCrud'
+} from './schedule.repository'
 
-// Budget CRUD
+// Budget Repository
 export {
   createBudget,
   getBudgetById,
@@ -41,4 +41,4 @@ export {
   deleteBudget,
   deleteBudgetsByTripId,
   deleteBudgetsByDate,
-} from './budgetCrud'
+} from './budget.repository'

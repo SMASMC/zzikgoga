@@ -1,7 +1,7 @@
 // src/persistence/crud/budgetCrud.ts
 
 import { pool } from '../../db'
-import type { Budget } from '../types'
+import type { BudgetEntity } from '../../entities'
 
 /**
  * Budget CRUD Operations
@@ -32,8 +32,8 @@ export async function createBudget(data: {
 /**
  * Budget ID로 조회
  */
-export async function getBudgetById(budgetId: number): Promise<Budget | null> {
-  const result = await pool.query<Budget>(
+export async function getBudgetById(budgetId: number): Promise<BudgetEntity | null> {
+  const result = await pool.query<BudgetEntity>(
     `SELECT id, trip_id, date, category, description, amount
      FROM budget
      WHERE id = $1`,
@@ -45,8 +45,8 @@ export async function getBudgetById(budgetId: number): Promise<Budget | null> {
 /**
  * Trip ID로 모든 Budget 조회
  */
-export async function getBudgetsByTripId(tripId: number): Promise<Budget[]> {
-  const result = await pool.query<Budget>(
+export async function getBudgetsByTripId(tripId: number): Promise<BudgetEntity[]> {
+  const result = await pool.query<BudgetEntity>(
     `SELECT id, trip_id, date, category, description, amount
      FROM budget
      WHERE trip_id = $1
@@ -62,8 +62,8 @@ export async function getBudgetsByTripId(tripId: number): Promise<Budget[]> {
 export async function getBudgetsByDate(
   tripId: number,
   date: string
-): Promise<Budget[]> {
-  const result = await pool.query<Budget>(
+): Promise<BudgetEntity[]> {
+  const result = await pool.query<BudgetEntity>(
     `SELECT id, trip_id, date, category, description, amount
      FROM budget
      WHERE trip_id = $1 AND date = $2

@@ -1,5 +1,5 @@
 import { pool } from '../../db'
-import type { Trip } from '../types'
+import type { TripEntity } from '../../entities'
 
 /**
  * Trip CRUD Operations
@@ -38,8 +38,8 @@ export async function createTrip(data: {
 /**
  * Trip ID로 조회
  */
-export async function getTripById(tripId: number): Promise<Trip | null> {
-  const result = await pool.query<Trip>(
+export async function getTripById(tripId: number): Promise<TripEntity | null> {
+  const result = await pool.query<TripEntity>(
     `SELECT id, owner_id, title, start_date, end_date,
             male_count, female_count, is_cost_completed, updated_at
      FROM trip

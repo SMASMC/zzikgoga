@@ -7,8 +7,7 @@ import * as syncProtocol from 'y-protocols/sync'
 import * as awarenessProtocol from 'y-protocols/awareness'
 import { WebSocketServer, WebSocket, RawData } from 'ws'
 
-import { loadYDocFromDB } from './persistence/dbLoad'
-import { setupPersistence } from './persistence/dbPersist'
+import { ydocLoaderService, ydocPersistenceService } from './services'
 
 dotenv.config()
 
@@ -43,7 +42,7 @@ async function getOrCreateRoom(roomName: string): Promise<Room> {
   } else {
     const tripId = Number(m[1])
     console.log(`[room] loading trip ${tripId} from DB into Y.Doc ...`)
-    await loadYDocFromDB(tripId, doc)
+    await ydocLoaderService.loadTripData(tripId, doc)
     console.log(`[room] trip ${tripId} loaded into doc.`)
 
     // tripInfo.id 보정 (DB 로드가 id를 안 넣었을 경우 대비)
@@ -55,7 +54,7 @@ async function getOrCreateRoom(roomName: string): Promise<Room> {
 
     if (!persistedDocs.has(doc)) {
       console.log(`[room] attaching persistence (tripId=${tripId})`)
-      setupPersistence(doc)
+      ydocPersistenceService.setupPersistence(doc)
       persistedDocs.add(doc)
     } else {
       console.log(`[room] persistence already attached (tripId=${tripId})`)
