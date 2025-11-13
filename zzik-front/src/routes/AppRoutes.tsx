@@ -11,6 +11,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { PublicOnlyRoute } from '@/components/auth/PublicOnlyRoute'
 import CostPage from '@/pages/cost/CostPage'
 import { InviteCallbackPage } from '@/pages/plan/InviteCallbackPage'
+import MemoryPage from '@/pages/memory/MemoryPage'
 
 type BackgroundShellProps = {
   header?: ReactNode
@@ -43,16 +44,22 @@ const AppRoutes = () => {
             </PublicOnlyRoute>
           }
         />
-        <Route element={<BackgroundShell header={null} />}>
-          <Route
-            path="/cost/:tripId"
-            element={
-              <ProtectedRoute>
-                <CostPage />
-              </ProtectedRoute>
-            }
-          />
-        </Route>
+        <Route
+          path="/cost/:tripId"
+          element={
+            <ProtectedRoute>
+              <CostPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/memory/:tripId"
+          element={
+            <ProtectedRoute>
+              <MemoryPage />
+            </ProtectedRoute>
+          }
+        />
       </Route>
 
       {/* Plan 페이지는 Header를 직접 렌더링하여 커서 공유 */}

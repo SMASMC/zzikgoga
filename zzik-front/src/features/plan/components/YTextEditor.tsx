@@ -202,13 +202,22 @@ const YTextEditor = ({
     <div
       className={cn(
         variant === 'plain'
-          ? 'w-full'
+          ? 'w-full min-h-[2.5rem]'
           : 'w-full rounded-full border-2 border-slate-300 bg-white px-5 py-2.5 text-lg font-semibold text-slate-900 shadow-sm transition-all hover:border-blue-300 hover:shadow-md focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 flex items-center',
         className
       )}
       data-placeholder={placeholder}
+      onClick={() => {
+        // 빈 에디터를 클릭했을 때도 포커스되도록
+        if (editor && !editor.isFocused) {
+          editor.commands.focus()
+        }
+      }}
+      style={{ cursor: 'text' }}
     >
-      <EditorContent editor={editor} />
+      <div className="flex-1">
+        <EditorContent editor={editor} />
+      </div>
     </div>
   )
 }

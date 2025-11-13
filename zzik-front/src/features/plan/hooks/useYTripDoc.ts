@@ -1,3 +1,4 @@
+// src/features/plan/hooks/useYTripDoc.ts
 import { useEffect, useRef, useState, useCallback } from 'react'
 import * as Y from 'yjs'
 import { acquireProvider, releaseProvider } from '../stores/yjsStore'
@@ -6,9 +7,11 @@ import { dateKeyOf, formatLocalMinute, millisToHHMM, parseOffsetMinutes } from '
 
 export interface YBudgetItem {
   id: number | null
+  uid?: string
   category: string
   amount: number
   description: string
+  yArrayIndex?: number // 실제 Y.Array 인덱스 (삭제된 항목 포함)
 }
 
 export interface YLocationItem {
@@ -28,6 +31,7 @@ export interface YScheduleItem {
   has_location: boolean
   location: YLocationItem | null
   memo: string
+  yArrayIndex?: number // 실제 Y.Array 인덱스 (삭제된 항목 포함)
 }
 
 export interface TripInfoPlain {
@@ -45,13 +49,17 @@ const snapshotBudgets = (doc: Y.Doc): Record<string, YBudgetItem[]> => {
 
   budgetsMap.forEach((yArr, dateKey) => {
     const items: YBudgetItem[] = []
-    yArr.forEach((yMap) => {
+    yArr.forEach((yMap, yArrayIndex) => {
+      // ⭐ _deleted 플래그가 있으면 스킵
+      if (yMap.get('_deleted') === true) return
+
       const id = (yMap.get('id') as number) ?? null
+      const uid = (yMap.get('uid') as string) ?? ''
       const category = (yMap.get('category') as string) ?? ''
       const amountRaw = yMap.get('amount') as unknown
       const amount = typeof amountRaw === 'number' ? amountRaw : Number(amountRaw ?? 0)
       const description = yTextToString(yMap.get('description'))
-      items.push({ id, category, amount, description })
+      items.push({ id, uid, category, amount, description, yArrayIndex })
     })
     result[dateKey] = items
   })
@@ -65,7 +73,10 @@ const snapshotSchedules = (doc: Y.Doc): Record<string, YScheduleItem[]> => {
 
   schedulesMap.forEach((yArr, dateKey) => {
     const items: YScheduleItem[] = []
-    yArr.forEach((yMap) => {
+    yArr.forEach((yMap, yArrayIndex) => {
+      // ⭐ _deleted 플래그가 있으면 스킵
+      if (yMap.get('_deleted') === true) return
+
       const id = (yMap.get('id') as number) ?? null
       const uid = (yMap.get('uid') as string) ?? ''
       const start_time = (yMap.get('start_time') as string) ?? ''
@@ -85,7 +96,7 @@ const snapshotSchedules = (doc: Y.Doc): Record<string, YScheduleItem[]> => {
           longitude: (obj.longitude as number) ?? null,
         }
       })()
-      items.push({ id, uid, start_time, offset_time, has_location, location, memo })
+      items.push({ id, uid, start_time, offset_time, has_location, location, memo, yArrayIndex })
     })
     result[dateKey] = items
   })
@@ -119,13 +130,20 @@ export const useYTripDoc = (roomId: string) => {
   const [tripInfo, setTripInfo] = useState<TripInfoPlain>({})
   const [budgetsByDate, setBudgetsByDate] = useState<Record<string, YBudgetItem[]>>({})
   const [schedulesByDate, setSchedulesByDate] = useState<Record<string, YScheduleItem[]>>({})
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSynced, setIsSynced] = useState(false)
+  const [connectionError, setConnectionError] = useState<string | null>(null)
 
   useEffect(() => {
+    console.log('[useYTripDoc] Initializing for room:', roomId)
     const entry = acquireProvider(roomId)
     providerRef.current = entry
 
     const doc = entry.doc
+    const provider = entry.provider
+
     const updateAll = () => {
+      console.log('[useYTripDoc] Updating all data from Y.Doc')
       const tripMap = doc.getMap('tripInfo')
       setTripInfo({
         id: (tripMap.get('id') as number) ?? undefined,
@@ -136,9 +154,6 @@ export const useYTripDoc = (roomId: string) => {
       setBudgetsByDate(snapshotBudgets(doc))
       setSchedulesByDate(snapshotSchedules(doc))
     }
-
-    // 초기 스냅샷
-    updateAll()
 
     const budgetsMap = doc.getMap('budgets') as Y.Map<unknown>
     const schedulesMap = doc.getMap('schedules') as Y.Map<unknown>
@@ -156,7 +171,7 @@ export const useYTripDoc = (roomId: string) => {
       })
     }
 
-    // 🔧 불필요 인자 제거(미사용 변수 에러 방지)
+    // 불필요 인자 제거(미사용 변수 에러 방지)
     const tripDeepObserver = () => {
       tripObserver()
     }
@@ -179,8 +194,75 @@ export const useYTripDoc = (roomId: string) => {
     }
     ensureUids()
 
+    const ensureBudgetUids = () => {
+      const bm = doc.getMap('budgets') as Y.Map<Y.Array<Y.Map<unknown>>>
+      bm.forEach((arr) => {
+        arr.forEach((m) => {
+          const u = m.get('uid') as string | undefined
+          if (!u || u.length < 5) {
+            m.set('uid', `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`)
+          }
+        })
+      })
+    }
+    ensureBudgetUids()
+
+    // WebSocket 동기화 상태 추적
+    const handleSync = (synced: boolean) => {
+      console.log('[useYTripDoc] Sync event:', synced)
+      setIsSynced(synced)
+      if (synced) {
+        setIsLoading(false)
+        setConnectionError(null)
+        updateAll()
+      }
+    }
+
+    const handleStatus = (event: { status: string }) => {
+      console.log('[useYTripDoc] WebSocket status:', event.status)
+      if (event.status === 'connected') {
+        console.log('[useYTripDoc] WebSocket connected successfully')
+      } else if (event.status === 'disconnected') {
+        console.warn('[useYTripDoc] WebSocket disconnected')
+        setConnectionError('서버와의 연결이 끊어졌습니다.')
+      }
+    }
+
+    provider.on('sync', handleSync)
+    provider.on('status', handleStatus)
+
+    // 초기 동기화 상태 확인 및 데이터 로드
+    // provider가 이미 synced 상태라면 즉시 데이터를 로드
+    if (provider.synced) {
+      console.log('[useYTripDoc] Provider already synced, loading data immediately')
+      setIsSynced(true)
+      setIsLoading(false)
+      updateAll()
+    }
+
+    // 5초 타임아웃 설정
+    let syncedFlag = provider.synced
+    const syncCheckHandler = (synced: boolean) => {
+      syncedFlag = synced
+    }
+    provider.on('sync', syncCheckHandler)
+
+    const timeout = setTimeout(() => {
+      if (!syncedFlag) {
+        console.error('[useYTripDoc] Connection timeout after 5 seconds')
+        setConnectionError(
+          '서버 연결 시간 초과. CRDT 서버(ws://localhost:3100)가 실행 중인지 확인하세요.'
+        )
+        setIsLoading(false)
+      }
+    }, 5000)
+
     // cleanup
     return () => {
+      clearTimeout(timeout)
+      provider.off('sync', handleSync)
+      provider.off('sync', syncCheckHandler)
+      provider.off('status', handleStatus)
       budgetsMap.unobserveDeep(budgetsObserver)
       schedulesMap.unobserveDeep(schedulesObserver)
       tripMap.unobserveDeep(tripDeepObserver)
@@ -195,13 +277,16 @@ export const useYTripDoc = (roomId: string) => {
       if (!entry) return
       const { doc } = entry
       const budgetsMap = doc.getMap('budgets') as Y.Map<Y.Array<Y.Map<unknown>>>
+
       let yArr = budgetsMap.get(dateKey)
       if (!(yArr instanceof Y.Array)) {
         yArr = new Y.Array<Y.Map<unknown>>()
         budgetsMap.set(dateKey, yArr)
       }
+
       const yItem = new Y.Map<unknown>()
       yItem.set('id', null)
+      yItem.set('uid', `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`) // ★ uid 추가
       yItem.set('category', budget.category)
       yItem.set('amount', Number(budget.amount) || 0)
       yItem.set('description', new Y.Text((budget.description ?? '').toString()))
@@ -210,20 +295,60 @@ export const useYTripDoc = (roomId: string) => {
     []
   )
 
-  const removeBudget = useCallback((dateKey: string, index: number) => {
+  // keyOrId를 받아서 _deleted 플래그 설정 (Update 방식)
+  const removeBudget = useCallback((dateKey: string, keyOrId: string | number) => {
     const entry = providerRef.current
     if (!entry) return
     const { doc } = entry
+
     const budgetsMap = doc.getMap('budgets') as Y.Map<Y.Array<Y.Map<unknown>>>
     const yArr = budgetsMap.get(dateKey)
-    if (!(yArr instanceof Y.Array)) return
-    if (index < 0 || index >= yArr.length) return
+    if (!(yArr instanceof Y.Array)) {
+      console.warn(`[removeBudget] No budget array for dateKey: ${dateKey}`)
+      return
+    }
 
-    doc.transact(() => {
-      yArr.delete(index, 1)
-      if (yArr.length === 0) {
-        budgetsMap.delete(dateKey)
+    let target: Y.Map<unknown> | null = null
+
+    // 1) id/uid로 우선 탐색
+    for (let i = 0; i < yArr.length; i++) {
+      const m = yArr.get(i)
+      if (!(m instanceof Y.Map)) continue
+      // _deleted 항목은 스킵
+      if (m.get('_deleted') === true) continue
+
+      const id = m.get('id') as number | null
+      const uid = m.get('uid') as string | undefined
+      if (id === keyOrId || uid === keyOrId) {
+        target = m
+        break
       }
+    }
+
+    // 2) 못 찾았고 숫자면 visible index로 간주
+    if (!target && typeof keyOrId === 'number') {
+      let visibleCount = 0
+      for (let i = 0; i < yArr.length; i++) {
+        const m = yArr.get(i)
+        if (!(m instanceof Y.Map)) continue
+        if (m.get('_deleted') === true) continue
+
+        if (visibleCount === keyOrId) {
+          target = m
+          break
+        }
+        visibleCount++
+      }
+    }
+
+    if (!target) {
+      console.warn('[removeBudget] target not found in Y.Array', { dateKey, keyOrId })
+      return
+    }
+
+    // Update 방식으로 삭제: _deleted 플래그 설정
+    doc.transact(() => {
+      target!.set('_deleted', true)
     }, 'remove-budget')
   }, [])
 
@@ -451,21 +576,49 @@ export const useYTripDoc = (roomId: string) => {
     []
   )
 
-  const removeSchedule = useCallback((dateKey: string, index: number) => {
+  // visible index를 받아서 _deleted 플래그 설정 (Update 방식)
+  const removeSchedule = useCallback((dateKey: string, visibleIndex: number) => {
     const entry = providerRef.current
-    if (!entry) return
+    if (!entry) {
+      console.warn('[removeSchedule] No provider available')
+      return
+    }
     const { doc } = entry
+
     const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
     const yArr = schedulesMap.get(dateKey)
-    if (!(yArr instanceof Y.Array)) return
-    if (index < 0 || index >= yArr.length) return
-    doc.transact(() => {
-      yArr.delete(index, 1)
-      if (yArr.length === 0) {
-        schedulesMap.delete(dateKey)
-      } else {
-        reflowScheduleTimes(yArr)
+    if (!(yArr instanceof Y.Array)) {
+      console.warn(`[removeSchedule] No schedule array for dateKey: ${dateKey}`)
+      return
+    }
+
+    // visible index를 실제 Y.Array 인덱스로 변환
+    // _deleted가 아닌 항목들 중에서 visibleIndex번째 항목 찾기
+    let visibleCount = 0
+    let target: Y.Map<unknown> | null = null
+
+    for (let i = 0; i < yArr.length; i++) {
+      const m = yArr.get(i)
+      if (!(m instanceof Y.Map)) continue
+
+      // _deleted 항목은 스킵
+      if (m.get('_deleted') === true) continue
+
+      if (visibleCount === visibleIndex) {
+        target = m
+        break
       }
+      visibleCount++
+    }
+
+    if (!target) {
+      console.warn('[removeSchedule] target not found in Y.Array', { dateKey, visibleIndex })
+      return
+    }
+
+    // Update 방식으로 삭제: _deleted 플래그 설정
+    doc.transact(() => {
+      target!.set('_deleted', true)
     }, 'remove-schedule')
   }, [])
 
@@ -475,6 +628,9 @@ export const useYTripDoc = (roomId: string) => {
     tripInfo,
     budgetsByDate,
     schedulesByDate,
+    isLoading,
+    isSynced,
+    connectionError,
     addBudget,
     addSchedule,
     updateScheduleTime,

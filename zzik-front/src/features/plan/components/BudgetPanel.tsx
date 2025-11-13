@@ -4,14 +4,18 @@ import SolidButton from '@/components/atoms/SolidButton'
 import Input from '@/components/atoms/Input'
 import { ToastDock } from '@/components/blocks/ToastDock'
 import { DropdownSelect } from '@/components/blocks/DropdownSelect'
-import Calendar from '@/components/atoms/Calendar'
 import { useYTripDoc } from '../hooks/useYTripDoc'
 import YTextEditor from './YTextEditor'
 import * as Y from 'yjs'
 import type { CostCategory } from '@/features/cost/types/cost'
 import { COST_CATEGORIES, COST_CATEGORY_LABELS } from '@/features/cost/types/cost'
+// Follows selected date broadcasted from PlaceBoard
 
-const todayKey = () => new Date().toISOString().slice(0, 10)
+const toLocalDateKey = (d: Date) => {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+// no local week navigation in BudgetPanel
 
 const CATEGORY_OPTIONS = COST_CATEGORIES.map((cat) => ({
   label: COST_CATEGORY_LABELS[cat],
@@ -27,12 +31,15 @@ const BudgetPanel = () => {
 
   const { budgetsByDate, addBudget, doc, tripInfo, removeBudget } = useYTripDoc(roomId)
 
-  const [date, setDate] = useState<string>(todayKey())
+  // 선택한 날짜 (PlaceBoard에서 공유)
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
+  const selectedDateKey = useMemo(() => toLocalDateKey(selectedDate), [selectedDate])
+  const metaStorageKey = tripId ? `plan-meta-${tripId}` : null
+
   const [category, setCategory] = useState<CostCategory>('ETC')
   const [amount, setAmount] = useState<string>('')
   const [description, setDescription] = useState<string>('')
   const [toastMessage, setToastMessage] = useState<string | null>(null)
-  const [showCalendar, setShowCalendar] = useState(false)
   const calendarRef = useRef<HTMLDivElement | null>(null)
 
   const isWithinTripRange = useCallback(
@@ -58,48 +65,50 @@ const BudgetPanel = () => {
 
   const handleAdd = () => {
     const amt = Number(amount)
-    if (!date || !category || !Number.isFinite(amt)) {
+    if (!selectedDateKey || !category || !Number.isFinite(amt)) {
       return
     }
-    if (!isWithinTripRange(date)) {
+    if (!isWithinTripRange(selectedDateKey)) {
       notifyOutOfRange()
       return
     }
-    addBudget(date, { category, amount: amt, description: description.trim() })
+    addBudget(selectedDateKey, { category, amount: amt, description: description.trim() })
     setAmount('')
     setDescription('')
   }
 
-  const handleCalendarSelect = (selectedStart: Date) => {
-    const nextDate = selectedStart.toISOString().slice(0, 10)
-    setDate(nextDate)
-    setShowCalendar(false)
-    if (!isWithinTripRange(nextDate)) {
-      notifyOutOfRange()
-    }
-  }
-
+  // 초기 복원 & 이벤트 구독: PlaceBoard가 저장하는 selectedDate를 따라감
   useEffect(() => {
-    if (!showCalendar) return
-    const handleClickOutside = (event: MouseEvent) => {
-      if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
-        setShowCalendar(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [showCalendar])
-
-  const dateLabel = (() => {
-    if (!date) return '날짜 선택'
+    if (!metaStorageKey || typeof window === 'undefined') return
     try {
-      return new Date(date).toLocaleDateString('ko-KR')
+      const raw = window.sessionStorage.getItem(metaStorageKey)
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        const stored: string | undefined = parsed?.selectedDate
+        if (stored) {
+          const d = new Date(stored)
+          if (!Number.isNaN(d.getTime())) {
+            setSelectedDate(d)
+          }
+        }
+      }
     } catch {
-      return date
+      // ignore
     }
-  })()
+    const listener = (ev: Event) => {
+      const ce = ev as CustomEvent<{ tripId: string | null; dateKey: string }>
+      const sameTrip = !tripId || ce.detail.tripId === tripId
+      if (!ce.detail?.dateKey || !sameTrip) return
+      const d = new Date(ce.detail.dateKey)
+      if (!Number.isNaN(d.getTime())) setSelectedDate(d)
+    }
+    window.addEventListener('zzik-plan-selected-date', listener as EventListener)
+    return () => {
+      window.removeEventListener('zzik-plan-selected-date', listener as EventListener)
+    }
+  }, [metaStorageKey, tripId])
+
+  // 선택일 표시는 WeekCalendar가 담당합니다.
 
   return (
     <aside className="flex w-full min-h-0 flex-col gap-4 border-l border-slate-200 bg-white p-4 md:w-1/4">
@@ -118,36 +127,9 @@ const BudgetPanel = () => {
       </header>
 
       <div className="flex flex-col gap-2 rounded-lg border border-slate-200 p-3">
-        <div className="grid grid-cols-2 gap-2">
-          <div className="col-span-2" ref={calendarRef}>
-            <button
-              type="button"
-              onClick={() => setShowCalendar((prev) => !prev)}
-              className="flex w-full items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-left text-sm font-semibold text-slate-600 transition hover:border-point-400 hover:bg-background-500"
-            >
-              <span>{dateLabel}</span>
-              <svg
-                className={`h-4 w-4 transition-transform ${showCalendar ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                strokeWidth={2}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {showCalendar ? (
-              <div className="relative mt-2">
-                <div className="absolute z-20">
-                  <Calendar
-                    mode="single"
-                    initialStartDate={date ? new Date(date) : undefined}
-                    initialEndDate={date ? new Date(date) : undefined}
-                    onDateSelect={(start) => handleCalendarSelect(start)}
-                  />
-                </div>
-              </div>
-            ) : null}
+        <div className="grid grid-cols-2 gap-2" ref={calendarRef}>
+          <div className="col-span-2 text-sm text-slate-600">
+            <span className="font-semibold">선택 날짜:</span> {selectedDateKey}
           </div>
           <DropdownSelect
             options={CATEGORY_OPTIONS}
@@ -178,24 +160,24 @@ const BudgetPanel = () => {
       </div>
 
       <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto rounded-lg border border-slate-200 p-3">
-        {Object.keys(budgetsByDate).length === 0 ? (
+        {(!budgetsByDate[selectedDateKey] || budgetsByDate[selectedDateKey].length === 0) ? (
           <p className="text-center text-sm text-slate-400">설명을 입력하십시오.</p>
         ) : (
-          Object.entries(budgetsByDate)
-            .sort(([a], [b]) => a.localeCompare(b))
-            .map(([d, items]) => (
-              <div key={d} className="rounded-md border border-slate-100 p-2">
-                <div className="mb-1 text-xs font-semibold text-slate-500">{d}</div>
-                {items.length === 0 ? (
-                  <div className="text-xs text-slate-400">설명</div>
-                ) : (
-                  <ul className="space-y-2 text-sm">
-                    {items.map((it, idx) => {
+          [selectedDateKey].map((d) => (
+            <div key={d} className="rounded-md border border-slate-100 p-2">
+              <div className="mb-1 text-xs font-semibold text-slate-500">{d}</div>
+              {budgetsByDate[d]?.length === 0 ? (
+                <div className="text-xs text-slate-400">설명</div>
+              ) : (
+                <ul className="space-y-2 text-sm">
+                  {budgetsByDate[d].map((it, idx) => {
+                      // 실제 Y.Array 인덱스 사용
+                      const realIndex = it.yArrayIndex ?? idx
                       let yDesc: Y.Text | null = null
                       if (doc) {
                         const yMap = doc.getMap('budgets') as Y.Map<unknown>
                         const yArr = yMap.get(d) as Y.Array<Y.Map<unknown>> | undefined
-                        const yItem = yArr?.get(idx) as Y.Map<unknown> | undefined
+                        const yItem = yArr?.get(realIndex) as Y.Map<unknown> | undefined
                         const desc = yItem?.get('description')
                         if (desc instanceof Y.Text) yDesc = desc
                       }
@@ -212,7 +194,7 @@ const BudgetPanel = () => {
                               <span className="text-slate-600">{it.amount.toLocaleString()}원</span>
                               <button
                                 type="button"
-                                onClick={() => removeBudget(d, idx)}
+                                onClick={() => removeBudget(d, it.id ?? it.uid!)}
                                 className="rounded-full border border-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-500 transition hover:border-red-300 hover:bg-red-50"
                               >
                                 삭제
@@ -226,11 +208,11 @@ const BudgetPanel = () => {
                           ) : null}
                         </li>
                       )
-                    })}
-                  </ul>
-                )}
-              </div>
-            ))
+                  })}
+                </ul>
+              )}
+            </div>
+          ))
         )}
       </div>
     </aside>
