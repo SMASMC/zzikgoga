@@ -390,6 +390,7 @@ public class CostService {
 		List<com.zzik.backend.domain.cost.dto.response.CostItemResponse> items = new ArrayList<>();
 		for (CostMenu m : menus) {
 			items.add(com.zzik.backend.domain.cost.dto.response.CostItemResponse.builder()
+				.menuId(m.getId())
 				.menuName(m.getMenuName())
 				.count(m.getCount())
 				.amount(m.getAmount())
