@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.zzik.backend.domain.auth.entity.Member;
+import com.zzik.backend.domain.media.entity.Photo;
 import com.zzik.backend.domain.media.repository.PhotoRepository;
 import com.zzik.backend.domain.plan.dto.request.CreateTripRequest;
 import com.zzik.backend.domain.plan.dto.response.ExitTripResponse;
@@ -77,6 +79,11 @@ public class PlanService {
 
 	@Transactional(readOnly = true)
 	public TripListResponse getTripList(Long memberId, Long cursor, int size) {
+
+		if (cursor != null && cursor <= 0) {
+			cursor = null;
+		}
+
 		Pageable pageRequest = PageRequest.of(0, size + 1, Sort.by(Sort.Direction.DESC, "id"));
 
 		List<Trip> trips = tripRepository.findByMemberIdCursorPaged(memberId, cursor, pageRequest);
@@ -90,12 +97,25 @@ public class PlanService {
 		}
 
 		List<TripSummaryResponse> items = new ArrayList<>();
+
 		for (Trip t : responseTrips) {
+			List<Photo> photos = photoRepository.findByTripId(t.getId());
+
+			Photo photo = null;
+			if (!photos.isEmpty()) {
+				photo = photos.get(
+					ThreadLocalRandom.current().nextInt(photos.size())
+				);
+			}
+
 			items.add(TripSummaryResponse.builder()
 				.tripId(t.getId())
 				.title(t.getTitle())
 				.startDate(t.getStartDate())
 				.endDate(t.getEndDate())
+				.thumbnail(photo != null
+					? s3Util.generatePresignedUrl(photo.getS3Url())
+					: null)
 				.build());
 		}
 
