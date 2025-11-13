@@ -146,6 +146,11 @@ const BudgetPanel = () => {
 
   // 선택일 표시는 WeekCalendar가 담당합니다.
 
+  const totalForSelected = useMemo(() => {
+    const list = budgetsByDate[selectedDateKey] ?? []
+    return list.reduce((sum, it) => sum + (Number(it.amount) || 0), 0)
+  }, [budgetsByDate, selectedDateKey])
+
   return (
     <aside className="flex w-full min-h-0 flex-col gap-4 border-l border-slate-200 bg-white p-4 md:w-1/4">
       <ToastDock
@@ -272,6 +277,14 @@ const BudgetPanel = () => {
             </div>
           ))
         )}
+      </div>
+      <div className="mt-2 border-t border-slate-200 pt-3">
+        <div className="flex items-center justify-between">
+          <span className="font-semibold text-3xl text-slate-700">총 예산</span>
+          <span className="text-slate-900 font-bold text-2xl">
+            {totalForSelected.toLocaleString()} 원
+          </span>
+        </div>
       </div>
     </aside>
   )
