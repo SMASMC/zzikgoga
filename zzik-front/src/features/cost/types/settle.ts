@@ -51,4 +51,3 @@ export interface ReceiveMember {
   fromMemberName: string
   amount: number
 }
-
