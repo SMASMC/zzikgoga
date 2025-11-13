@@ -16,9 +16,10 @@ interface CostDetailModalProps {
   onClose: () => void
   tripId: string
   costId: number
+  onRefresh?: () => void // 삭제 후 목록 새로고침을 위한 콜백
 }
 
-const CostDetailModal = ({ isOpen, onClose, tripId, costId }: CostDetailModalProps) => {
+const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDetailModalProps) => {
   const [costDetail, setCostDetail] = useState<CostDetailResponse | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -26,6 +27,7 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId }: CostDetailModalPro
   const [canEdit, setCanEdit] = useState(true) // 기본값을 true로 설정 (아무도 수정 중이 아닐 때는 수정 가능)
   const [isEditing, setIsEditing] = useState(false) // 수정 모드 여부
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false) // 삭제 중 상태
 
   // 수정 폼 데이터
   const [formData, setFormData] = useState<CostModifyRequest>({
@@ -229,7 +231,7 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId }: CostDetailModalPro
     } catch (err) {
       console.error('비용 수정 실패:', err)
       setError('비용 수정에 실패했습니다. 다시 시도해주세요.')
-      
+
       // 오류 발생 시 락 해제
       try {
         await EditLockStateService.releaseLockState(Number(tripId), costId)
@@ -251,8 +253,32 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId }: CostDetailModalPro
   const handleMemberSelect = (index: number, memberIds: string[]) => {
     const newMenus = [...formData.menus]
     newMenus[index].payerIds = memberIds.map((id) => Number(id))
-    newMenus[index].count = memberIds.length
+    // count는 참여자 수와 독립적으로 유지 (수동으로 변경 가능)
     setFormData({ ...formData, menus: newMenus })
+  }
+
+  // 결제 항목 삭제 핸들러
+  const handleDelete = async () => {
+    if (!confirm('정말로 이 결제 내역을 삭제하시겠습니까?')) {
+      return
+    }
+
+    setIsDeleting(true)
+    setError(null)
+
+    try {
+      await CostDetailService.deleteCost(Number(tripId), costId)
+      // 삭제 성공 시 모달 닫기 및 목록 새로고침
+      onClose()
+      if (onRefresh) {
+        onRefresh()
+      }
+    } catch (err) {
+      console.error('결제 내역 삭제 실패:', err)
+      setError('결제 내역 삭제에 실패했습니다. 다시 시도해주세요.')
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   // 모달 닫을 때 수정 모드라면 락 해제
@@ -336,17 +362,30 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId }: CostDetailModalPro
           </h2>
           {isEditing ? (
             <div className="flex gap-2">
-              <SolidButton onClick={handleCancelEdit} disabled={isSubmitting}>
+              <button
+                onClick={handleCancelEdit}
+                disabled={isSubmitting}
+                className="inline-flex items-center justify-center whitespace-nowrap font-bmjua px-6 py-2.5 text-base rounded-2xl bg-gray-200 text-gray-700 hover:bg-gray-300 shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
+              >
                 취소
-              </SolidButton>
+              </button>
               <SolidButton onClick={handleSaveEdit} disabled={isSubmitting}>
                 {isSubmitting ? '저장 중...' : '저장'}
               </SolidButton>
             </div>
           ) : (
-            <SolidButton onClick={handleEditClick} disabled={!canEdit}>
-              수정하기
-            </SolidButton>
+            <div className="flex gap-2">
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="inline-flex items-center justify-center whitespace-nowrap font-bmjua px-6 py-2.5 text-base rounded-2xl bg-red-500 text-white hover:bg-red-600 shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
+              >
+                {isDeleting ? '삭제 중...' : '삭제'}
+              </button>
+              <SolidButton onClick={handleEditClick} disabled={!canEdit}>
+                수정하기
+              </SolidButton>
+            </div>
           )}
           <CloseButton onClick={handleClose} className="absolute top-3 right-4" />
         </div>
@@ -481,7 +520,7 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId }: CostDetailModalPro
                                   {menu.payerIds.map((memberId) => {
                                     const member = members.find((m) => m.memberId === memberId)
                                     if (!member) return null
-                                    return (
+    return (
                                       <div
                                         key={memberId}
                                         className="flex items-center space-x-2 px-2 py-1 bg-blue-50 rounded-lg border border-blue-200"
@@ -509,7 +548,7 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId }: CostDetailModalPro
                                             newMenus[index].payerIds = newMenus[
                                               index
                                             ].payerIds.filter((id) => id !== memberId)
-                                            newMenus[index].count = newMenus[index].payerIds.length
+                                            // count는 참여자 수와 독립적으로 유지 (수동으로 변경 가능)
                                             setFormData({ ...formData, menus: newMenus })
                                           }}
                                           className="text-blue-600 hover:text-blue-800"
@@ -579,7 +618,7 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId }: CostDetailModalPro
                             menus: [
                               ...formData.menus,
                               {
-                                costMenuId: 0, // 새 메뉴는 0으로 설정 (서버에서 새 항목으로 인식)
+                                costMenuId: null, // 새 메뉴는 null로 설정 (서버에서 새 항목으로 인식)
                                 menuName: '',
                                 count: 1,
                                 amount: 0,
@@ -627,7 +666,7 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId }: CostDetailModalPro
                   </div>
 
                   {costDetail.memo && (
-                    <div>
+        <div> 
                       <p className="text-sm text-text-600 mb-1">메모</p>
                       <p className="text-base text-text-500">{costDetail.memo}</p>
                     </div>
@@ -690,8 +729,8 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId }: CostDetailModalPro
             </>
           ) : null}
         </div>
-      </div>
-
+        </div>
+        
       {/* 결제자 선택 모달 */}
       {isPayerModalOpen && (
         <PayerSelectModal

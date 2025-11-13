@@ -98,7 +98,7 @@ export interface CostModifyRequest {
   menus: CostMenu[]
 }
 export interface CostMenu {
-  costMenuId: number
+  costMenuId: number | null
   menuName: string
   count: number
   amount: number
@@ -121,4 +121,8 @@ export interface ModifyCostMenu {
   count: number
   amount: number
   payers: Array<{ memberId: number; memberName: string }>
+}
+
+export interface CostDeleteResponse {
+  id: number
 }

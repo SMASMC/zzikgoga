@@ -2,7 +2,7 @@
 // 정산 리스트 컴포넌트
 // 전체 정산 내역 및 상세 조회
 import { useState, useEffect } from 'react'
-import { CostListService } from '../services/costService'
+import { CostListService, CostDetailService } from '../services/costService'
 import { CostListResponse } from '../types/cost'
 import CostDetailModal from './CostDetailModal'
 
@@ -18,6 +18,7 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
   const [isLoading, setIsLoading] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedCostId, setSelectedCostId] = useState<number | null>(null)
+  const [deletingCostId, setDeletingCostId] = useState<number | null>(null)
 
   const loadCostList = async () => {
     setIsLoading(true)
@@ -77,6 +78,26 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
     setSelectedCostId(null)
   }
 
+  const handleDelete = async (e: React.MouseEvent, costId: number) => {
+    e.stopPropagation() // 클릭 이벤트 버블링 방지 (모달이 열리지 않도록)
+    
+    if (!confirm('정말로 이 결제 내역을 삭제하시겠습니까?')) {
+      return
+    }
+
+    setDeletingCostId(costId)
+    try {
+      await CostDetailService.deleteCost(Number(tripId), costId)
+      // 삭제 성공 시 목록 새로고침
+      await loadCostList()
+    } catch (error) {
+      console.error('결제 내역 삭제 실패:', error)
+      alert('결제 내역 삭제에 실패했습니다. 다시 시도해주세요.')
+    } finally {
+      setDeletingCostId(null)
+    }
+  }
+
   return (
     <div className="bg-white rounded-3xl shadow-lg p-6 h-full">
       <div className="mb-6">
@@ -134,10 +155,18 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
                     <p className="text-xs text-gray-500">{formatDate(cost.paidAt)}</p>
                   </div>
                 </div>
-                <div className="flex-shrink-0 ml-4">
+                <div className="flex-shrink-0 ml-4 flex items-center gap-3">
                   <p className="text-lg font-bold text-blue-600">
                     {formatAmount(cost.totalAmount)}원
                   </p>
+                  <button
+                    onClick={(e) => handleDelete(e, cost.costId)}
+                    disabled={deletingCostId === cost.costId}
+                    className="px-3 py-1.5 text-sm font-bmjua rounded-lg bg-red-500 text-white hover:bg-red-600 shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
+                    title="삭제"
+                  >
+                    {deletingCostId === cost.costId ? '삭제 중...' : '삭제'}
+                  </button>
                 </div>
               </div>
             </div>
@@ -152,6 +181,7 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
           onClose={handleCloseModal}
           tripId={tripId}
           costId={selectedCostId}
+          onRefresh={loadCostList}
         />
       )}
     </div>

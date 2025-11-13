@@ -7,6 +7,7 @@ import {
   CostDetailResponse,
   CostModifyRequest,
   CostModifyResponse,
+  CostDeleteResponse,
 } from '@/features/cost/types/cost'
 
 export class CostPlusService {
@@ -35,6 +36,11 @@ export class CostReciptService {
 export class CostDetailService {
   public static async getCostDetail(tripId: number, costId: number): Promise<CostDetailResponse> {
     const response = await apiClient.get<CostDetailResponse>(`/cost/${tripId}/${costId}`)
+    return response
+  }
+
+  public static async deleteCost(tripId: number, costId: number): Promise<CostDeleteResponse> {
+    const response = await apiClient.delete<CostDeleteResponse>(`/cost/${tripId}/${costId}`)
     return response
   }
 }
