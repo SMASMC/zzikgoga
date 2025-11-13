@@ -6,10 +6,19 @@ interface CostPlusModalProps {
   isOpen: boolean
   onClose: () => void
   tripId: string
+  onSuccess?: () => void
 }
 
-const CostPlusModal = ({ isOpen, onClose, tripId }: CostPlusModalProps) => {
+const CostPlusModal = ({ isOpen, onClose, tripId, onSuccess }: CostPlusModalProps) => {
   if (!isOpen) return null
+
+  const handleSuccess = () => {
+    if (onSuccess) {
+      onSuccess()
+    } else {
+      onClose()
+    }
+  }
 
   const modalContent = (
     <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-[100] p-4">
@@ -26,7 +35,7 @@ const CostPlusModal = ({ isOpen, onClose, tripId }: CostPlusModalProps) => {
 
         {/* Modal Body */}
         <div className="space-y-4">
-          <CostPlusForm tripId={tripId} onSuccess={onClose} />
+          <CostPlusForm tripId={tripId} onSuccess={handleSuccess} />
         </div>
       </div>
     </div>

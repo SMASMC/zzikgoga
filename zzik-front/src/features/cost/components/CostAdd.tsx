@@ -8,7 +8,11 @@ import { useParams } from 'react-router-dom'
 import { CostReciptService } from '../services/costService'
 import { ToastDock } from '@/components/blocks/ToastDock'
 
-const CostAdd = () => {
+interface CostAddProps {
+  onCostAdded?: () => void
+}
+
+const CostAdd = ({ onCostAdded }: CostAddProps) => {
   const { tripId } = useParams<{ tripId: string }>()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -40,7 +44,10 @@ const CostAdd = () => {
         fileInputRef.current.value = ''
       }
 
-      // TODO: 목록 새로고침 (CostList 컴포넌트에 새로고침 함수 전달 필요)
+      // 목록 새로고침
+      if (onCostAdded) {
+        onCostAdded()
+      }
     } catch (error) {
       console.error('영수증 업로드 실패:', error)
       setToast({
@@ -59,6 +66,14 @@ const CostAdd = () => {
   const handleCloseModal = () => {
     // 모달 닫힐 때 정산 내역 전송해야 함
     setIsModalOpen(false)
+  }
+
+  const handleModalSuccess = () => {
+    setIsModalOpen(false)
+    // 목록 새로고침
+    if (onCostAdded) {
+      onCostAdded()
+    }
   }
 
   return (
@@ -158,7 +173,12 @@ const CostAdd = () => {
 
       {/* 직접 추가 모달 */}
       {isModalOpen && tripId && (
-        <CostPlusModal isOpen={isModalOpen} onClose={handleCloseModal} tripId={tripId} />
+        <CostPlusModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          tripId={tripId}
+          onSuccess={handleModalSuccess}
+        />
       )}
     </>
   )

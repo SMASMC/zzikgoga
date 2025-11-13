@@ -93,10 +93,10 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId }: CostDetailModalPro
         // 아무도 수정 중이 아닐 때는 수정 가능해야 하므로 false로 설정하지 않음
       }
     }
-    
+
     // 1분(60000ms)마다 요청
     const intervalId = setInterval(pollCostDetail, 60000)
-    
+
     // cleanup: 모달이 닫히거나 컴포넌트가 unmount되면 interval 정리
     return () => {
       clearInterval(intervalId)
@@ -110,6 +110,11 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId }: CostDetailModalPro
     if (response.lockAcquired) {
       // 수정 가능
       setCanEdit(true)
+      // 여기 수정을 하는 코드를 작성할 예정
+      // 수정 가능하게 창을 바꾸기
+      
+
+
     } else {
       // 수정 불가능
       setError('이미 다른 사람이 수정 중입니다.')

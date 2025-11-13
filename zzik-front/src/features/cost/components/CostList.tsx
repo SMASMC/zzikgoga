@@ -8,9 +8,10 @@ import CostDetailModal from './CostDetailModal'
 
 interface CostListProps {
   tripId: string
+  onRefresh?: () => void
 }
 
-const CostList = ({ tripId }: CostListProps) => {
+const CostList = ({ tripId, onRefresh }: CostListProps) => {
   const [costs, setCosts] = useState<CostListResponse[]>([])
   const [totalCostCount, setTotalCostCount] = useState(0)
   const [totalCost, setTotalCost] = useState(0)
@@ -18,28 +19,35 @@ const CostList = ({ tripId }: CostListProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedCostId, setSelectedCostId] = useState<number | null>(null)
 
-  useEffect(() => {
-    const loadCostList = async () => {
-      setIsLoading(true)
-      try {
-        const response = await CostListService.getCostList(tripId)
-        setCosts(response.costs)
-        setTotalCostCount(response.totalCostCount)
-        setTotalCost(response.totalCost)
-      } catch (error) {
-        console.error('비용 목록 불러오기 실패:', error)
-        setCosts([])
-        setTotalCostCount(0)
-        setTotalCost(0)
-      } finally {
-        setIsLoading(false)
-      }
+  const loadCostList = async () => {
+    setIsLoading(true)
+    try {
+      const response = await CostListService.getCostList(tripId)
+      setCosts(response.costs)
+      setTotalCostCount(response.totalCostCount)
+      setTotalCost(response.totalCost)
+    } catch (error) {
+      console.error('비용 목록 불러오기 실패:', error)
+      setCosts([])
+      setTotalCostCount(0)
+      setTotalCost(0)
+    } finally {
+      setIsLoading(false)
     }
+  }
 
+  useEffect(() => {
     if (tripId) {
       loadCostList()
     }
   }, [tripId])
+
+  // onRefresh prop이 변경되면 목록 새로고침
+  useEffect(() => {
+    if (onRefresh && tripId) {
+      loadCostList()
+    }
+  }, [onRefresh, tripId])
 
   const formatDate = (dateString: string) => {
     try {
