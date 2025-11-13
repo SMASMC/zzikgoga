@@ -339,23 +339,34 @@ export function setupPersistence(doc: Y.Doc) {
     const tripId = (tripInfo.get('id') as number) ?? -1
     console.log(`[Persistence] Setting up observers for trip ${tripId}`)
 
-    // tripInfo
-    tripInfo.observe((event: Y.YMapEvent<any>, tr: Y.Transaction) => {
+    // tripInfo - observeDeep으로 Y.Text 내부 변경도 감지
+    tripInfo.observeDeep((events: Y.YEvent<any>[], tr: Y.Transaction) => {
         if (!isUserOrigin(tr)) return
-        event.keysChanged.forEach(key => {
-            if (key === 'title') return
-            const newValue = tripInfo.get(key)
-            scheduleTripFieldSave(tripId, key, newValue)
-        })
-    })
 
-    const titleText = tripInfo.get('title') as Y.Text | undefined
-    if (titleText instanceof Y.Text) {
-        titleText.observe((_textEvt: Y.YTextEvent, tr: Y.Transaction) => {
-            if (!isUserOrigin(tr)) return
-            scheduleTripTitleSave(tripId, titleText)
-        })
-    }
+        for (const event of events) {
+            // Y.Text 변경 감지
+            if (event instanceof Y.YTextEvent) {
+                const titleValue = tripInfo.get('title')
+                if (titleValue instanceof Y.Text) {
+                    scheduleTripTitleSave(tripId, titleValue)
+                }
+            }
+            // Map 키 변경 감지
+            else if (event instanceof Y.YMapEvent) {
+                event.keysChanged.forEach(key => {
+                    if (key === 'title') {
+                        const titleValue = tripInfo.get('title')
+                        if (titleValue instanceof Y.Text) {
+                            scheduleTripTitleSave(tripId, titleValue)
+                        }
+                    } else {
+                        const newValue = tripInfo.get(key)
+                        scheduleTripFieldSave(tripId, key, newValue)
+                    }
+                })
+            }
+        }
+    })
 
     // schedules
     const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<any>>>
