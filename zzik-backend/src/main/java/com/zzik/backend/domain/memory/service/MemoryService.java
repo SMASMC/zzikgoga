@@ -1,5 +1,25 @@
 package com.zzik.backend.domain.memory.service;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Base64;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import javax.imageio.ImageIO;
+
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import com.zzik.backend.domain.auth.entity.Member;
 import com.zzik.backend.domain.auth.repository.MemberRepository;
 import com.zzik.backend.domain.memory.dto.request.MemorySaveRequest;
@@ -17,27 +37,8 @@ import com.zzik.backend.global.cloud.s3.service.S3Service;
 import com.zzik.backend.global.exception.BusinessException;
 import com.zzik.backend.global.exception.ExceptionCode;
 import com.zzik.backend.global.util.ByteArrayMultipartFile;
-import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import java.net.URL;
-import java.util.Base64;
-import java.awt.image.BufferedImage;
-import javax.imageio.ImageIO;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.http.MediaType;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @Transactional
@@ -55,7 +56,7 @@ public class MemoryService {
 	 */
 	public MemoryDetailResponse saveMemory(Long tripId, Long memberId, MemorySaveRequest request) {
 
-		System.out.println("Received JSON content: {}"+ request.content());
+		System.out.println("Received JSON content: {}" + request.content());
 		// 1. 권한 검사 (여행 멤버인지)
 		checkTripMembership(tripId, memberId);
 
@@ -111,7 +112,6 @@ public class MemoryService {
 		// 3. DTO 변환 및 반환
 		return MemoryDetailResponse.from(memory);
 	}
-
 
 	/**
 	 * 3. 여행 기록 PDF 변환
@@ -183,25 +183,26 @@ public class MemoryService {
 		// 2. 본문 (JSONB)
 		Map<String, Object> contentMap = memory.getContent();
 		if (contentMap != null && contentMap.containsKey("blocks")) {
-			List<Map<String, Object>> blocks = (List<Map<String, Object>>) contentMap.get("blocks");
+			List<Map<String, Object>> blocks = (List<Map<String, Object>>)contentMap.get("blocks");
 
 			for (Map<String, Object> block : blocks) {
-				String type = (String) block.get("type");
-				Map<String, Object> data = (Map<String, Object>) block.get("data");
-				if (data == null) continue;
+				String type = (String)block.get("type");
+				Map<String, Object> data = (Map<String, Object>)block.get("data");
+				if (data == null)
+					continue;
 
 				switch (type) {
 					case "heading1":
-						html.append("<h1>").append(escapeHtml((String) data.get("text"))).append("</h1>");
+						html.append("<h1>").append(escapeHtml((String)data.get("text"))).append("</h1>");
 						break;
 					case "heading2":
-						html.append("<h2>").append(escapeHtml((String) data.get("text"))).append("</h2>");
+						html.append("<h2>").append(escapeHtml((String)data.get("text"))).append("</h2>");
 						break;
 					case "heading3":
-						html.append("<h3>").append(escapeHtml((String) data.get("text"))).append("</h3>");
+						html.append("<h3>").append(escapeHtml((String)data.get("text"))).append("</h3>");
 						break;
 					case "paragraph":
-						String text = (String) data.get("text");
+						String text = (String)data.get("text");
 						html.append("<p>");
 						if (text != null && !text.isEmpty()) {
 							html.append(escapeHtml(text));
@@ -211,8 +212,8 @@ public class MemoryService {
 						html.append("</p>");
 						break;
 					case "image":
-						String url = (String) data.get("url");
-						String caption = (String) data.get("caption");
+						String url = (String)data.get("url");
+						String caption = (String)data.get("caption");
 						String imageSrc = url;
 						if (url != null && (url.startsWith("http://") || url.startsWith("https://"))) {
 							try {
@@ -222,7 +223,8 @@ public class MemoryService {
 							}
 						}
 						html.append("<div style='text-align: center;'>");
-						if(imageSrc != null) html.append("<img src=\"").append(imageSrc).append("\" />");
+						if (imageSrc != null)
+							html.append("<img src=\"").append(imageSrc).append("\" />");
 						if (caption != null && !caption.isEmpty()) {
 							html.append("<p style='text-align:center; font-style:italic;'>")
 								.append(escapeHtml(caption))
@@ -269,7 +271,8 @@ public class MemoryService {
 	 * [Helper] XSS 방지를 위한 간단한 HTML Escape
 	 */
 	private String escapeHtml(String text) {
-		if (text == null) return "";
+		if (text == null)
+			return "";
 		// (간단한 XSS 방지. <b> 등을 허용하려면 라이브러리 필요)
 		return text.replace("&", "&amp;")
 			.replace("<", "&lt;")
@@ -290,24 +293,23 @@ public class MemoryService {
 	 * PDF 호환 포맷(JPEG)으로 변환 후 Base64로 인코딩
 	 */
 	private String processImageForPdf(String imageUrl) throws Exception {
-		URL url = new URL(imageUrl);
+		// 1) URL 을 직접 연결하지 않고 HttpURLConnection 강제 GET 요청
+		HttpURLConnection conn = (HttpURLConnection)new URL(imageUrl).openConnection();
+		conn.setRequestMethod("GET");
+		conn.setDoInput(true);
+		conn.setUseCaches(false);
+		conn.connect();
 
-		// 1. S3에서 이미지 다운로드 및 디코딩
-		// (build.gradle에 'webp-imageio' 의존성이 있으므로
-		// ImageIO.read가 WebP URL을 인식하고 BufferedImage로 만듦)
-		BufferedImage image = ImageIO.read(url);
+		try (InputStream in = conn.getInputStream()) {
+			BufferedImage image = ImageIO.read(in);
+			if (image == null) {
+				throw new IOException("Could not decode image from URL: " + imageUrl);
+			}
 
-		if (image == null) {
-			throw new IOException("Could not read image from URL: " + imageUrl);
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			ImageIO.write(image, "jpeg", baos);
+			String base64 = Base64.getEncoder().encodeToString(baos.toByteArray());
+			return "data:image/jpeg;base64," + base64;
 		}
-
-		// 2. 이미지를 PDF가 지원하는 'JPEG' 포맷으로 메모리상에서 변환
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		ImageIO.write(image, "jpeg", baos); // 👈 "jpeg" 또는 "png"
-		byte[] processedImageBytes = baos.toByteArray();
-
-		// 3. Base64로 인코딩하여 Data-URI 스킴으로 반환
-		String base64Image = Base64.getEncoder().encodeToString(processedImageBytes);
-		return "data:image/jpeg;base64," + base64Image;
 	}
 }
