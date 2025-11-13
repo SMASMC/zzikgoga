@@ -22,6 +22,42 @@ const CATEGORY_OPTIONS = COST_CATEGORIES.map((cat) => ({
   value: cat,
 }))
 
+const BudgetAmountEditor = ({ yItem }: { yItem: Y.Map<unknown> }) => {
+  const amountText = (() => {
+    const existing = yItem.get('amount_text')
+    if (existing instanceof Y.Text) return existing
+    const currentAmount = yItem.get('amount') as number | undefined
+    const y = new Y.Text(typeof currentAmount === 'number' ? String(currentAmount) : '')
+    yItem.set('amount_text', y)
+    return y
+  })()
+
+  useEffect(() => {
+    const syncToNumber = () => {
+      const raw = amountText.toString().replace(/[^0-9]/g, '')
+      const num = raw.length ? Number(raw) : 0
+      const prev = yItem.get('amount') as number | undefined
+      if (prev !== num) {
+        yItem.doc?.transact(() => {
+          yItem.set('amount', num)
+        }, 'update-budget-amount')
+      }
+    }
+    syncToNumber()
+    amountText.observe(syncToNumber)
+    return () => amountText.unobserve(syncToNumber)
+  }, [amountText, yItem])
+
+  return (
+    <div className="flex items-center gap-1 min-w-[140px]">
+      <div className="w-28">
+        <YTextEditor ytext={amountText} singleLine={true} variant="input" placeholder="금액" />
+      </div>
+      <span className="text-slate-600">원</span>
+    </div>
+  )
+}
+
 const BudgetPanel = () => {
   const { tripId } = useParams<{ tripId: string }>()
   const roomId = useMemo(
@@ -174,10 +210,12 @@ const BudgetPanel = () => {
                     // 실제 Y.Array 인덱스 사용
                     const realIndex = it.yArrayIndex ?? idx
                     let yDesc: Y.Text | null = null
+                    let yItemRef: Y.Map<unknown> | null = null
                     if (doc) {
                       const yMap = doc.getMap('budgets') as Y.Map<unknown>
                       const yArr = yMap.get(d) as Y.Array<Y.Map<unknown>> | undefined
                       const yItem = yArr?.get(realIndex) as Y.Map<unknown> | undefined
+                      yItemRef = yItem ?? null
                       const desc = yItem?.get('description')
                       if (desc instanceof Y.Text) yDesc = desc
                     }
@@ -187,11 +225,31 @@ const BudgetPanel = () => {
                         className="rounded border border-slate-100 bg-white p-2"
                       >
                         <div className="flex items-center justify-between gap-3">
-                          <span className="text-slate-700">
-                            {COST_CATEGORY_LABELS[it.category as CostCategory] || it.category}
-                          </span>
                           <div className="flex items-center gap-2">
-                            <span className="text-slate-600">{it.amount.toLocaleString()}원</span>
+                            {yItemRef ? (
+                              <DropdownSelect
+                                options={CATEGORY_OPTIONS}
+                                value={it.category as CostCategory}
+                                onChange={(value) => {
+                                  const next = value as CostCategory
+                                  yItemRef!.doc?.transact(() => {
+                                    yItemRef!.set('category', next)
+                                  }, 'update-budget-category')
+                                }}
+                                className="min-w-[120px]"
+                              />
+                            ) : (
+                              <span className="text-slate-700">
+                                {COST_CATEGORY_LABELS[it.category as CostCategory] || it.category}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {yItemRef ? (
+                              <BudgetAmountEditor yItem={yItemRef} />
+                            ) : (
+                              <span className="text-slate-600">{it.amount.toLocaleString()}원</span>
+                            )}
                             <button
                               type="button"
                               onClick={() => removeBudget(d, it.id ?? it.uid!)}
