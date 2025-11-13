@@ -1,3 +1,4 @@
+// src/features/plan/components/place-board/ScheduleList.tsx
 import type { RefObject } from 'react'
 import * as Y from 'yjs'
 import type { Awareness } from 'y-protocols/awareness'
@@ -55,10 +56,8 @@ const ScheduleList = ({
 }: ScheduleListProps) => {
   return (
     <div className="rounded-xl border-2 border-slate-100 bg-white p-4 shadow-sm">
-      <div className="mb-3 text-base font-bold text-slate-700">{selectedDateKey}</div>
-
       {schedules.length === 0 ? (
-        <div className="text-sm text-slate-400">일정이 없습니다.</div>
+        <div className="text-3xl text-text-500/70 text-center">일정이 없습니다.</div>
       ) : (
         <ul
           className="space-y-3"

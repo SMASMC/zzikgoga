@@ -1,3 +1,4 @@
+// src/features/plan/components/PlaceBoard.tsx
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { useParams } from 'react-router-dom'
@@ -11,7 +12,7 @@ import SolidButton from '@/components/atoms/SolidButton'
 import WeekCalendar from './WeekCalendar'
 import { toLocalDateKey, addDays } from '../utils/time'
 import { CHAT_AUTO_HIDE_MS, getRoomId } from '../utils/constants'
-import { EmptyScheduleState, ScheduleList } from './place-board'
+import { ScheduleList } from './place-board'
 import { ChatPanel, ParticipantRoster } from './collaboration'
 import YTextEditor from './YTextEditor'
 
@@ -41,6 +42,7 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
     removeSchedule,
   } = useYTripDoc(roomId)
 
+  // console.log(`doc: ${JSON.stringify(doc)}`)
   // 선택일 데이터만 뽑기
   const schedulesForSelected = useMemo(
     () => schedulesByDate[selectedDateKey] ?? [],
@@ -55,17 +57,15 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
   const autoHideTimerRef = useRef<number | null>(null)
   const dragItemRef = useRef<{ dateKey: string; index: number } | null>(null)
 
-  // titleYText는 변경될 때만 다시 가져오기 (Y.Text 객체는 동일하므로 안전)
-  const titleYText = (() => {
+  // 제목 Y.Text (불변 객체라 메모에 안전)
+  const titleYText = useMemo(() => {
     if (!doc) return null
     const tripMap = doc.getMap('tripInfo') as Y.Map<unknown>
-    console.log(`tripMap: ${JSON.stringify(tripMap)}`)
     const value = tripMap.get('title')
-    console.log(`value: ${JSON.stringify(value)}`)
     return value instanceof Y.Text ? value : null
-  })()
+  }, [doc])
 
-  // 여행 제목 초기 보장 (문자열 → Y.Text 전환)
+  // 여행 제목 초기 보장
   useEffect(() => {
     if (!doc) return
     const tripMap = doc.getMap('tripInfo') as Y.Map<unknown>
@@ -76,7 +76,6 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
         if (typeof existing === 'string' && existing.trim().length > 0) {
           ytext.insert(0, existing)
         } else if (metaStorageKey && typeof window !== 'undefined') {
-          // sessionStorage에서 캐시된 제목 가져오기
           try {
             const cached = window.sessionStorage.getItem(metaStorageKey)
             if (cached) {
@@ -85,9 +84,7 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
                 ytext.insert(0, parsed.travelTitle)
               }
             }
-          } catch {
-            // ignore
-          }
+          } catch {}
         }
         tripMap.set('title', ytext)
       })
@@ -127,7 +124,7 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
 
   const participantCount = rosterEntries.length
 
-  // 여행 기간 범위로 선택 날짜 보정
+  // 여행 기간 범위 보정
   useEffect(() => {
     if (!tripInfo?.start_date || !tripInfo?.end_date) return
     const min = new Date(tripInfo.start_date)
@@ -136,12 +133,10 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
     const curT = cur.setHours(0, 0, 0, 0)
     const minT = min.setHours(0, 0, 0, 0)
     const maxT = max.setHours(0, 0, 0, 0)
-    if (curT < minT || curT > maxT) {
-      setSelectedDate(min)
-    }
+    if (curT < minT || curT > maxT) setSelectedDate(min)
   }, [selectedDate, tripInfo?.start_date, tripInfo?.end_date])
 
-  // 초기 진입 시 저장된 선택 날짜가 있으면 복원 (여행 범위 내인 경우만)
+  // 저장된 선택 날짜 복원
   useEffect(() => {
     if (!metaStorageKey || typeof window === 'undefined') return
     try {
@@ -152,21 +147,15 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
       if (!stored) return
       const d = new Date(stored)
       if (Number.isNaN(d.getTime())) return
-      // 범위 체크
       if (tripInfo?.start_date && tripInfo?.end_date) {
-        if (tripInfo.start_date <= stored && stored <= tripInfo.end_date) {
-          setSelectedDate(d)
-        }
+        if (tripInfo.start_date <= stored && stored <= tripInfo.end_date) setSelectedDate(d)
       } else {
         setSelectedDate(d)
       }
-    } catch {
-      // ignore
-    }
-    // run once on mount or when trip range changes
+    } catch {}
   }, [metaStorageKey, tripInfo?.start_date, tripInfo?.end_date])
 
-  // 선택 날짜 변경 시 저장 및 브로드캐스트
+  // 선택 날짜 저장/브로드캐스트
   useEffect(() => {
     if (!metaStorageKey || typeof window === 'undefined') return
     try {
@@ -176,18 +165,13 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
         metaStorageKey,
         JSON.stringify({ ...parsed, selectedDate: selectedDateKey })
       )
-    } catch {
-      // ignore
-    }
-    // CustomEvent로 다른 패널에 알림
+    } catch {}
     try {
       const ev = new CustomEvent('zzik-plan-selected-date', {
         detail: { tripId: tripId ?? null, dateKey: selectedDateKey },
       })
       window.dispatchEvent(ev)
-    } catch {
-      // ignore
-    }
+    } catch {}
   }, [metaStorageKey, selectedDateKey, tripId])
 
   // 친구 초대/토스트
@@ -214,7 +198,6 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
       autoHideTimerRef.current = null
     }
   }, [])
-
   const resetAutoHideTimer = useCallback(() => {
     clearAutoHideTimer()
     autoHideTimerRef.current = window.setTimeout(() => {
@@ -236,7 +219,7 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
     }, CHAT_AUTO_HIDE_MS)
   }, [clearAutoHideTimer])
 
-  // 드래그 앤 드롭(동일 날짜 내 순서 변경)
+  // DnD
   const handleDragStart = useCallback((dateKey: string, index: number) => {
     dragItemRef.current = { dateKey, index }
   }, [])
@@ -279,7 +262,7 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
     [reorderSchedule, schedulesByDate]
   )
 
-  // 삭제 핸들러(일정/예산)
+  // 삭제
   const handleRemoveSchedule = useCallback(
     (dateKey: string, realIndex: number) => {
       setEditingKey(null)
@@ -312,7 +295,7 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
     boardRef.current?.focus()
   }, [])
 
-  // 채팅 열고/닫기
+  // 채팅
   const openChatInput = useCallback(() => {
     if (!selfCursor) setSelfCursor({ x: 50, y: 50 })
     setIsChatOpen(true)
@@ -328,8 +311,6 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
     setChatValue('')
     boardRef.current?.focus()
   }, [clearAutoHideTimer])
-
-  // 키보드 핫키
   const handleBoardKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
       if (event.key === '/' && !isChatOpen) {
@@ -351,7 +332,6 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
     },
     [closeChatInput, isChatOpen, openChatInput]
   )
-
   const handleChatSubmit = useCallback(
     (message: string) => {
       sendMessage(message)
@@ -395,8 +375,6 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
     [clearAutoHideTimer]
   )
 
-  const hasAnySchedules = useMemo(() => Object.keys(schedulesByDate).length > 0, [schedulesByDate])
-
   return (
     <section className="relative flex flex-1 min-h-0 flex-col overflow-hidden border-x border-slate-200 bg-white">
       <ToastDock
@@ -427,55 +405,50 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
           친구 초대하기
         </SolidButton>
 
-        {/* 빈 상태 안내 */}
-        {!hasAnySchedules && <EmptyScheduleState />}
+        <div className="flex min-h-0 flex-1 flex-col gap-5 p-6 pt-16 md:pt-8">
+          {/* 헤더 / 제목 */}
+          <header className="flex flex-col gap-3 md:flex-row md:items-start md:gap-4 md:pr-56 lg:pr-[360px]">
+            <h2 className="text-4xl font-extrabold text-slate-900 flex-shrink-0">여행 일정</h2>
+            {titleYText ? (
+              <div className="min-w-0 flex-1 max-w-full md:max-w-[32rem]">
+                <YTextEditor ytext={titleYText} />
+              </div>
+            ) : null}
+          </header>
 
-        {hasAnySchedules ? (
-          <div className="flex min-h-0 flex-1 flex-col gap-5 p-6 pt-16 md:pt-8">
-            {/* 헤더 / 제목 */}
-            <header className="flex flex-col gap-3 md:flex-row md:items-start md:gap-4 md:pr-56 lg:pr-[360px]">
-              <h2 className="text-4xl font-extrabold text-slate-900 flex-shrink-0">여행 일정</h2>
-              {titleYText ? (
-                <div className="min-w-0 flex-1 max-w-full md:max-w-[32rem]">
-                  <YTextEditor ytext={titleYText} />
-                </div>
-              ) : null}
-            </header>
+          <WeekCalendar
+            selectedDate={selectedDate}
+            onDateSelect={handleDateSelect}
+            onPrevWeek={handlePrevWeek}
+            onNextWeek={handleNextWeek}
+            minDate={tripInfo?.start_date ? new Date(tripInfo.start_date) : undefined}
+            maxDate={tripInfo?.end_date ? new Date(tripInfo.end_date) : undefined}
+          />
 
-            <WeekCalendar
-              selectedDate={selectedDate}
-              onDateSelect={handleDateSelect}
-              onPrevWeek={handlePrevWeek}
-              onNextWeek={handleNextWeek}
-              minDate={tripInfo?.start_date ? new Date(tripInfo.start_date) : undefined}
-              maxDate={tripInfo?.end_date ? new Date(tripInfo.end_date) : undefined}
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto rounded-xl border-2 border-slate-200 p-4 bg-white/80">
+            {/* 일정 */}
+            <ScheduleList
+              schedules={schedulesForSelected}
+              selectedDateKey={selectedDateKey}
+              doc={doc}
+              awareness={awareness}
+              dragItemRef={dragItemRef}
+              editingKey={editingKey}
+              editStart={editStart}
+              editOffset={editOffset}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onDropWithinDate={handleDropWithinDate}
+              onDropToEnd={handleDropToEnd}
+              onRemoveSchedule={handleRemoveSchedule}
+              onUpdateScheduleTime={updateScheduleTime}
+              onSetEditingKey={setEditingKey}
+              onSetEditStart={setEditStart}
+              onSetEditOffset={setEditOffset}
+              onToast={setToast}
             />
-
-            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto rounded-xl border-2 border-slate-200 p-4 bg-white/80">
-              {/* 일정 */}
-              <ScheduleList
-                schedules={schedulesForSelected}
-                selectedDateKey={selectedDateKey}
-                doc={doc}
-                awareness={awareness}
-                dragItemRef={dragItemRef}
-                editingKey={editingKey}
-                editStart={editStart}
-                editOffset={editOffset}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-                onDropWithinDate={handleDropWithinDate}
-                onDropToEnd={handleDropToEnd}
-                onRemoveSchedule={handleRemoveSchedule}
-                onUpdateScheduleTime={updateScheduleTime}
-                onSetEditingKey={setEditingKey}
-                onSetEditStart={setEditStart}
-                onSetEditOffset={setEditOffset}
-                onToast={setToast}
-              />
-            </div>
           </div>
-        ) : null}
+        </div>
 
         {/* 오른쪽 상단 UI */}
         <div className="pointer-events-none absolute right-6 top-6 z-20 flex flex-row-reverse flex-wrap items-center gap-3">

@@ -80,7 +80,7 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
 
   const handleDelete = async (e: React.MouseEvent, costId: number) => {
     e.stopPropagation() // 클릭 이벤트 버블링 방지 (모달이 열리지 않도록)
-    
+
     if (!confirm('정말로 이 결제 내역을 삭제하시겠습니까?')) {
       return
     }

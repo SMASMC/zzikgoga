@@ -8,11 +8,18 @@ import PlaceModal from './PlaceModal'
 
 const libraries: Libraries = ['places']
 
+export interface AddressComponent {
+  types: string[]
+  shortText?: string
+  longText?: string
+}
+
 export interface NewPlace {
   id: string
   displayName: { text: string }
   formattedAddress: string
   location: { latitude: number; longitude: number }
+  addressComponents?: AddressComponent[]
 }
 
 const defaultCenter = { lat: 37.5665, lng: 126.978 }
@@ -93,7 +100,7 @@ const PlaceSearchPanel = () => {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': apiKey,
           'X-Goog-FieldMask':
-            'places.id,places.displayName,places.formattedAddress,places.location',
+            'places.id,places.displayName,places.formattedAddress,places.location,places.addressComponents',
         },
         body: JSON.stringify({ textQuery: keyword.trim() }),
       })
@@ -330,10 +337,14 @@ const PlaceSearchPanel = () => {
         <PlaceModal
           onClose={handleClosePlaceModal}
           place={{
-            name: selectedPlace.displayName.text,
+            name:
+              selectedPlace.displayName.text.toString() ||
+              selectedPlace.formattedAddress.toString() ||
+              '알 수 없는 장소',
             full_address: selectedPlace.formattedAddress,
             latitude: selectedPlace.location.latitude,
             longitude: selectedPlace.location.longitude,
+            addressComponents: selectedPlace.addressComponents ?? [],
           }}
         />
       ) : null}
