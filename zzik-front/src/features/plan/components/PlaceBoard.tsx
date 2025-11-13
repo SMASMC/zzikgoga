@@ -1,115 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type {
-  PointerEvent as ReactPointerEvent,
-  KeyboardEvent as ReactKeyboardEvent,
-  FormEvent as ReactFormEvent,
-} from 'react'
+import type { PointerEvent as ReactPointerEvent, KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import { cn } from '@/shared/utils/cn'
 import type { SharedCursorSession } from '../hooks/useSharedCursors'
 import { useYTripDoc } from '../hooks/useYTripDoc'
 import * as Y from 'yjs'
-import ScheduleMemoEditor from './ScheduleMemoEditor'
 import FriendInviteModal from './FriendInviteModal'
 import { ToastDock } from '@/components/blocks/ToastDock'
-import CloseButton from '@/components/atoms/CloseButton'
 import SolidButton from '@/components/atoms/SolidButton'
 import WeekCalendar from './WeekCalendar'
-
-/** ===================== 유틸 ===================== */
-
-// 로컬(타임존 반영) YYYY-MM-DD 키 생성 (UTC 밀림 방지)
-const toLocalDateKey = (d: Date) => {
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-}
-
-// 날짜 덧셈
-const addDays = (d: Date, days: number) => {
-  const nd = new Date(d)
-  nd.setDate(nd.getDate() + days)
-  return nd
-}
-
-const CHAT_AUTO_HIDE_MS = 5000
-const getRoomId = (tripId: string | undefined) =>
-  tripId && tripId.trim().length > 0 ? `trip-${tripId.trim()}` : 'trip-default'
-
-const toTime = (isoLocal: string) =>
-  isoLocal?.length >= 16 ? isoLocal.slice(11, 16) : isoLocal || ''
-
-const inputStartToIso = (input: string): string | null => {
-  const parts = input.split('-')
-  if (parts.length !== 5) return null
-  const [y, mo, d, h, mi] = parts
-  if (
-    !/^\d{4}$/.test(y) ||
-    !/^\d{2}$/.test(mo) ||
-    !/^\d{2}$/.test(d) ||
-    !/^\d{2}$/.test(h) ||
-    !/^\d{2}$/.test(mi)
-  )
-    return null
-  return `${y}-${mo}-${d}T${h}:${mi}`
-}
-
-const normalizeOffsetToHHMM = (raw: string | null | undefined): string => {
-  if (!raw) return ''
-  const s = String(raw)
-  const m = s.match(/^(\d{1,3}):(\d{2})$/)
-  if (m) {
-    const hh = String(Math.max(0, Number(m[1]) || 0)).padStart(2, '0')
-    const mm = String(Math.min(59, Math.max(0, Number(m[2]) || 0))).padStart(2, '0')
-    return `${hh}:${mm}`
-  }
-  let hours = 0
-  let minutes = 0
-  const hr = s.match(/(\d+)\s*hour/)
-  const mn = s.match(/(\d+)\s*minute/)
-  if (hr) hours = Number(hr[1]) || 0
-  if (mn) minutes = Number(mn[1]) || 0
-  const totalMinutes = hours * 60 + minutes
-  const hh = String(Math.floor(totalMinutes / 60)).padStart(2, '0')
-  const mm = String(totalMinutes % 60).padStart(2, '0')
-  return `${hh}:${mm}`
-}
-
-const isValidHHMM = (v: string) => /^\d{2}:\d{2}$/.test(v)
-
-const MAX_TITLE_LENGTH = 100
-
-const getInitial = (value: string | undefined) => {
-  if (!value) return '?'
-  const trimmed = value.trim()
-  if (!trimmed) return '?'
-  return trimmed.charAt(0).toUpperCase()
-}
-
-const syncYTextContent = (target: Y.Text, nextValue: string) => {
-  const current = target.toString()
-  if (current === nextValue) return
-
-  let prefix = 0
-  const minLen = Math.min(current.length, nextValue.length)
-  while (prefix < minLen && current[prefix] === nextValue[prefix]) prefix += 1
-
-  let suffix = 0
-  while (
-    suffix < minLen - prefix &&
-    current[current.length - 1 - suffix] === nextValue[nextValue.length - 1 - suffix]
-  ) {
-    suffix += 1
-  }
-
-  const deleteFrom = prefix
-  const deleteLength = current.length - prefix - suffix
-  const insertText = nextValue.slice(prefix, nextValue.length - suffix)
-
-  target.doc?.transact(() => {
-    if (deleteLength > 0) target.delete(deleteFrom, deleteLength)
-    if (insertText.length > 0) target.insert(deleteFrom, insertText)
-  }, 'title-input')
-}
+import { toLocalDateKey, addDays } from '../utils/time'
+import { syncYTextContent, MAX_TITLE_LENGTH } from '../utils/ytext'
+import { CHAT_AUTO_HIDE_MS, getRoomId } from '../utils/constants'
+import { EmptyScheduleState, ScheduleList } from './place-board'
+import { ChatPanel, ParticipantRoster } from './collaboration'
+import { TripTitleEditor } from './travel-header'
 
 /** ===================== 컴포넌트 ===================== */
 
@@ -155,13 +60,13 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
   const titlePersistTimerRef = useRef<number | null>(null)
   const lastSyncedTitleRef = useRef<string>('')
 
-  // titleYText는 doc이 변경될 때만 다시 가져오기 (Y.Text 객체는 동일하므로 안전)
-  const titleYText = useMemo(() => {
+  // titleYText는 변경될 때만 다시 가져오기 (Y.Text 객체는 동일하므로 안전)
+  const titleYText = (() => {
     if (!doc) return null
     const tripMap = doc.getMap('tripInfo') as Y.Map<unknown>
     const value = tripMap.get('title')
     return value instanceof Y.Text ? value : null
-  }, [doc])
+  })()
 
   // 여행 제목 초기 보장 (문자열 → Y.Text 전환)
   useEffect(() => {
@@ -190,7 +95,6 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
         tripMap.set('title', ytext)
       })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc, metaStorageKey])
 
   // 제목 드래프트 상태 + 동기화
@@ -299,7 +203,6 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
       // ignore
     }
     // run once on mount or when trip range changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [metaStorageKey, tripInfo?.start_date, tripInfo?.end_date])
 
   // 선택 날짜 변경 시 저장 및 브로드캐스트
@@ -546,18 +449,12 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
   )
 
   const handleChatSubmit = useCallback(
-    (event: ReactFormEvent<HTMLFormElement>) => {
-      event.preventDefault()
-      const trimmed = chatValue.trim()
-      if (trimmed.length === 0) {
-        setChatValue('')
-        return
-      }
-      sendMessage(trimmed)
+    (message: string) => {
+      sendMessage(message)
       setChatValue('')
       resetAutoHideTimer()
     },
-    [chatValue, resetAutoHideTimer, sendMessage]
+    [resetAutoHideTimer, sendMessage]
   )
   const handleChatInputChange = useCallback(
     (value: string) => {
@@ -627,39 +524,18 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
         </SolidButton>
 
         {/* 빈 상태 안내 */}
-        <div
-          className={cn(
-            'flex h-full flex-col items-center justify-center gap-4 text-center',
-            hasAnySchedules && 'hidden'
-          )}
-        >
-          <div className="flex flex-col gap-3">
-            <span className="text-2xl font-bold text-slate-800">
-              여행 일정 보드에 팀원과 함께 참여하세요
-            </span>
-            <span className="text-lg text-slate-600">
-              마우스를 움직이면 서로의 커서를, 메시지를 보내면 실시간으로 공유돼요
-            </span>
-          </div>
-        </div>
+        {!hasAnySchedules && <EmptyScheduleState />}
 
         {hasAnySchedules ? (
           <div className="flex min-h-0 flex-1 flex-col gap-5 p-6 pt-16 md:pt-8">
             {/* 헤더 / 제목 */}
             <header className="flex flex-col gap-3 md:flex-row md:items-start md:gap-4 md:pr-56 lg:pr-[360px]">
               <h2 className="text-4xl font-extrabold text-slate-900 flex-shrink-0">여행 일정</h2>
-              <div className="min-w-0 flex-1 max-w-full md:max-w-[32rem]">
-                <input
-                  type="text"
-                  value={titleDraft}
-                  onChange={(event) => handleTitleChange(event.target.value)}
-                  maxLength={MAX_TITLE_LENGTH}
-                  placeholder="여행 제목을 입력해주세요"
-                  // disabled={!titleYText}
-                  aria-busy={!titleYText}
-                  className="w-full rounded-full border-2 border-slate-300 bg-white px-5 py-2.5 text-lg font-semibold text-slate-900 shadow-sm transition-all placeholder:text-slate-400 hover:border-blue-300 hover:shadow-md focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-wait disabled:opacity-70"
-                />
-              </div>
+              <TripTitleEditor
+                titleYText={titleYText}
+                titleDraft={titleDraft}
+                onTitleChange={handleTitleChange}
+              />
             </header>
 
             <WeekCalendar
@@ -673,216 +549,26 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
 
             <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto rounded-xl border-2 border-slate-200 p-4 bg-white/80">
               {/* 일정 */}
-              <div className="rounded-xl border-2 border-slate-100 bg-white p-4 shadow-sm">
-                <div className="mb-3 text-base font-bold text-slate-700">{selectedDateKey}</div>
-
-                {schedulesForSelected.length === 0 ? (
-                  <div className="text-sm text-slate-400">일정이 없습니다.</div>
-                ) : (
-                  <ul
-                    className="space-y-3"
-                    onDragOver={(event) => {
-                      if (!dragItemRef.current) return
-                      event.preventDefault()
-                    }}
-                    onDrop={(event) => {
-                      event.preventDefault()
-                      event.stopPropagation()
-                      handleDropToEnd(selectedDateKey)
-                    }}
-                  >
-                    {schedulesForSelected
-                      .map((it, originalIndex) => ({ it, originalIndex }))
-                      .sort((a, b) => a.it.start_time.localeCompare(b.it.start_time))
-                      .map(({ it, originalIndex }) => {
-                        // 실제 Y.Array 인덱스 사용 (삭제된 항목이 있어도 정확한 인덱스)
-                        const realIndex = it.yArrayIndex ?? originalIndex
-                        const listKey = `${selectedDateKey}-${it.id ?? 'n'}-${originalIndex}`
-                        const isEditing = editingKey === `${selectedDateKey}:${realIndex}`
-                        return (
-                          <li
-                            key={listKey}
-                            className="rounded-xl border-2 border-slate-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
-                            draggable={!isEditing}
-                            onDragStart={() => handleDragStart(selectedDateKey, realIndex)}
-                            onDragEnd={handleDragEnd}
-                            onDragOver={(event) => {
-                              if (!dragItemRef.current) return
-                              event.preventDefault()
-                            }}
-                            onDrop={(event) => {
-                              event.preventDefault()
-                              event.stopPropagation()
-                              handleDropWithinDate(selectedDateKey, realIndex)
-                            }}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-lg font-bold text-slate-800">
-                                {it.location?.name || '일정'}
-                              </span>
-                              <div className="flex items-center gap-3 text-sm text-slate-600">
-                                <span className="font-semibold">{toTime(it.start_time)}</span>
-                                {it.offset_time ? (
-                                  <span className="text-xs text-slate-500 font-medium">
-                                    (+{normalizeOffsetToHHMM(it.offset_time)})
-                                  </span>
-                                ) : null}
-                              </div>
-                            </div>
-
-                            <div className="mt-2 flex flex-wrap items-end justify-end gap-2 text-[11px] text-slate-500">
-                              <button
-                                type="button"
-                                className="rounded-full border border-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-500 transition hover:border-red-300 hover:bg-red-50"
-                                onClick={() => handleRemoveSchedule(selectedDateKey, realIndex)}
-                              >
-                                삭제
-                              </button>
-                            </div>
-
-                            <div className="mt-1">
-                              {doc ? (
-                                <ScheduleMemoEditor
-                                  doc={doc}
-                                  awareness={awareness}
-                                  dateKey={selectedDateKey}
-                                  index={realIndex}
-                                  fieldKey={`memo-${it.uid || `${selectedDateKey}-${realIndex}`}`}
-                                  initialText={it.memo}
-                                />
-                              ) : null}
-                            </div>
-
-                            {it.location?.detail ? (
-                              <div className="mt-0.5 line-clamp-1 text-[11px] text-slate-400">
-                                {it.location.detail}
-                              </div>
-                            ) : null}
-
-                            <div className="mt-2 flex w-full gap-3">
-                              <div className="w-1/2 min-w-0">
-                                <div className="text-[12px] mb-1 text-text-600">시간</div>
-                                <div className="bg-white rounded-2xl p-3 shadow-sm border border-slate-100">
-                                  <input
-                                    type="datetime-local"
-                                    defaultValue={it.start_time}
-                                    onBlur={(e) => {
-                                      const iso = e.currentTarget.value
-                                      if (!iso) return
-                                      updateScheduleTime(selectedDateKey, realIndex, {
-                                        startTimeLocal: iso,
-                                      })
-                                    }}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter') e.currentTarget.blur()
-                                    }}
-                                    className="w-full bg-transparent text-text-500 text-xs focus:outline-none"
-                                  />
-                                </div>
-                              </div>
-                              <div className="w-1/2 min-w-0">
-                                <div className="text-[12px] mb-1 text-text-600">예정소요시간</div>
-                                <div className="bg-white rounded-2xl p-3 shadow-sm border border-slate-100">
-                                  <input
-                                    type="text"
-                                    placeholder="HH:MM"
-                                    defaultValue={normalizeOffsetToHHMM(it.offset_time)}
-                                    onBlur={(e) => {
-                                      const v = e.currentTarget.value.trim()
-                                      if (v === '') {
-                                        updateScheduleTime(selectedDateKey, realIndex, {
-                                          offsetHHMM: null,
-                                        })
-                                        return
-                                      }
-                                      const off = normalizeOffsetToHHMM(v)
-                                      if (!isValidHHMM(off)) {
-                                        setToast({
-                                          variant: 'warning',
-                                          title: '입력 형식 확인',
-                                          message: 'offset_time 형식은 HH:MM 입니다.',
-                                        })
-                                        return
-                                      }
-                                      updateScheduleTime(selectedDateKey, realIndex, {
-                                        offsetHHMM: off,
-                                      })
-                                    }}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter') e.currentTarget.blur()
-                                    }}
-                                    className="w-full bg-transparent text-text-500 text-xs focus:outline-none"
-                                  />
-                                </div>
-                              </div>
-                            </div>
-
-                            {editingKey === `${selectedDateKey}:${realIndex}` ? (
-                              <div className="mt-2 flex flex-wrap items-center gap-2 rounded border border-slate-100 bg-slate-50/60 p-2">
-                                <label className="text-[11px] text-slate-500">start_time</label>
-                                <input
-                                  value={editStart}
-                                  onChange={(e) => setEditStart(e.target.value)}
-                                  placeholder="YYYY-MM-DD-HH-MM"
-                                  className="w-44 rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 focus:border-blue-400 focus:outline-none"
-                                />
-                                <label className="text-[11px] text-slate-500">offset_time</label>
-                                <input
-                                  value={editOffset}
-                                  onChange={(e) => setEditOffset(e.target.value)}
-                                  placeholder="HH:MM"
-                                  className="w-24 rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 focus:border-blue-400 focus:outline-none"
-                                />
-                                <div className="ml-auto flex items-center gap-2">
-                                  <button
-                                    type="button"
-                                    className="rounded bg-blue-500 px-3 py-1 text-[11px] font-semibold text-white hover:bg-blue-600"
-                                    onClick={() => {
-                                      const iso = inputStartToIso(editStart)
-                                      const off = editOffset
-                                        ? normalizeOffsetToHHMM(editOffset)
-                                        : ''
-                                      if (!iso) {
-                                        setToast({
-                                          variant: 'warning',
-                                          title: '입력 형식 확인',
-                                          message: 'start_time 형식은 YYYY-MM-DD-HH-MM 입니다.',
-                                        })
-                                        return
-                                      }
-                                      if (editOffset && !isValidHHMM(off)) {
-                                        setToast({
-                                          variant: 'warning',
-                                          title: '입력 형식 확인',
-                                          message: 'offset_time 형식은 HH:MM 입니다.',
-                                        })
-                                        return
-                                      }
-                                      updateScheduleTime(selectedDateKey, realIndex, {
-                                        startTimeLocal: iso,
-                                        offsetHHMM: editOffset ? off : null,
-                                      })
-                                      setEditingKey(null)
-                                    }}
-                                  >
-                                    저장
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="rounded border border-slate-200 px-3 py-1 text-[11px] text-slate-600 hover:bg-slate-50"
-                                    onClick={() => setEditingKey(null)}
-                                  >
-                                    취소
-                                  </button>
-                                </div>
-                              </div>
-                            ) : null}
-                          </li>
-                        )
-                      })}
-                  </ul>
-                )}
-              </div>
+              <ScheduleList
+                schedules={schedulesForSelected}
+                selectedDateKey={selectedDateKey}
+                doc={doc}
+                awareness={awareness}
+                dragItemRef={dragItemRef}
+                editingKey={editingKey}
+                editStart={editStart}
+                editOffset={editOffset}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                onDropWithinDate={handleDropWithinDate}
+                onDropToEnd={handleDropToEnd}
+                onRemoveSchedule={handleRemoveSchedule}
+                onUpdateScheduleTime={updateScheduleTime}
+                onSetEditingKey={setEditingKey}
+                onSetEditStart={setEditStart}
+                onSetEditOffset={setEditOffset}
+                onToast={setToast}
+              />
             </div>
           </div>
         ) : null}
@@ -923,111 +609,24 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
         </div>
 
         {/* 참여자 패널 */}
-        <div
-          id="plan-participant-panel"
-          className={cn(
-            'absolute right-8 top-20 z-30 w-80 max-w-[90vw] rounded-2xl border-2 border-white/70 bg-white/95 shadow-2xl backdrop-blur transition-all duration-300',
-            isRosterOpen
-              ? 'pointer-events-auto translate-y-0 opacity-100'
-              : 'pointer-events-none -translate-y-2 opacity-0'
-          )}
-        >
-          <div className="flex items-center justify-between border-b-2 border-slate-100 px-6 py-4">
-            <div className="text-lg font-bold text-slate-800">참여 중 · {participantCount}명</div>
-            <CloseButton onClick={() => setIsRosterOpen(false)} className="text-xl" />
-          </div>
-          {participantCount > 0 ? (
-            <ul className="max-h-72 divide-y divide-slate-100 overflow-y-auto">
-              {rosterEntries.map((participant) => (
-                <li
-                  key={`${participant.clientId}-${participant.userId}`}
-                  className="flex items-center gap-3 px-6 py-3"
-                >
-                  {participant.picture ? (
-                    <img
-                      src={participant.picture}
-                      alt={participant.name}
-                      className="h-10 w-10 rounded-full border border-white/60 object-cover shadow-sm"
-                    />
-                  ) : (
-                    <span
-                      className="flex h-10 w-10 items-center justify-center rounded-full border text-sm font-bold"
-                      style={{ borderColor: participant.color, color: participant.color }}
-                    >
-                      {getInitial(participant.name)}
-                    </span>
-                  )}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-                      {participant.name}
-                      {participant.isSelf ? (
-                        <span className="rounded-full bg-blue-50 px-2 text-[11px] font-semibold text-blue-600">
-                          나
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
-                      <span
-                        className="inline-flex h-2 w-2 rounded-full"
-                        style={{ backgroundColor: participant.color }}
-                      />
-                      <span>{participant.hasCursor ? '활동 중' : '대기 중'}</span>
-                      {participant.hasMessage ? (
-                        <span className="rounded-full bg-slate-100 px-1.5 text-[10px] font-semibold text-slate-600">
-                          채팅중
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="px-6 py-6 text-sm text-slate-500">아직 참여자가 없습니다.</div>
-          )}
-        </div>
+        <ParticipantRoster
+          isOpen={isRosterOpen}
+          onClose={() => setIsRosterOpen(false)}
+          participants={rosterEntries}
+          participantCount={participantCount}
+        />
 
         {/* Chat 패널 */}
-        <div
-          className={cn(
-            'absolute right-8 top-20 z-40 w-96 max-w-[90vw] rounded-2xl border-2 border-white/70 bg-white/95 shadow-2xl backdrop-blur transition-all duration-300',
-            isChatOpen
-              ? 'pointer-events-auto translate-y-0 opacity-100'
-              : 'pointer-events-none -translate-y-2 opacity-0'
-          )}
-        >
-          <div className="flex items-center justify-between border-b-2 border-slate-100 px-6 py-4">
-            <div className="text-lg font-bold text-slate-800">커서 메시지 보내기</div>
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              <span>ESC로 닫기</span>
-              <CloseButton onClick={() => setIsChatOpen(false)} className="text-xl" />
-            </div>
-          </div>
-          <div className="px-6 py-3 text-sm text-slate-600">
-            입력한 내용은 내 커서 풍선으로만 표시됩니다.
-          </div>
-          <div className="border-t-2 border-slate-100 px-6 py-4">
-            <form className="flex items-center gap-3" onSubmit={handleChatSubmit}>
-              <input
-                ref={inputRef}
-                value={chatValue}
-                onChange={(event) => handleChatInputChange(event.target.value)}
-                onKeyDown={handleChatKeyDown}
-                onFocus={resetAutoHideTimer}
-                placeholder="메시지를 입력하고 Enter를 눌러보세요"
-                maxLength={200}
-                className="flex-1 rounded-full border-2 border-slate-200 bg-white px-5 py-3 text-base text-slate-700 placeholder:text-slate-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                autoComplete="off"
-              />
-              <button
-                type="submit"
-                className="rounded-full bg-blue-500 px-5 py-3 text-sm font-bold text-white shadow-md transition hover:bg-blue-600 hover:shadow-lg"
-              >
-                보내기
-              </button>
-            </form>
-          </div>
-        </div>
+        <ChatPanel
+          isOpen={isChatOpen}
+          chatValue={chatValue}
+          onClose={() => setIsChatOpen(false)}
+          onSubmit={handleChatSubmit}
+          onValueChange={handleChatInputChange}
+          inputRef={inputRef}
+          onKeyDown={handleChatKeyDown}
+          onFocus={resetAutoHideTimer}
+        />
       </div>
 
       {/* 친구 초대 모달 */}

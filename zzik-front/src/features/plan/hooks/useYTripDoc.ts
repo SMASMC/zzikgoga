@@ -86,6 +86,22 @@ const snapshotSchedules = (doc: Y.Doc): Record<string, YScheduleItem[]> => {
       const location = ((): YLocationItem | null => {
         const raw = yMap.get('location') as unknown
         if (!raw || typeof raw !== 'object') return null
+
+        // Y.Map 형식 처리 (name이 Y.Text일 수 있음)
+        if (raw instanceof Y.Map) {
+          const nameValue = raw.get('name')
+          const name = nameValue instanceof Y.Text ? nameValue.toString() : String(nameValue ?? '')
+          return {
+            id: (raw.get('id') as number) ?? null,
+            name,
+            full_address: (raw.get('full_address') as string) ?? '',
+            detail: (raw.get('detail') as string) ?? '',
+            latitude: (raw.get('latitude') as number) ?? null,
+            longitude: (raw.get('longitude') as number) ?? null,
+          }
+        }
+
+        // 기존 객체 형식 호환성 유지
         const obj = raw as Record<string, unknown>
         return {
           id: (obj.id as number) ?? null,
@@ -406,19 +422,19 @@ export const useYTripDoc = (roomId: string) => {
       } catch {
         //
       }
-      yItem.set(
-        'location',
-        has_location
-          ? {
-              id: null,
-              name: payload.location!.name,
-              full_address: payload.location!.full_address ?? '',
-              detail: payload.location!.detail ?? '',
-              latitude: payload.location!.latitude ?? null,
-              longitude: payload.location!.longitude ?? null,
-            }
-          : null
-      )
+      // location을 Y.Map으로 저장하고 name을 Y.Text로 저장
+      if (has_location) {
+        const locationMap = new Y.Map<unknown>()
+        locationMap.set('id', null)
+        locationMap.set('name', new Y.Text(payload.location!.name))
+        locationMap.set('full_address', payload.location!.full_address ?? '')
+        locationMap.set('detail', payload.location!.detail ?? '')
+        locationMap.set('latitude', payload.location!.latitude ?? null)
+        locationMap.set('longitude', payload.location!.longitude ?? null)
+        yItem.set('location', locationMap)
+      } else {
+        yItem.set('location', null)
+      }
       yArr.push([yItem])
     },
     []
@@ -479,13 +495,25 @@ export const useYTripDoc = (roomId: string) => {
               .replace(/\r\n/g, '\n')
               .replace(/\n+$/, '')
             newMap.set('memo', new Y.Text(memoText))
-            // location can be plain object or null
-            newMap.set(
-              'location',
-              snapshot.location && typeof snapshot.location === 'object'
-                ? { ...(snapshot.location as object) }
-                : null
-            )
+            // location 복사: Y.Map이면 새로운 Y.Map 생성하고 name을 Y.Text로 복사
+            if (snapshot.location instanceof Y.Map) {
+              const locationMap = new Y.Map<unknown>()
+              locationMap.set('id', snapshot.location.get('id'))
+              const nameValue = snapshot.location.get('name')
+              const nameText =
+                nameValue instanceof Y.Text ? nameValue.toString() : String(nameValue ?? '')
+              locationMap.set('name', new Y.Text(nameText))
+              locationMap.set('full_address', snapshot.location.get('full_address') ?? '')
+              locationMap.set('detail', snapshot.location.get('detail') ?? '')
+              locationMap.set('latitude', snapshot.location.get('latitude') ?? null)
+              locationMap.set('longitude', snapshot.location.get('longitude') ?? null)
+              newMap.set('location', locationMap)
+            } else if (snapshot.location && typeof snapshot.location === 'object') {
+              // 기존 객체 형식 호환성 유지
+              newMap.set('location', { ...(snapshot.location as object) })
+            } else {
+              newMap.set('location', null)
+            }
             // offset_time
             newMap.set(
               'offset_time',
