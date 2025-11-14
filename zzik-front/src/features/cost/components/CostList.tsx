@@ -54,7 +54,6 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
     try {
       const response = await CostSettleService.getSettle(Number(tripId))
       setSettleInfo(response)
-      
     } catch (error) {
       console.error('정산 상태 조회 실패:', error)
     }
@@ -67,10 +66,11 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
     }
   }, [tripId])
 
-  // onRefresh prop이 변경되면 목록 새로고침
+  // onRefresh prop이 변경되면 목록 및 정산 내역 새로고침
   useEffect(() => {
     if (onRefresh !== undefined && tripId) {
       loadCostList()
+      loadSettleInfo()
     }
   }, [onRefresh, tripId])
 
@@ -230,7 +230,7 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
                   {formatAmount(calculatedTotalAmount)}원
                 </span>
               </div>
-              
+
               {/* 수락 인원 표시 */}
               {settleInfo && (
                 <div className="flex items-center gap-2 bg-gray-50 px-4 py-3 rounded-lg relative">
@@ -338,11 +338,7 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
                   disabled={isSettling || costs.length === 0 || isAlreadyAccepted}
                   size="lg"
                 >
-                  {isAlreadyAccepted
-                    ? '이미 수락함'
-                    : isSettling
-                      ? '정산 중...'
-                      : '정산 수락하기'}
+                  {isAlreadyAccepted ? '이미 수락함' : isSettling ? '정산 중...' : '정산 수락하기'}
                 </SolidButton>
               )}
             </div>
