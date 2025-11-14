@@ -51,3 +51,22 @@ receipt:
   upload:
     max-file-size: 52428800  # 50MB (50 * 1024 * 1024 bytes)
     allowed-extensions: jpg,jpeg,png,pdf,tif,tiff
+
+# 외부 api 관련
+external:
+  bank:
+    base-url: ${FINANCE_URL_BASE}
+    uris:
+      transfer: /demandDeposit/updateDemandDepositAccountTransfer
+      transfer-list: /demandDeposit/inquireTransactionHistoryList
+    credentials:
+      app-key: ${FINANCE_CREDENTIALS_APP_KEY}
+      user-key: ${FINANCE_CREDENTIALS_USER_KEY}
+    account:
+      number: ${FINANCE_ACCOUNT_NUMBER}
+      bank-number: ${FINANCE_ACCOUNT_BANK_NUMBER}
+    summary-texts:
+      transfer:
+        deposit: "여행 정산"
+        withdrawal: "여행 정산"
+

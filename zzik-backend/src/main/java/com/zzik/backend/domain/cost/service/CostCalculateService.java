@@ -77,6 +77,19 @@ public class CostCalculateService {
 		redis.expire(key, TTL);                  // TTL
 	}
 
+	/**
+	 * Redis에서 특정 송금자의 정산 데이터를 조회하여 타입 변환 후 반환
+	 * <p>
+	 * Redis Hash에서 가져온 원시 데이터(Map&lt;Object, Object&gt;)를
+	 * 애플리케이션에서 사용 가능한 타입(Map&lt;Long, Long&gt;)으로 변환합니다.
+	 * </p>
+	 *
+	 * @param tripId 여행 ID
+	 * @param senderId 송금자(보내는 사람) ID
+	 * @return 수신자 ID를 키로, 보낼 금액을 값으로 하는 Map
+	 *         (Key: 받는 사람 ID, Value: 보낼 금액)
+	 *         데이터가 없으면 빈 Map 반환
+	 */
 	public Map<Long, Long> getSendMapFromRedis(long tripId, long senderId) {
 		Map<Object, Object> raw = redis.opsForHash().entries(senderKey(tripId, senderId));
 		Map<Long, Long> out = new HashMap<>();
