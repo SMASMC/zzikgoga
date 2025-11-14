@@ -20,39 +20,40 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * 정산 네트워크 상세 엔티티
+ * 정산 거래 엔티티
  * <p>
- * 실제 송금 내역을 관리합니다. (서비스 계좌 경유)
+ * 실제 은행 이체 기록을 관리합니다. (서비스 계좌 경유)
  * 예: A → 서비스 계좌 → B
- * - Detail 1: A → 서비스 (is_to_service = true)
- * - Detail 2: 서비스 → B (is_to_service = false)
+ * - Transaction 1: A → 서비스 8원 (is_to_service = true)
+ * - Transaction 2: 서비스 → B 3원 (is_to_service = false)
+ * - Transaction 3: 서비스 → C 5원 (is_to_service = false)
  * </p>
  */
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-@Table(name = "settlement_network_detail")
-public class SettlementNetworkDetail extends BaseEntity {
+@Table(name = "settlement_transaction")
+public class SettlementTransaction extends BaseEntity {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
-	/** 정산 네트워크 (송금 관계) */
+	/** 정산 정보 */
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(
-		name = "settlement_network_id",
+		name = "settlement_id",
 		nullable = false,
-		foreignKey = @ForeignKey(name = "fk_settlement_network_detail_network")
+		foreignKey = @ForeignKey(name = "fk_settlement_transaction_settlement")
 	)
-	private SettlementNetwork settlementNetwork;
+	private Settlement settlement;
 
-	/** 대상 회원 ID (송금 대상) */
+	/** 대상 회원 ID (거래 대상) */
 	@Column(name = "target_member_id", nullable = false)
 	private Long targetMemberId;
 
-	/** 송금 금액 */
+	/** 이체 금액 */
 	@Column(name = "amount", nullable = false)
-	private Integer amount;
+	private Long amount;
 
 	/** 서비스 계좌로의 송금 여부 (true: 회원→서비스, false: 서비스→회원) */
 	@Column(name = "is_to_service", nullable = false)
@@ -76,10 +77,10 @@ public class SettlementNetworkDetail extends BaseEntity {
 	private Integer retryCount;
 
 	@Builder
-	public SettlementNetworkDetail(SettlementNetwork settlementNetwork, Long targetMemberId,
-									Integer amount, Boolean isToService, NetworkDetailStatus status,
-									String errorCode, String bankTransactionId, Integer retryCount) {
-		this.settlementNetwork = settlementNetwork;
+	public SettlementTransaction(Settlement settlement, Long targetMemberId,
+		Long amount, Boolean isToService, NetworkDetailStatus status,
+		String errorCode, String bankTransactionId, Integer retryCount) {
+		this.settlement = settlement;
 		this.targetMemberId = targetMemberId;
 		this.amount = amount;
 		this.isToService = isToService;
@@ -90,10 +91,10 @@ public class SettlementNetworkDetail extends BaseEntity {
 	}
 
 	/**
-	 * SettlementNetwork 설정 (양방향 관계)
+	 * Settlement 설정 (양방향 관계)
 	 */
-	public void setSettlementNetwork(SettlementNetwork settlementNetwork) {
-		this.settlementNetwork = settlementNetwork;
+	public void setSettlement(Settlement settlement) {
+		this.settlement = settlement;
 	}
 
 	/**

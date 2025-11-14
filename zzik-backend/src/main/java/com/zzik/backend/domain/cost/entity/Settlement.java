@@ -61,9 +61,13 @@ public class Settlement extends BaseEntity {
 	@Column(name = "retry_count", nullable = false)
 	private Integer retryCount;
 
-	/** 정산 네트워크 목록 (송금 관계) */
+	/** 실제 은행 거래 목록 */
 	@OneToMany(mappedBy = "settlement", cascade = CascadeType.ALL, orphanRemoval = true)
-	private List<SettlementNetwork> settlementNetworks;
+	private List<SettlementTransaction> settlementTransactions;
+
+	/** 회원별 송금 요약 목록 */
+	@OneToMany(mappedBy = "settlement", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<SettlementMemberTransfer> settlementMemberTransfers;
 
 	@Builder
 	public Settlement(Long tripId, Short costVersion, SettlementStatus status,
