@@ -1,6 +1,6 @@
 import Header from '@components/blocks/Header'
 import { Button } from '@components/atoms/Button'
-import { useState, useEffect, cloneElement, isValidElement } from 'react'
+import { useState, useEffect, cloneElement, isValidElement, useRef } from 'react'
 import { ChevronLeft, ChevronRight, Wallet, MessageSquare, BookOpen } from 'lucide-react'
 import { ImageWithFallback } from '@/components/atoms/ImageWithFallback'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -61,6 +61,11 @@ const HomePage = () => {
   const [isPaused, setIsPaused] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
   const errorType = searchParams.get('error')
+  
+  // 터치 스와이프를 위한 상태
+  const touchStartX = useRef<number | null>(null)
+  const touchEndX = useRef<number | null>(null)
+  const minSwipeDistance = 50 // 최소 스와이프 거리 (px)
 
   const handleCloseErrorModal = () => {
     // URL에서 error 파라미터 제거
@@ -90,6 +95,34 @@ const HomePage = () => {
     setCurrentSlide(index)
   }
 
+  // 터치 이벤트 핸들러
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchEndX.current = null
+    touchStartX.current = e.targetTouches[0].clientX
+  }
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.targetTouches[0].clientX
+  }
+
+  const onTouchEnd = () => {
+    if (!touchStartX.current || !touchEndX.current) return
+
+    const distance = touchStartX.current - touchEndX.current
+    const isLeftSwipe = distance > minSwipeDistance
+    const isRightSwipe = distance < -minSwipeDistance
+
+    if (isLeftSwipe) {
+      nextSlide()
+    } else if (isRightSwipe) {
+      prevSlide()
+    }
+
+    // 리셋
+    touchStartX.current = null
+    touchEndX.current = null
+  }
+
   const current = slides[currentSlide]
   const gradientMap: Record<number, string> = {
     1: 'from-blue-500 to-blue-700',
@@ -109,6 +142,9 @@ const HomePage = () => {
         style={{ backgroundColor: '#0A0F1A' }}
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
       >
         {/* Background Image with Overlay */}
         <div className="absolute inset-0 transition-opacity duration-1000">
