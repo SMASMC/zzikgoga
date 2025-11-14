@@ -484,9 +484,14 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
                       <h3 className="text-lg font-bold text-text-500 mb-2">상세 정보</h3>
                       <div className="space-y-2">
                         {formData.menus.map((menu, index) => (
-                          <div key={index} className="bg-white rounded-lg p-3 sm:p-4 space-y-3 sm:space-y-4 overflow-hidden mb-3 sm:mb-4">
+                          <div
+                            key={index}
+                            className="bg-white rounded-lg p-3 sm:p-4 space-y-3 sm:space-y-4 overflow-hidden mb-3 sm:mb-4"
+                          >
                             <div>
-                              <label className="block text-xs text-text-500 mb-1 sm:mb-2">품목명</label>
+                              <label className="block text-xs text-text-500 mb-1 sm:mb-2">
+                                품목명
+                              </label>
                               <input
                                 type="text"
                                 value={menu.menuName}
@@ -499,7 +504,9 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
                               />
                             </div>
                             <div>
-                              <label className="block text-xs text-text-500 mb-1 sm:mb-2">금액</label>
+                              <label className="block text-xs text-text-500 mb-1 sm:mb-2">
+                                금액
+                              </label>
                               <input
                                 type="number"
                                 value={menu.amount || ''}
@@ -512,7 +519,9 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
                               />
                             </div>
                             <div>
-                              <label className="block text-xs text-text-500 mb-1 sm:mb-2">수량</label>
+                              <label className="block text-xs text-text-500 mb-1 sm:mb-2">
+                                수량
+                              </label>
                               <input
                                 type="number"
                                 value={menu.count || ''}
@@ -526,7 +535,9 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
                             </div>
                             {/* 참여자 선택 */}
                             <div>
-                              <label className="block text-xs text-text-500 mb-1 sm:mb-2">결제 참여자</label>
+                              <label className="block text-xs text-text-500 mb-1 sm:mb-2">
+                                결제 참여자
+                              </label>
                               {menu.payerIds && menu.payerIds.length > 0 && (
                                 <div className="flex flex-wrap gap-2 mb-2">
                                   {menu.payerIds.map((memberId) => {

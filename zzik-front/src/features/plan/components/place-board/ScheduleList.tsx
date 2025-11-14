@@ -18,9 +18,9 @@ interface ScheduleListProps {
   onDragEnd: () => void
   onDropWithinDate: (dateKey: string, index: number) => void
   onDropToEnd: (dateKey: string) => void
-  onRemoveSchedule: (dateKey: string, index: number) => void
+  onRemoveSchedule: (rawKey: string, index: number) => void
   onUpdateScheduleTime: (
-    dateKey: string,
+    rawKey: string,
     index: number,
     data: { startTimeLocal?: string; offsetHHMM?: string | null }
   ) => void
@@ -77,7 +77,8 @@ const ScheduleList = ({
             .map(({ it, originalIndex }) => {
               // Use actual Y.Array index (accurate even if items are deleted)
               const realIndex = it.yArrayIndex ?? originalIndex
-              const listKey = `${selectedDateKey}-${it.id ?? 'n'}-${originalIndex}`
+              // Use uid for stable key - originalIndex is meaningless after sorting!
+              const listKey = `${selectedDateKey}-${it.uid}`
 
               return (
                 <ScheduleItem
@@ -85,6 +86,7 @@ const ScheduleList = ({
                   schedule={it}
                   selectedDateKey={selectedDateKey}
                   realIndex={realIndex}
+                  rawKey={it.rawKey ?? selectedDateKey}
                   editingKey={editingKey}
                   editStart={editStart}
                   editOffset={editOffset}
@@ -109,4 +111,4 @@ const ScheduleList = ({
   )
 }
 
-export default ScheduleList
+export { ScheduleList }

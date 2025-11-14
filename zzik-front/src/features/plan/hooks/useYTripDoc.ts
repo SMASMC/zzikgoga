@@ -37,6 +37,7 @@ export interface YScheduleItem {
   location: YLocationItem | null
   memo: string
   yArrayIndex?: number
+  rawKey?: string // Original key from schedulesMap
 }
 
 export interface TripInfoPlain {
@@ -99,6 +100,8 @@ const snapshotSchedules = (doc: Y.Doc): Record<string, YScheduleItem[]> => {
   const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
   const result: Record<string, YScheduleItem[]> = {}
 
+  console.log(`[snapshotSchedules] Called, schedulesMap.size=${schedulesMap.size}`)
+
   const extractDayFromKey = (key: string): string => {
     // 예: "2025-11-12 03:06:00+09" | "2025-11-12T03:06" → "2025-11-12"
     const s = key.replace('T', ' ').trim()
@@ -106,6 +109,7 @@ const snapshotSchedules = (doc: Y.Doc): Record<string, YScheduleItem[]> => {
   }
 
   schedulesMap.forEach((yArr, rawKey) => {
+    console.log(`[snapshotSchedules] Processing rawKey=${rawKey}, yArr.length=${yArr.length}`)
     yArr.forEach((yMap, yArrayIndex) => {
       if (!(yMap instanceof Y.Map)) return
       if (yMap.get('_deleted') === true) return
@@ -117,6 +121,8 @@ const snapshotSchedules = (doc: Y.Doc): Record<string, YScheduleItem[]> => {
       const has_location = Boolean(yMap.get('has_location'))
       const memo = yTextToString(yMap.get('memo'))
       const dayKey = start_time ? dateKeyOf(start_time) : extractDayFromKey(String(rawKey))
+
+      console.log(`[snapshotSchedules]   [${yArrayIndex}] id=${id}, uid=${uid}, dayKey=${dayKey}`)
 
       const location = ((): YLocationItem | null => {
         const raw = yMap.get('location') as unknown
@@ -162,13 +168,13 @@ const snapshotSchedules = (doc: Y.Doc): Record<string, YScheduleItem[]> => {
         location,
         memo,
         yArrayIndex,
+        rawKey: String(rawKey), // Store the original key from schedulesMap
       })
     })
   })
 
   return result
 }
-
 
 /** ===== 순서 변경 시 시각 재흐름 ===== */
 const reflowScheduleTimes = (yArr: Y.Array<Y.Map<unknown>>) => {
@@ -474,7 +480,7 @@ export const useYTripDoc = (roomId: string) => {
   const updateScheduleTime = useCallback(
     (
       dateKey: string,
-      index: number,
+      yArrayIndex: number,
       updates: { startTimeLocal?: string; offsetHHMM?: string | null }
     ) => {
       const entry = providerRef.current
@@ -483,8 +489,16 @@ export const useYTripDoc = (roomId: string) => {
       const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
       const yArr = schedulesMap.get(dateKey)
       if (!(yArr instanceof Y.Array)) return
-      const yItem = yArr.get(index) as Y.Map<unknown> | undefined
-      if (!yItem) return
+      const yItem = yArr.get(yArrayIndex) as Y.Map<unknown> | undefined
+      if (!yItem) {
+        console.error(`[updateScheduleTime] yItem not found at index ${yArrayIndex}`)
+        return
+      }
+
+      console.log(
+        `[updateScheduleTime] dateKey=${dateKey}, yArrayIndex=${yArrayIndex}, updates=`,
+        updates
+      )
 
       const applyOffset = (map: Y.Map<unknown>) => {
         if (updates.offsetHHMM !== undefined) {
@@ -584,7 +598,7 @@ export const useYTripDoc = (roomId: string) => {
             }
             nextArr.push([newMap])
 
-            yArr.delete(index, 1)
+            yArr.delete(yArrayIndex, 1)
             if (yArr.length === 0) schedulesMap.delete(dateKey)
           }, 'move-schedule-day')
         }
@@ -648,29 +662,54 @@ export const useYTripDoc = (roomId: string) => {
     []
   )
 
-  const removeSchedule = useCallback((dateKey: string, visibleIndex: number) => {
+  const removeSchedule = useCallback((rawKey: string, yArrayIndex: number) => {
+    console.log(`[removeSchedule] START - rawKey=${rawKey}, yArrayIndex=${yArrayIndex}`)
+
     const entry = providerRef.current
-    if (!entry) return
+    if (!entry) {
+      console.error('[removeSchedule] EARLY RETURN: providerRef.current is null')
+      return
+    }
+
     const { doc } = entry
     const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
-    const yArr = schedulesMap.get(dateKey)
-    if (!(yArr instanceof Y.Array)) return
+    const yArr = schedulesMap.get(rawKey)
 
-    let visibleCount = 0
-    let target: Y.Map<unknown> | null = null
-    for (let i = 0; i < yArr.length; i++) {
-      const m = yArr.get(i)
-      if (!(m instanceof Y.Map)) continue
-      if (m.get('_deleted') === true) continue
-      if (visibleCount === visibleIndex) {
-        target = m
-        break
-      }
-      visibleCount++
+    console.log(
+      `[removeSchedule] yArr type: ${yArr ? yArr.constructor.name : 'null'}, instanceof Y.Array: ${yArr instanceof Y.Array}`
+    )
+
+    if (!(yArr instanceof Y.Array)) {
+      console.error('[removeSchedule] EARLY RETURN: yArr is not Y.Array')
+      return
     }
-    if (!target) return
+
+    console.log(
+      `[removeSchedule] rawKey=${rawKey}, yArrayIndex=${yArrayIndex}, yArr.length=${yArr.length}`
+    )
+
+    // Debug: Log all items in the array
+    console.log('[removeSchedule] Y.Array contents:')
+    yArr.forEach((item, idx) => {
+      if (item instanceof Y.Map) {
+        console.log(
+          `  [${idx}]: id=${item.get('id')}, uid=${item.get('uid')}, _deleted=${item.get('_deleted')}`
+        )
+      }
+    })
+
+    // Use the actual Y.Array index directly
+    const target = yArr.get(yArrayIndex)
+    if (!(target instanceof Y.Map)) {
+      console.error(`[removeSchedule] target is not Y.Map at index ${yArrayIndex}`)
+      return
+    }
+
+    console.log(
+      `[removeSchedule] Marking as deleted: id=${target.get('id')}, uid=${target.get('uid')}`
+    )
     doc.transact(() => {
-      target!.set('_deleted', true)
+      target.set('_deleted', true)
     }, 'remove-schedule')
   }, [])
 

@@ -106,6 +106,7 @@ interface ScheduleItemProps {
   schedule: YScheduleItem
   selectedDateKey: string
   realIndex: number
+  rawKey: string // Original key from Y.Map
   editingKey: string | null
   editStart: string
   editOffset: string
@@ -115,9 +116,9 @@ interface ScheduleItemProps {
   onDragStart: (dateKey: string, index: number) => void
   onDragEnd: () => void
   onDropWithinDate: (dateKey: string, index: number) => void
-  onRemove: (dateKey: string, index: number) => void
+  onRemove: (rawKey: string, index: number) => void
   onUpdateTime: (
-    dateKey: string,
+    rawKey: string,
     index: number,
     data: { startTimeLocal?: string; offsetHHMM?: string | null }
   ) => void
@@ -135,6 +136,7 @@ const ScheduleItem = ({
   schedule,
   selectedDateKey,
   realIndex,
+  rawKey,
   editingKey,
   editStart,
   editOffset,
@@ -151,7 +153,7 @@ const ScheduleItem = ({
   onSetEditOffset,
   onToast,
 }: ScheduleItemProps) => {
-  const isEditing = editingKey === `${selectedDateKey}:${realIndex}`
+  const isEditing = editingKey === `${rawKey}:${realIndex}`
   const location = schedule.location
 
   /** 장소 라인 */
@@ -185,7 +187,7 @@ const ScheduleItem = ({
       return
     }
     const schedulesMap = doc.getMap('schedules') as Y.Map<unknown>
-    const yArr = schedulesMap.get(selectedDateKey) as Y.Array<Y.Map<unknown>> | undefined
+    const yArr = schedulesMap.get(rawKey) as Y.Array<Y.Map<unknown>> | undefined
     const yItem = yArr?.get(realIndex) as Y.Map<unknown> | undefined
     yItemRef.current = yItem ?? null
 
@@ -217,7 +219,7 @@ const ScheduleItem = ({
       yStartTextRef.current = null
       yOffsetTextRef.current = null
     }
-  }, [doc, selectedDateKey, realIndex, schedule.start_time, schedule.offset_time])
+  }, [doc, rawKey, realIndex, schedule.start_time, schedule.offset_time])
 
   /** 종료시간 라벨 */
   const startLabel = yStartTextRef.current?.toString() ?? toTimeFromAny(schedule.start_time)
@@ -308,7 +310,12 @@ const ScheduleItem = ({
         <button
           type="button"
           className="rounded-full border border-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-500 transition hover:border-red-300 hover:bg-red-50"
-          onClick={() => onRemove(selectedDateKey, realIndex)}
+          onClick={() => {
+            console.log(
+              `[ScheduleItem] Delete clicked: rawKey=${rawKey}, realIndex=${realIndex}, schedule.id=${schedule.id}, schedule.uid=${schedule.uid}`
+            )
+            onRemove(rawKey, realIndex)
+          }}
         >
           삭제
         </button>

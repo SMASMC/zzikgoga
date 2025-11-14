@@ -272,9 +272,11 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
 
   // 삭제
   const handleRemoveSchedule = useCallback(
-    (dateKey: string, realIndex: number) => {
+    (rawKey: string, realIndex: number) => {
+      console.log(`[PlaceBoard.handleRemoveSchedule] rawKey=${rawKey}, realIndex=${realIndex}`)
       setEditingKey(null)
-      removeSchedule(dateKey, realIndex)
+      removeSchedule(rawKey, realIndex)
+      console.log('[PlaceBoard.handleRemoveSchedule] removeSchedule called')
     },
     [removeSchedule]
   )
