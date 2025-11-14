@@ -223,8 +223,8 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
 
           {/* 총 금액 및 정산하기 버튼 */}
           <div className="border-t border-gray-200 pt-4 mt-4">
-            <div className="flex items-center justify-end gap-4">
-              <div className="bg-blue-50 px-4 py-3 rounded-lg">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 sm:gap-4">
+              <div className="bg-blue-50 px-4 py-3 rounded-lg text-center sm:text-left">
                 <span className="text-text-600 text-sm">총 결제 금액: </span>
                 <span className="font-bold text-blue-600 text-lg">
                   {formatAmount(calculatedTotalAmount)}원
@@ -233,8 +233,8 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
 
               {/* 수락 인원 표시 */}
               {settleInfo && (
-                <div className="flex items-center gap-2 bg-gray-50 px-4 py-3 rounded-lg relative">
-                  <span className="text-text-600 text-sm">
+                <div className="flex items-center justify-center sm:justify-start gap-2 bg-gray-50 px-4 py-3 rounded-lg relative">
+                  <span className="text-text-600 text-sm whitespace-nowrap">
                     수락: {settleInfo.acceptedCount}/{settleInfo.totalMemberCount}
                   </span>
                   <div
@@ -329,7 +329,7 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
               {settleInfo &&
               settleInfo.acceptedCount === settleInfo.totalMemberCount &&
               settleInfo.totalMemberCount > 0 ? (
-                <SolidButton onClick={handleViewFinal} size="lg">
+                <SolidButton onClick={handleViewFinal} size="lg" className="w-full sm:w-auto">
                   정산 결과 확인하기
                 </SolidButton>
               ) : (
@@ -337,6 +337,7 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
                   onClick={handleSettle}
                   disabled={isSettling || costs.length === 0 || isAlreadyAccepted}
                   size="lg"
+                  className="w-full sm:w-auto"
                 >
                   {isAlreadyAccepted ? '이미 수락함' : isSettling ? '정산 중...' : '정산 수락하기'}
                 </SolidButton>
