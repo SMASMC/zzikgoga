@@ -258,7 +258,7 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
       // API 호출: /cost/{tripId} POST 요청
       await CostPlusService.addCost(tripId, submitData)
 
-      console.log('비용 추가 성공')
+      // console.log('비용 추가 성공')
 
       // 성공 시 콜백 호출 (모달 닫기 등)
       if (onSuccess) {

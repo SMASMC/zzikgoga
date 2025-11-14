@@ -103,7 +103,7 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
       try {
         // 수정 상태 조회 요청
         const response = await EditLockStateService.getLockState(Number(tripId), costId)
-        console.log('수정 상태 polling 성공:', response)
+        // console.log('수정 상태 polling 성공:', response)
         // 수정 가능 여부 업데이트
         setCanEdit(response.canEdit)
       } catch (err) {
@@ -129,7 +129,7 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
     const renewLock = async () => {
       try {
         await EditLockStateService.modifyLockState(Number(tripId), costId)
-        console.log('락 갱신 성공')
+        // console.log('락 갱신 성공')
       } catch (err) {
         console.error('락 갱신 실패:', err)
         // 락 갱신 실패 시 수정 모드 종료 및 락 해제 시도

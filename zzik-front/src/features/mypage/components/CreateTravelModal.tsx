@@ -108,12 +108,12 @@ const CreateTravelModal = ({ onClose }: { onClose: () => void }) => {
     // TravelService를 통해 여행 생성
     TravelService.createTravel(travelData)
       .then((response) => {
-        console.log('여행 생성 성공:', response)
+        // console.log('여행 생성 성공:', response)
         setToast({ variant: 'success', message: '여행이 생성되었습니다!' })
         onClose()
       })
       .catch((error) => {
-        console.error('여행 생성 실패:', error)
+        // console.error('여행 생성 실패:', error)
         setToast({ variant: 'error', message: '여행 생성에 실패했습니다. 다시 시도해주세요.' })
       })
   }

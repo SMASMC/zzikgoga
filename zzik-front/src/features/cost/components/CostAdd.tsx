@@ -36,7 +36,7 @@ const CostAdd = ({ onCostAdded }: CostAddProps) => {
       // 파일을 FormData로 감싸서 그대로 전송
       const response = await CostReciptService.uploadReceipt(tripId, { file })
 
-      console.log('영수증 업로드 성공:', response)
+      // console.log('영수증 업로드 성공:', response)
       setToast({ variant: 'success', message: '영수증이 성공적으로 업로드되었습니다.' })
 
       // 파일 input 초기화

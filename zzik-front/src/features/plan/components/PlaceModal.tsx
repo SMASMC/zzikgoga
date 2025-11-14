@@ -23,7 +23,7 @@ const PlaceModal = ({ onClose, place }: PlaceModalProps) => {
 
     // 디버깅: addressComponents 확인
     if (components.length > 0) {
-      console.log('[PlaceModal] addressComponents:', components)
+      // console.log('[PlaceModal] addressComponents:', components)
     }
 
     const pick = (candidates: string[]) => {
@@ -74,7 +74,7 @@ const PlaceModal = ({ onClose, place }: PlaceModalProps) => {
       detail: fallbackDetail,
     }
 
-    console.log('[PlaceModal] Parsed address:', result)
+    // console.log('[PlaceModal] Parsed address:', result)
     return result
   }, [place.addressComponents, place.full_address])
 
@@ -209,7 +209,7 @@ const PlaceModal = ({ onClose, place }: PlaceModalProps) => {
       longitude: place.longitude ?? null,
     }
 
-    console.log('[PlaceModal] Submitting location data:', locationData)
+    // console.log('[PlaceModal] Submitting location data:', locationData)
 
     addSchedule({
       startTimeLocal: startIso,
