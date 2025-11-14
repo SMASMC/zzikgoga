@@ -120,7 +120,7 @@ const YTextEditor = ({
           }),
         },
         handleDOMEvents: {
-          beforeinput: (view, event: InputEvent) => {
+          beforeinput: (_view, event: InputEvent) => {
             if (numericOnly && event.data) {
               // Allow only numeric input
               if (!/^[0-9]*$/.test(event.data)) {
