@@ -84,15 +84,19 @@ rollback_deployment() {
     # 이전 컨테이너가 중지되어 있다면 다시 시작
     if docker ps -a --format '{{.Names}}' | grep -qx "zzikgoga-node-${OLD_ENV}"; then
       if ! docker ps --format '{{.Names}}' | grep -qx "zzikgoga-node-${OLD_ENV}"; then
-        echo "  🔄 이전 컨테이너 재시작 중..."
+        echo "  🔄 이전 컨테이너 재시작 중... (이미지: ${OLD_IMAGE_ID:-unknown})"
         docker start "zzikgoga-node-${OLD_ENV}" 2>/dev/null || true
         sleep 5
 
         # 이전 컨테이너 헬스 체크
+        echo "  ⏳ 이전 컨테이너 헬스 체크 대기..."
         for i in $(seq 1 30); do
           if curl -s -o /dev/null -w "%{http_code}" "http://localhost:${OLD_PORT}/health" | grep -q "^[234]"; then
-            echo "  ✅ 이전 환경이 정상적으로 복구되었습니다"
+            echo "  ✅ 이전 환경이 정상적으로 복구되었습니다 (시도 $i/30)"
             break
+          fi
+          if [ $i -eq 30 ]; then
+            echo "  ⚠️ 헬스 체크 타임아웃이지만 컨테이너는 실행 중입니다"
           fi
           sleep 2
         done
@@ -100,8 +104,9 @@ rollback_deployment() {
         echo "  ✅ 이전 환경이 이미 실행 중입니다"
       fi
     else
-      # 이전 컨테이너가 없다면 다시 생성
-      echo "  🔄 이전 환경 재생성 중..."
+      # 이전 컨테이너가 없다면 경고 (이상 상황)
+      echo "  ⚠️ 경고: 이전 컨테이너가 완전히 삭제되었습니다"
+      echo "  🔄 이전 환경 재생성 시도 (최선의 노력)..."
       docker compose -p node-${OLD_ENV} -f docker-compose-node-${OLD_ENV}.yml up -d
       sleep 10
     fi
@@ -179,12 +184,16 @@ if ! docker images | grep -q "zzikgoga-node.*latest"; then
     exit 1
 fi
 
-# 현재 이미지를 백업 태그로 저장 (롤백을 위해)
-if docker image inspect "${CURRENT_IMAGE}" >/dev/null 2>&1; then
-  echo "💾 현재 이미지 백업: ${CURRENT_IMAGE} → ${PREVIOUS_IMAGE}"
-  docker tag "${CURRENT_IMAGE}" "${PREVIOUS_IMAGE}" || true
-else
-  echo "ℹ️ 현재 이미지가 없습니다 (첫 배포일 수 있음)"
+# 이전 컨테이너가 있다면 중지 (삭제는 하지 않음 - 롤백을 위해)
+if [ "$CURRENT_ENV" != "" ]; then
+  echo "⏸️ 이전 컨테이너 중지 (롤백 대비): zzikgoga-node-${OLD_ENV}"
+  docker stop "zzikgoga-node-${OLD_ENV}" 2>/dev/null || true
+
+  # 중지된 컨테이너의 이미지 ID 백업
+  OLD_IMAGE_ID=$(docker inspect -f '{{.Image}}' "zzikgoga-node-${OLD_ENV}" 2>/dev/null || echo "")
+  if [ -n "$OLD_IMAGE_ID" ]; then
+    echo "💾 이전 컨테이너 이미지 ID 백업: ${OLD_IMAGE_ID}"
+  fi
 fi
 
 # 새로운 환경 시작
