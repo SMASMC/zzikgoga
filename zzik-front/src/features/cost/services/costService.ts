@@ -9,6 +9,12 @@ import {
   CostModifyResponse,
   CostDeleteResponse,
 } from '@/features/cost/types/cost'
+import {
+  SettleResponse,
+  SettleAcceptRequest,
+  SettleAcceptResponse,
+  SettleFinalResponse,
+} from '@/features/cost/types/settle'
 
 export class CostPlusService {
   public static async addCost(tripId: string, costRequest: CostPlusRequest): Promise<void> {
@@ -55,6 +61,28 @@ export class CostModifyService {
       `/cost/${tripId}/${costId}`,
       costRequest
     )
+    return response
+  }
+}
+export class CostSettleService {
+  public static async getSettle(tripId: number): Promise<SettleResponse> {
+    const response = await apiClient.get<SettleResponse>(`/cost/${tripId}/stat`)
+    return response
+  }
+
+  public static async acceptSettle(
+    tripId: number,
+    acceptRequest: SettleAcceptRequest
+  ): Promise<SettleAcceptResponse> {
+    const response = await apiClient.post<SettleAcceptResponse>(
+      `/cost/${tripId}/accept`,
+      acceptRequest
+    )
+    return response
+  }
+
+  public static async getSettleFinal(tripId: number): Promise<SettleFinalResponse> {
+    const response = await apiClient.get<SettleFinalResponse>(`/cost/${tripId}/calculate`)
     return response
   }
 }

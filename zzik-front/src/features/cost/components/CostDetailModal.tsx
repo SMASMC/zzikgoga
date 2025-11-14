@@ -228,6 +228,11 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
       setIsEditing(false)
       const response = await CostDetailService.getCostDetail(Number(tripId), costId)
       setCostDetail(response)
+
+      // 목록 및 정산 내역 새로고침
+      if (onRefresh) {
+        onRefresh()
+      }
     } catch (err) {
       console.error('비용 수정 실패:', err)
       setError('비용 수정에 실패했습니다. 다시 시도해주세요.')
