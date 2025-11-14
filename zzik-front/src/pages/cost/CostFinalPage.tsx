@@ -18,7 +18,7 @@ const CostFinalPage = () => {
         try {
           const response = await CostSettleService.getSettleFinal(Number(tripId))
           setSettleFinal(response)
-        } catch (err) {
+        } catch {
           setError('정산 결과를 불러오는데 실패했습니다.')
         } finally {
           setIsLoading(false)
@@ -59,7 +59,6 @@ const CostFinalPage = () => {
 
               {/* 다이어그램 전체 */}
               <div className="flex justify-between items-center gap-10 relative">
-
                 {/* 왼쪽 : 나에게 돈을 줄 사람들 */}
                 <div className="flex-1 border-2 border-green-400/60 rounded-2xl p-6 bg-gradient-to-br from-green-50 to-green-100/50 shadow-lg">
                   <p className="text-green-700 font-bold text-lg mb-4">나에게 돈을 줄 사람들</p>
@@ -95,15 +94,12 @@ const CostFinalPage = () => {
                 <div className="flex flex-col items-center text-center relative z-10">
                   <div className="rounded-full h-32 w-32 bg-gradient-to-br from-blue-400 to-blue-600 border-4 border-blue-500 shadow-2xl flex flex-col items-center justify-center text-white font-bold text-xl relative">
                     <span className="mb-1">나</span>
-                    <span className="text-sm text-blue-100 mt-1">
-                      {formatAmount(net)}원
-                    </span>
+                    <span className="text-sm text-blue-100 mt-1">{formatAmount(net)}원</span>
                   </div>
-                  
-                  {/* 왼쪽 → 중앙 화살표 */}
-                  { s.toReceive.length > 0 && (
-                    <div className="absolute left-[-64px] top-1/2 -translate-y-1/2 flex items-center w-20">
 
+                  {/* 왼쪽 → 중앙 화살표 */}
+                  {s.toReceive.length > 0 && (
+                    <div className="absolute left-[-64px] top-1/2 -translate-y-1/2 flex items-center w-20">
                       {/* 선 부분 */}
                       <div className="h-2 w-full bg-gradient-to-r from-green-500 to-green-400"></div>
 
@@ -119,12 +115,10 @@ const CostFinalPage = () => {
                     </div>
                   )}
 
-                  
                   {/* 오른쪽으로 가는 화살표 (줄 돈이 있을 때) */}
                   {/* 중앙 → 오른쪽 화살표 */}
-                  { s.toSend.length > 0 && (
+                  {s.toSend.length > 0 && (
                     <div className="absolute right-[-64px] top-1/2 -translate-y-1/2 flex items-center w-20">
-
                       {/* 선 부분 */}
                       <div className="h-2 w-full bg-gradient-to-r from-red-400 to-red-500"></div>
                       {/* 삼각형 촉 부분 */}
@@ -136,10 +130,8 @@ const CostFinalPage = () => {
                           border-b-[8px] border-b-transparent
                         "
                       ></div>
-
                     </div>
                   )}
-
                 </div>
 
                 {/*  오른쪽 : 내가 돈을 줄 사람들 */}
@@ -185,16 +177,12 @@ const CostFinalPage = () => {
 
                 <div className="text-center bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-400/60 rounded-xl p-4 shadow-md">
                   <p className="text-red-700 font-bold mb-2">총 지출</p>
-                  <p className="text-xl font-bold text-red-600">
-                    -{formatAmount(totalSend)}원
-                  </p>
+                  <p className="text-xl font-bold text-red-600">-{formatAmount(totalSend)}원</p>
                 </div>
 
                 <div className="text-center bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-400/60 rounded-xl p-4 shadow-md">
                   <p className="text-blue-700 font-bold mb-2">순 금액</p>
-                  <p className="text-xl font-bold text-blue-600">
-                    {formatAmount(net)}원
-                  </p>
+                  <p className="text-xl font-bold text-blue-600">{formatAmount(net)}원</p>
                 </div>
               </div>
             </div>

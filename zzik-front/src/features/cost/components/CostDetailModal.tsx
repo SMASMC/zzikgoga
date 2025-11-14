@@ -228,7 +228,7 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
       setIsEditing(false)
       const response = await CostDetailService.getCostDetail(Number(tripId), costId)
       setCostDetail(response)
-      
+
       // 목록 및 정산 내역 새로고침
       if (onRefresh) {
         onRefresh()
