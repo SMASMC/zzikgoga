@@ -9,10 +9,10 @@ import org.springframework.security.crypto.encrypt.TextEncryptor;
 @Configuration
 public class CryptoConfig {
 
-	@Value("${app.security.encrypt.password}")
+	@Value("${external.arweave.credentials.password}")
 	private String password;
 
-	@Value("${app.security.encrypt.salt}")
+	@Value("${external.arweave.credentials.salt}")
 	private String salt;
 
 	/**

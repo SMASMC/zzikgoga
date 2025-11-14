@@ -52,3 +52,11 @@ receipt:
   upload:
     max-file-size: 52428800  # 50MB (50 * 1024 * 1024 bytes)
     allowed-extensions: jpg,jpeg,png,pdf,tif,tiff
+
+external:
+  arweave:
+    credentials:
+      # 256비트(32바이트) 이상의 강력한 비밀번호
+      password: ${ARWEAVE_CREDENTIALS_PASSWORD}
+      # 16진수 16바이트(32자) 이상의 강력한 솔트
+      salt: ${ARWEAVE_CREDENTIALS_SALT}
