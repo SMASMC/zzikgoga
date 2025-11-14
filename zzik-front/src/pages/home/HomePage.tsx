@@ -1,6 +1,6 @@
 import Header from '@components/blocks/Header'
 import { Button } from '@components/atoms/Button'
-import { useState, useEffect, cloneElement, isValidElement } from 'react'
+import { useState, useEffect, cloneElement, isValidElement, useRef } from 'react'
 import { ChevronLeft, ChevronRight, Wallet, MessageSquare, BookOpen } from 'lucide-react'
 import { ImageWithFallback } from '@/components/atoms/ImageWithFallback'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -30,8 +30,7 @@ const slides: OnboardingSlide[] = [
     title: '간편한 여행 정산',
     description:
       '친구들과 함께한 여행 경비를 쉽고 빠르게 정산하세요. 누가 얼마를 냈는지 한눈에 확인하고 공정하게 나눌 수 있습니다.',
-    image:
-      'https://images.unsplash.com/photo-1593168098026-10d982cb9055?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0cmF2ZWwlMjBhZHZlbnR1cmUlMjBtb3VudGFpbnN8ZW58MXx8fHwxNzYxMjA5Nzk5fDA&ixlib=rb-4.1.0&q=80&w=1080',
+    image: '/home/settle.jpg',
     icon: <Wallet />,
     color: '#3B82F6',
   },
@@ -63,6 +62,11 @@ const HomePage = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const errorType = searchParams.get('error')
 
+  // 터치 스와이프를 위한 상태
+  const touchStartX = useRef<number | null>(null)
+  const touchEndX = useRef<number | null>(null)
+  const minSwipeDistance = 50 // 최소 스와이프 거리 (px)
+
   const handleCloseErrorModal = () => {
     // URL에서 error 파라미터 제거
     searchParams.delete('error')
@@ -91,6 +95,34 @@ const HomePage = () => {
     setCurrentSlide(index)
   }
 
+  // 터치 이벤트 핸들러
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchEndX.current = null
+    touchStartX.current = e.targetTouches[0].clientX
+  }
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.targetTouches[0].clientX
+  }
+
+  const onTouchEnd = () => {
+    if (!touchStartX.current || !touchEndX.current) return
+
+    const distance = touchStartX.current - touchEndX.current
+    const isLeftSwipe = distance > minSwipeDistance
+    const isRightSwipe = distance < -minSwipeDistance
+
+    if (isLeftSwipe) {
+      nextSlide()
+    } else if (isRightSwipe) {
+      prevSlide()
+    }
+
+    // 리셋
+    touchStartX.current = null
+    touchEndX.current = null
+  }
+
   const current = slides[currentSlide]
   const gradientMap: Record<number, string> = {
     1: 'from-blue-500 to-blue-700',
@@ -110,6 +142,9 @@ const HomePage = () => {
         style={{ backgroundColor: '#0A0F1A' }}
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
       >
         {/* Background Image with Overlay */}
         <div className="absolute inset-0 transition-opacity duration-1000">

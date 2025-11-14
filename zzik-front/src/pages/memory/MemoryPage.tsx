@@ -1,7 +1,9 @@
 ﻿import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { HelpCircle } from 'lucide-react'
 import Input from '@/components/atoms/Input'
 import SolidButton from '@/components/atoms/SolidButton'
+import CloseButton from '@/components/atoms/CloseButton'
 import MarkdownEditor from '@/features/memory/components/MarkdownEditor'
 import MemoryPhotoGallery from '@/features/memory/components/MemoryPhotoGallery'
 import { CreateMemoryRequest, MemoryBlock } from '@/features/memory/types/memory'
@@ -17,6 +19,7 @@ const MemoryPage = () => {
   const [pdfLoading, setPdfLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [savedId, setSavedId] = useState<number | null>(null)
+  const [showHelpModal, setShowHelpModal] = useState(false)
 
   const canSave = title.trim().length > 0 && markdown.trim().length > 0 && !!safeTripId
 
@@ -171,33 +174,190 @@ const MemoryPage = () => {
   }
 
   return (
-    <div className="h-[calc(100vh-80px)] p-4 overflow-hidden">
-      <div className="h-full grid grid-cols-12 gap-4 min-h-0">
-        <aside className="col-span-4 rounded-xl bg-white shadow border overflow-hidden flex flex-col min-h-0">
-          {safeTripId && <MemoryPhotoGallery tripId={safeTripId} />}
-        </aside>
-        <section className="col-span-8 flex flex-col min-h-0 overflow-hidden">
-          <div className="mb-3 flex items-center gap-2 shrink-0">
-            <Input
-              placeholder="제목을 입력하세요"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="rounded-xl"
-            />
-            <SolidButton onClick={handleSave} disabled={!canSave || saving}>
-              {saving ? '임시저장 중...' : '임시저장'}
-            </SolidButton>
-            <SolidButton onClick={handleGeneratePdf} disabled={!safeTripId || pdfLoading}>
-              {pdfLoading ? 'PDF 생성 중...' : 'PDF 생성'}
-            </SolidButton>
+    <div>
+      <main className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-12 mt-6 sm:mt-8 md:mt-10 pb-10">
+        <h1 className="text-3xl font-bold text-text-500 mb-8 font-bmjua">여행 기록</h1>
+
+        {/* 반응형 레이아웃: 모바일에서는 세로, 데스크톱에서는 가로 */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* 사진 갤러리 - 1/3 너비 (모바일에서는 전체 너비) */}
+          <aside className="lg:col-span-1">
+            <div className="bg-white rounded-3xl shadow-lg overflow-hidden flex flex-col h-full min-h-[400px] lg:min-h-[calc(100vh-200px)]">
+              <h2 className="text-xl font-bold text-text-500 mb-6 font-bmjua mt-6 mx-6">사진 목록</h2>
+              {safeTripId && <MemoryPhotoGallery tripId={safeTripId} />}
+            </div>
+          </aside>
+
+          {/* 에디터 영역 - 2/3 너비 (모바일에서는 전체 너비) */}
+          <section className="lg:col-span-2 flex flex-col min-h-0">
+            <div className="bg-white rounded-3xl shadow-lg p-6 flex flex-col h-full min-h-[400px] lg:min-h-[calc(100vh-200px)] relative">
+              <div className="flex items-center gap-2 mb-6">
+                <h2 className="text-xl font-bold text-text-500 font-bmjua">기록하기</h2>
+                <button
+                  onClick={() => setShowHelpModal(true)}
+                  className="text-blue-500 hover:text-blue-600 transition-colors"
+                  aria-label="마크다운 사용법 도움말"
+                >
+                  <HelpCircle size={20} />
+                </button>
+              </div>
+              {/* 헤더 영역 */}
+              <div className="mb-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2 shrink-0 relative z-10">
+                <div className="flex-1 relative z-10">
+                  <Input
+                    placeholder="제목을 입력하세요"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="rounded-xl flex-1"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <SolidButton onClick={handleSave} disabled={!canSave || saving} className="flex-1 sm:flex-none">
+                    {saving ? '저장 중...' : '저장'}
+                  </SolidButton>
+                  <SolidButton onClick={handleGeneratePdf} disabled={!safeTripId || pdfLoading} className="flex-1 sm:flex-none">
+                    {pdfLoading ? 'PDF 생성 중...' : 'PDF 생성'}
+                  </SolidButton>
+                </div>
+              </div>
+
+              {/* 메시지 영역 */}
+              {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
+              {savedId && <div className="text-green-700 text-sm mb-2">저장 완료 (ID: {savedId})</div>}
+
+              {/* 에디터 영역 */}
+              <div className="flex-1 min-h-0 overflow-hidden relative z-10" onClick={(e) => e.stopPropagation()}>
+                <MarkdownEditor value={markdown} onChange={setMarkdown} />
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+
+      {/* 마크다운 도움말 모달 */}
+      {showHelpModal && (
+        <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4" onClick={() => setShowHelpModal(false)}>
+          <div
+            className="w-full max-w-2xl bg-gradient-to-br from-white via-background-500 to-background-600 rounded-3xl shadow-xl p-6 sm:p-8 font-bmjua relative max-h-[90vh] overflow-y-auto custom-scrollbar"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 닫기 버튼 */}
+            <CloseButton onClick={() => setShowHelpModal(false)} className="absolute top-3 right-4" />
+
+            {/* 제목 */}
+            <h2 className="text-xl sm:text-2xl font-bold text-text-500 mb-6 font-bmjua">마크다운 사용법</h2>
+
+            {/* 내용 */}
+            <div className="space-y-6 text-sm">
+              {/* 제목 */}
+              <div>
+                <h3 className="text-lg font-bold text-text-500 mb-2">제목</h3>
+                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                  <div>
+                    <code className="text-blue-600"># 제목 1</code>
+                    <div className="text-gray-600 mt-1">→ 가장 큰 제목</div>
+                  </div>
+                  <div>
+                    <code className="text-blue-600">## 제목 2</code>
+                    <div className="text-gray-600 mt-1">→ 중간 제목</div>
+                  </div>
+                  <div>
+                    <code className="text-blue-600">### 제목 3</code>
+                    <div className="text-gray-600 mt-1">→ 작은 제목</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 이미지 */}
+              <div>
+                <h3 className="text-lg font-bold text-text-500 mb-2">이미지</h3>
+                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                  <div>
+                    <code className="text-blue-600">![이미지 설명](이미지URL)</code>
+                    <div className="text-gray-600 mt-1">→ 이미지 삽입</div>
+                  </div>
+                  <div className="text-gray-600 text-xs mt-2">
+                    💡 팁: 왼쪽 사진 갤러리에서 사진을 드래그하여 에디터에 넣을 수 있습니다!
+                  </div>
+                </div>
+              </div>
+
+              {/* 텍스트 스타일 */}
+              <div>
+                <h3 className="text-lg font-bold text-text-500 mb-2">텍스트 스타일</h3>
+                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                  <div>
+                    <code className="text-blue-600">**굵게**</code>
+                    <div className="text-gray-600 mt-1">→ <strong>굵게</strong></div>
+                  </div>
+                  <div>
+                    <code className="text-blue-600">*기울임*</code>
+                    <div className="text-gray-600 mt-1">→ <em>기울임</em></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 리스트 */}
+              <div>
+                <h3 className="text-lg font-bold text-text-500 mb-2">리스트</h3>
+                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                  <div>
+                    <code className="text-blue-600">- 항목 1</code>
+                    <br />
+                    <code className="text-blue-600">- 항목 2</code>
+                    <div className="text-gray-600 mt-1">→ 순서 없는 리스트</div>
+                  </div>
+                  <div className="mt-2">
+                    <code className="text-blue-600">1. 항목 1</code>
+                    <br />
+                    <code className="text-blue-600">2. 항목 2</code>
+                    <div className="text-gray-600 mt-1">→ 순서 있는 리스트</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 링크 */}
+              <div>
+                <h3 className="text-lg font-bold text-text-500 mb-2">링크</h3>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <code className="text-blue-600">[링크 텍스트](URL)</code>
+                  <div className="text-gray-600 mt-1">→ 클릭 가능한 링크</div>
+                </div>
+              </div>
+
+              {/* 코드 */}
+              <div>
+                <h3 className="text-lg font-bold text-text-500 mb-2">코드</h3>
+                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                  <div>
+                    <code className="text-blue-600">`인라인 코드`</code>
+                    <div className="text-gray-600 mt-1">→ 인라인 코드</div>
+                  </div>
+                  <div className="mt-2">
+                    <code className="text-blue-600">```</code>
+                    <br />
+                    <code className="text-blue-600">코드 블록</code>
+                    <br />
+                    <code className="text-blue-600">```</code>
+                    <div className="text-gray-600 mt-1">→ 코드 블록</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 닫기 버튼 */}
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setShowHelpModal(false)}
+                className="px-6 py-3 bg-gradient-to-br from-point-500 to-main-700 text-white rounded-full hover:scale-105 transition-transform font-semibold shadow-lg"
+              >
+                확인
+              </button>
+            </div>
           </div>
-          {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
-          {savedId && <div className="text-green-700 text-sm mb-2">저장 완료 (ID: {savedId})</div>}
-          <div className="flex-1 min-h-0 overflow-hidden">
-            <MarkdownEditor value={markdown} onChange={setMarkdown} />
-          </div>
-        </section>
-      </div>
+        </div>
+      )}
     </div>
   )
 }
