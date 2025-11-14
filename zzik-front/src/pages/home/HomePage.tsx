@@ -61,7 +61,7 @@ const HomePage = () => {
   const [isPaused, setIsPaused] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
   const errorType = searchParams.get('error')
-  
+
   // 터치 스와이프를 위한 상태
   const touchStartX = useRef<number | null>(null)
   const touchEndX = useRef<number | null>(null)

@@ -31,6 +31,25 @@ const MarkdownEditor = ({ value, onChange }: Props) => {
     [onChange, value]
   )
 
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLTextAreaElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    // 드롭 가능한 영역임을 표시
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'copy'
+    }
+  }, [])
+
+  const handleDragEnter = useCallback((e: React.DragEvent<HTMLTextAreaElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }, [])
+
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLTextAreaElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }, [])
+
   const handleDrop = useCallback(
     async (e: React.DragEvent<HTMLTextAreaElement>) => {
       e.preventDefault()
@@ -116,14 +135,19 @@ const MarkdownEditor = ({ value, onChange }: Props) => {
   )
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full relative">
       <div className="grid grid-cols-2 gap-3 h-full min-h-0">
         <textarea
           ref={textareaRef}
-          className="col-span-1 w-full h-full overflow-y-auto resize-none p-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scrollbar"
-          placeholder="# 제목\n내용을 마크다운으로 입력하세요"
+          className="col-span-1 w-full h-full overflow-y-auto resize-none p-3 rounded-lg border border-slate-300 focus:outline-none focus:border-blue-500 focus:ring-0 custom-scrollbar relative z-10 placeholder:text-gray-400"
+          placeholder="마크다운 사용법은 도움말을 확인해보세요"
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onDragEnter={handleDragEnter}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onPaste={handlePaste}
         />
