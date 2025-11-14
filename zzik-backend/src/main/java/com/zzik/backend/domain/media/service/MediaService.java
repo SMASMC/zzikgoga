@@ -1,16 +1,34 @@
 package com.zzik.backend.domain.media.service;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import javax.imageio.ImageIO;
+
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
+
+import net.coobird.thumbnailator.Thumbnails;
+
 import com.drew.imaging.ImageMetadataReader;
 import com.drew.metadata.Directory;
 import com.drew.metadata.Metadata;
 import com.drew.metadata.exif.ExifIFD0Directory;
 import com.zzik.backend.domain.auth.entity.Member;
-import com.zzik.backend.domain.auth.repository.MemberRepository; // (존재한다고 가정)
+import com.zzik.backend.domain.auth.repository.MemberRepository;
 import com.zzik.backend.domain.media.dto.response.PhotoDetailResponse;
 import com.zzik.backend.domain.media.dto.response.PhotoListResponse;
 import com.zzik.backend.domain.media.dto.response.PhotoUploadListResponse;
-import com.zzik.backend.domain.media.entity.Photo;
 import com.zzik.backend.domain.media.dto.response.PhotoUploadResponse;
+import com.zzik.backend.domain.media.entity.Photo;
 import com.zzik.backend.domain.media.repository.PhotoRepository;
 import com.zzik.backend.domain.plan.entity.Trip;
 import com.zzik.backend.domain.plan.repository.TripMemberRepository;
@@ -24,27 +42,9 @@ import com.zzik.backend.global.pagination.PageInfoResponse;
 import com.zzik.backend.global.util.ByteArrayMultipartFile;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.data.domain.PageRequest;
-import org.springframework.http.MediaType;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
-import javax.imageio.ImageIO;
-
-import net.coobird.thumbnailator.Thumbnails;
-
+@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -105,7 +105,7 @@ public class MediaService {
 
 			} catch (Exception e) {
 				// 개별 파일 업로드 실패 시 로깅 (전체 실패 X)
-				// log.error("Failed to upload file: {}", file.getOriginalFilename(), e);
+				log.error("Failed to upload file: {}", file.getOriginalFilename(), e);
 			}
 		}
 		return new PhotoUploadListResponse(uploadedList);
@@ -236,7 +236,7 @@ public class MediaService {
 
 		Thumbnails.of(rotatedImage)
 			.size(MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION)
-			.outputFormat("webp")          // WebP 포맷
+			.outputFormat("jpg")
 			.outputQuality(WEBP_QUALITY) // 압축 품질 설정 (e.g., 0.8f)
 			.toOutputStream(baos);
 
@@ -245,13 +245,13 @@ public class MediaService {
 		// 5. 파일명 변경 (e.g., "image.jpg" -> "image.webp")
 		String originalFilename = originalFile.getOriginalFilename();
 		String baseName = StringUtils.stripFilenameExtension(originalFilename);
-		String newFilename = baseName + ".webp";
+		String newFilename = baseName + ".jpg";
 
 		// 6. byte[]를 ByteArrayMultipartFile로 래핑하여 반환
 		return new ByteArrayMultipartFile(
 			processedImageBytes,
 			originalFile.getName(), // "file"
-			newFilename,            // "image.webp"
+			newFilename,
 			"image/webp" // "image/webp"
 		);
 	}
@@ -283,13 +283,27 @@ public class MediaService {
 		Thumbnails.Builder<BufferedImage> builder = Thumbnails.of(image).size(image.getWidth(), image.getHeight());
 
 		switch (orientation) {
-			case 2: builder.scale(1.0, -1.0); break; // Horizontal flip
-			case 3: builder.rotate(180); break; // 180° rotation
-			case 4: builder.scale(-1.0, 1.0); break; // Vertical flip
-			case 5: builder.rotate(-90).scale(-1.0, 1.0); break; // 90° CCW and vertical flip
-			case 6: builder.rotate(90); break; // 90° CW (세로 사진)
-			case 7: builder.rotate(90).scale(-1.0, 1.0); break; // 90° CW and vertical flip
-			case 8: builder.rotate(-90); break; // 90° CCW (세로 사진)
+			case 2:
+				builder.scale(1.0, -1.0);
+				break; // Horizontal flip
+			case 3:
+				builder.rotate(180);
+				break; // 180° rotation
+			case 4:
+				builder.scale(-1.0, 1.0);
+				break; // Vertical flip
+			case 5:
+				builder.rotate(-90).scale(-1.0, 1.0);
+				break; // 90° CCW and vertical flip
+			case 6:
+				builder.rotate(90);
+				break; // 90° CW (세로 사진)
+			case 7:
+				builder.rotate(90).scale(-1.0, 1.0);
+				break; // 90° CW and vertical flip
+			case 8:
+				builder.rotate(-90);
+				break; // 90° CCW (세로 사진)
 		}
 		return builder.asBufferedImage();
 	}
