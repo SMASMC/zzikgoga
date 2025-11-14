@@ -183,7 +183,9 @@ const MemoryPage = () => {
           {/* 사진 갤러리 - 1/3 너비 (모바일에서는 전체 너비) */}
           <aside className="lg:col-span-1">
             <div className="bg-white rounded-3xl shadow-lg overflow-hidden flex flex-col h-full min-h-[400px] lg:min-h-[calc(100vh-200px)]">
-              <h2 className="text-xl font-bold text-text-500 mb-6 font-bmjua mt-6 mx-6">사진 목록</h2>
+              <h2 className="text-xl font-bold text-text-500 mb-6 font-bmjua mt-6 mx-6">
+                사진 목록
+              </h2>
               {safeTripId && <MemoryPhotoGallery tripId={safeTripId} />}
             </div>
           </aside>
@@ -213,10 +215,18 @@ const MemoryPage = () => {
                   />
                 </div>
                 <div className="flex gap-2">
-                  <SolidButton onClick={handleSave} disabled={!canSave || saving} className="flex-1 sm:flex-none">
+                  <SolidButton
+                    onClick={handleSave}
+                    disabled={!canSave || saving}
+                    className="flex-1 sm:flex-none"
+                  >
                     {saving ? '저장 중...' : '저장'}
                   </SolidButton>
-                  <SolidButton onClick={handleGeneratePdf} disabled={!safeTripId || pdfLoading} className="flex-1 sm:flex-none">
+                  <SolidButton
+                    onClick={handleGeneratePdf}
+                    disabled={!safeTripId || pdfLoading}
+                    className="flex-1 sm:flex-none"
+                  >
                     {pdfLoading ? 'PDF 생성 중...' : 'PDF 생성'}
                   </SolidButton>
                 </div>
@@ -224,10 +234,15 @@ const MemoryPage = () => {
 
               {/* 메시지 영역 */}
               {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
-              {savedId && <div className="text-green-700 text-sm mb-2">저장 완료 (ID: {savedId})</div>}
+              {savedId && (
+                <div className="text-green-700 text-sm mb-2">저장 완료 (ID: {savedId})</div>
+              )}
 
               {/* 에디터 영역 */}
-              <div className="flex-1 min-h-0 overflow-hidden relative z-10" onClick={(e) => e.stopPropagation()}>
+              <div
+                className="flex-1 min-h-0 overflow-hidden relative z-10"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <MarkdownEditor value={markdown} onChange={setMarkdown} />
               </div>
             </div>
@@ -237,16 +252,24 @@ const MemoryPage = () => {
 
       {/* 마크다운 도움말 모달 */}
       {showHelpModal && (
-        <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4" onClick={() => setShowHelpModal(false)}>
+        <div
+          className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4"
+          onClick={() => setShowHelpModal(false)}
+        >
           <div
             className="w-full max-w-2xl bg-gradient-to-br from-white via-background-500 to-background-600 rounded-3xl shadow-xl p-6 sm:p-8 font-bmjua relative max-h-[90vh] overflow-y-auto custom-scrollbar"
             onClick={(e) => e.stopPropagation()}
           >
             {/* 닫기 버튼 */}
-            <CloseButton onClick={() => setShowHelpModal(false)} className="absolute top-3 right-4" />
+            <CloseButton
+              onClick={() => setShowHelpModal(false)}
+              className="absolute top-3 right-4"
+            />
 
             {/* 제목 */}
-            <h2 className="text-xl sm:text-2xl font-bold text-text-500 mb-6 font-bmjua">마크다운 사용법</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-text-500 mb-6 font-bmjua">
+              마크다운 사용법
+            </h2>
 
             {/* 내용 */}
             <div className="space-y-6 text-sm">
@@ -289,11 +312,15 @@ const MemoryPage = () => {
                 <div className="bg-gray-50 rounded-lg p-4 space-y-2">
                   <div>
                     <code className="text-blue-600">**굵게**</code>
-                    <div className="text-gray-600 mt-1">→ <strong>굵게</strong></div>
+                    <div className="text-gray-600 mt-1">
+                      → <strong>굵게</strong>
+                    </div>
                   </div>
                   <div>
                     <code className="text-blue-600">*기울임*</code>
-                    <div className="text-gray-600 mt-1">→ <em>기울임</em></div>
+                    <div className="text-gray-600 mt-1">
+                      → <em>기울임</em>
+                    </div>
                   </div>
                 </div>
               </div>

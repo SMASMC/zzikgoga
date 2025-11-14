@@ -18,7 +18,7 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
   // 인증 상태 확인을 위한 로그 (개발용)
   useEffect(() => {
     if (!isLoading) {
-      console.log('현재 인증 상태:', isAuthenticated)
+      // console.log('현재 인증 상태:', isAuthenticated)
     }
   }, [isAuthenticated, isLoading])
 

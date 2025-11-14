@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import CostAdd from '@/features/cost/components/CostAdd'
 import CostList from '@/features/cost/components/CostList'
-import GradientBackground from '@/components/blocks/GradientBackground'
 import { useParams } from 'react-router-dom'
 
 const CostPage = () => {
@@ -10,11 +9,11 @@ const CostPage = () => {
 
   if (!tripId) {
     return (
-      <GradientBackground>
+      <div>
         <div className="min-h-screen flex items-center justify-center">
           <p className="text-text-500">여행 ID가 없습니다.</p>
         </div>
-      </GradientBackground>
+      </div>
     )
   }
 
@@ -23,7 +22,7 @@ const CostPage = () => {
   }
 
   return (
-    <GradientBackground>
+    <div>
       <main className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-12 mt-6 sm:mt-8 md:mt-10 pb-10">
         <h1 className="text-3xl font-bold text-text-500 mb-8 font-bmjua">여행 정산</h1>
 
@@ -40,7 +39,7 @@ const CostPage = () => {
           </div>
         </div>
       </main>
-    </GradientBackground>
+    </div>
   )
 }
 

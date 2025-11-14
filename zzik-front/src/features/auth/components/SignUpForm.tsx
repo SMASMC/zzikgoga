@@ -38,7 +38,7 @@ const SignUpForm = ({
     message: string
   } | null>(null)
 
-  console.log(formData)
+  // console.log(formData)
 
   const handleChange =
     (field: keyof typeof formData) =>
@@ -100,16 +100,16 @@ const SignUpForm = ({
         signupSessionToken,
       }
 
-      console.log('회원가입 요청 데이터:', registerData)
+      // console.log('회원가입 요청 데이터:', registerData)
 
       const response = await AuthService.register(registerData)
-      console.log('회원가입 응답:', response)
+      // console.log('회원가입 응답:', response)
 
       // accessToken과 user 정보를 store에 저장
       if (response.loggedIn && response.user) {
         useAuthStore.getState().setAuth(response.user)
-        console.log('회원가입 성공 - 로그인 정보 전역 저장 완료')
-        console.log('사용자 정보 저장 완료:', response.user)
+        // console.log('회원가입 성공 - 로그인 정보 전역 저장 완료')
+        // console.log('사용자 정보 저장 완료:', response.user)
       } else {
         throw new Error('회원가입 응답에 필수 정보가 없습니다')
       }
@@ -119,7 +119,7 @@ const SignUpForm = ({
         title: '회원가입 완료',
         message: '회원가입이 완료되었습니다!',
       })
-      console.log('mypage로 이동')
+      // console.log('mypage로 이동')
       navigate('/mypage', { replace: true })
     } catch (error) {
       console.error('회원가입 실패:', error)
