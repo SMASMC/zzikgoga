@@ -100,7 +100,7 @@ const PlaceModal = ({ onClose, place }: PlaceModalProps) => {
     () => (tripId && tripId.trim().length > 0 ? `trip-${tripId.trim()}` : 'trip-default'),
     [tripId]
   )
-  const { addSchedule, tripInfo } = useYTripDoc(roomId)
+  const { addSchedule, tripInfo, schedulesByDate } = useYTripDoc(roomId)
   const metaStorageKey = useMemo(() => (tripId ? `plan-meta-${tripId}` : null), [tripId])
   const [selectedDateKey, setSelectedDateKey] = useState<string>('')
   const [toastMessage, setToastMessage] = useState<string | null>(null)
@@ -176,6 +176,12 @@ const PlaceModal = ({ onClose, place }: PlaceModalProps) => {
     }
     if (!isWithinTripRange(selectedDateKey)) {
       notifyOutOfRange()
+      return
+    }
+    // 선택된 날짜에 이미 일정이 있는지 확인
+    const existingSchedules = schedulesByDate[selectedDateKey] || []
+    if (existingSchedules.length > 0) {
+      setToastMessage('선택한 날짜에 이미 일정이 있습니다. 다른 날짜를 선택해주세요.')
       return
     }
     if (endDateTime) {

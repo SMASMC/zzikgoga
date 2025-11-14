@@ -13,6 +13,7 @@ interface YTextEditorProps {
   maxLength?: number
   singleLine?: boolean
   variant?: 'input' | 'plain'
+  numericOnly?: boolean
 }
 
 const normalizeSingleLine = (text: string, singleLine: boolean | undefined) =>
@@ -25,6 +26,7 @@ const YTextEditor = ({
   maxLength,
   singleLine,
   variant = 'input',
+  numericOnly = false,
 }: YTextEditorProps) => {
   const isRemoteRef = useRef(false)
   const isComposingRef = useRef(false)
@@ -39,6 +41,12 @@ const YTextEditor = ({
     (editorInstance: TTEditor) => {
       let newText = editorInstance.getText({ blockSeparator: singleLine ? '' : '\n' })
       newText = normalizeSingleLine(newText, singleLine)
+
+      // Filter to numeric only if specified
+      if (numericOnly) {
+        newText = newText.replace(/[^0-9]/g, '')
+      }
+
       const current = ytext.toString()
 
       // Enforce maxLength if specified
@@ -90,7 +98,7 @@ const YTextEditor = ({
         }
       }, 'tiptap-edit')
     },
-    [ytext, maxLength, singleLine]
+    [ytext, maxLength, singleLine, numericOnly]
   )
 
   const editor = useEditor(
@@ -105,9 +113,23 @@ const YTextEditor = ({
       editorProps: {
         attributes: {
           class:
-            'prose prose-base max-w-none focus:outline-none min-h-[2.5rem] bg-transparent text-inherit leading-snug',
+            'prose prose-sm max-w-none focus:outline-none min-h-[1.5rem] bg-transparent text-inherit leading-tight',
+          ...(numericOnly && {
+            inputmode: 'numeric',
+            pattern: '[0-9]*',
+          }),
         },
         handleDOMEvents: {
+          beforeinput: (view, event: InputEvent) => {
+            if (numericOnly && event.data) {
+              // Allow only numeric input
+              if (!/^[0-9]*$/.test(event.data)) {
+                event.preventDefault()
+                return true
+              }
+            }
+            return false
+          },
           compositionstart: () => {
             isComposingRef.current = true
             return false
@@ -211,8 +233,8 @@ const YTextEditor = ({
     <div
       className={cn(
         variant === 'plain'
-          ? 'w-full min-h-[2.5rem]'
-          : 'w-full rounded-full border-2 border-slate-300 bg-white px-5 py-2.5 text-lg font-semibold text-slate-900 shadow-sm transition-all hover:border-blue-300 hover:shadow-md focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 flex items-center',
+          ? 'w-full min-h-[2rem]'
+          : 'w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-900 shadow-sm transition-all hover:border-blue-300 hover:shadow-md focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-100 flex items-center',
         className
       )}
       onClick={() => {
