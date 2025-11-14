@@ -13,6 +13,7 @@ import CostPage from '@/pages/cost/CostPage'
 import { InviteCallbackPage } from '@/pages/plan/InviteCallbackPage'
 import MemoryPage from '@/pages/memory/MemoryPage'
 import CostFinalPage from '@/pages/cost/CostFinalPage'
+import NotFoundPage from '@/pages/error/NotFoundPage'
 
 type BackgroundShellProps = {
   header?: ReactNode
@@ -92,6 +93,11 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
+      </Route>
+
+      {/* 404 페이지 - 모든 경로에 매칭되지 않을 때 */}
+      <Route element={<BackgroundShell />}>
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
   )

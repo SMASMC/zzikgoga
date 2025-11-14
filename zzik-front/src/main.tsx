@@ -11,7 +11,7 @@ const updateSW = registerSW({
     }
   },
   onOfflineReady() {
-    console.log('오프라인 모드가 준비되었습니다.')
+    // console.log('오프라인 모드가 준비되었습니다.')
   },
 })
 
