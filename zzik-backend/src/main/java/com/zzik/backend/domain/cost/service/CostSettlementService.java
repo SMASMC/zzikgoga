@@ -17,9 +17,13 @@ import com.zzik.backend.global.external.bank.BankApiType;
 import com.zzik.backend.global.external.bank.config.BankApiConfig;
 import com.zzik.backend.global.external.bank.dto.BankHeaderDto;
 import com.zzik.backend.global.external.bank.dto.BankTransferRequest;
+import com.zzik.backend.global.external.bank.dto.BankTransferResponse;
+import com.zzik.backend.global.external.bank.exception.BankApiException;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CostSettlementService {
@@ -83,6 +87,11 @@ public class CostSettlementService {
 			.depositTransactionSummary(BankApiType.getTransferSummary().getDeposit())       // "여행 정산"
 			.withdrawalTransactionSummary(BankApiType.getTransferSummary().getWithdrawal()) // "여행 정산"
 			.build();
-		bankApiClient.transfer(request);
+		BankTransferResponse response = null;
+		try{
+			response = bankApiClient.transfer(request);
+		} catch(BankApiException e){
+			
+		}
 	}
 }
