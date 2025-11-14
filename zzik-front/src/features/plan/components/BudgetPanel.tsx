@@ -98,7 +98,7 @@ const BudgetAmountEditor = ({ yItem }: { yItem: Y.Map<unknown> }) => {
           variant="input"
           placeholder="금액"
           numericOnly={true}
-          className="text-sm"
+          size="sm"
         />
       </div>
       <span className="text-xs font-semibold text-slate-500">원</span>
@@ -234,41 +234,57 @@ const BudgetPanel = () => {
         <p className="mt-1 text-sm text-slate-400">예산을 입력할 수 있습니다.</p>
       </header>
 
-      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-4 shadow-sm">
-        <div className="text-xs text-slate-500 font-semibold">
+      <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-3 shadow-sm">
+        <div className="text-[10px] text-slate-500 font-semibold">
           선택 날짜: <span className="text-slate-700">{selectedDateKey}</span>
         </div>
-        <div className="flex flex-col gap-2" ref={calendarRef}>
+
+        {/* 한 줄: 카테고리 + 금액 */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5" ref={calendarRef}>
           <DropdownSelect
             options={CATEGORY_OPTIONS}
             value={category}
             onChange={(value) => setCategory(value as CostCategory)}
             placeholder="카테고리"
-            className="w-full text-sm"
+            className="w-full sm:w-48 text-xs"
           />
-          <Input
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            placeholder="금액 (원)"
-            value={amount}
-            onChange={(e) => {
-              const numericValue = e.target.value.replace(/[^0-9]/g, '')
-              setAmount(numericValue)
-            }}
-            className="text-sm"
-          />
-          <Input
-            type="text"
-            placeholder="설명 (선택사항)"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="text-sm"
-          />
+
+          {/* 금액 입력 with prefix/suffix */}
+          <div className="relative w-full">
+            <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-slate-400">
+              ₩
+            </span>
+            <Input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              placeholder="금액"
+              value={amount}
+              onChange={(e) => {
+                const numericValue = e.target.value.replace(/[^0-9]/g, '')
+                setAmount(numericValue) // 숫자만 상태에 저장 (메모리 낭비/파싱 오류 방지)
+              }}
+              className="pl-5 pr-7 text-xs py-1.5 px-2.5 w-full"
+            />
+            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-slate-400">
+              원
+            </span>
+          </div>
         </div>
+
+        {/* 설명은 다음 줄 */}
+        <Input
+          type="text"
+          placeholder="설명 (선택사항)"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="text-xs py-1.5 px-2.5"
+        />
+
         <SolidButton
           onClick={handleAdd}
-          className="bg-emerald-500 text-white hover:bg-emerald-600 rounded-full"
+          disabled={!category || !amount}
+          className="text-white rounded-full text-xs py-1.5"
         >
           + 예산 추가
         </SolidButton>
@@ -341,7 +357,7 @@ const BudgetPanel = () => {
                   </div>
                   {yDesc && (
                     <div className="text-xs text-slate-600 bg-slate-50 rounded-md p-2">
-                      <YTextEditor ytext={yDesc} variant="plain" />
+                      <YTextEditor ytext={yDesc} variant="plain" size="sm" />
                     </div>
                   )}
                 </li>
@@ -350,46 +366,34 @@ const BudgetPanel = () => {
           </ul>
         )}
       </div>
-      {/* 카테고리별 통계 */}
-      <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-4">
-        <h3 className="text-sm font-bold text-slate-700 mb-3">카테고리별 예산</h3>
-        <div className="grid grid-cols-2 gap-2">
-          {COST_CATEGORIES.map((cat) => {
-            const amount = categoryStats[cat]
-            const percentage = totalForSelected > 0 ? (amount / totalForSelected) * 100 : 0
-            return (
-              <div
-                key={cat}
-                className="flex flex-col gap-1 rounded-lg bg-white p-2 shadow-sm border border-slate-100"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-600">
-                    {COST_CATEGORY_LABELS[cat]}
-                  </span>
-                  <span className="text-xs font-bold text-indigo-600">
-                    {percentage > 0 ? percentage.toFixed(1) : '0'}%
-                  </span>
-                </div>
-                <div className="text-sm font-bold text-slate-800">{amount.toLocaleString()}원</div>
-                <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
-                  <div
-                    className="bg-gradient-to-r from-indigo-500 to-blue-500 h-1.5 rounded-full transition-all duration-300"
-                    style={{ width: `${percentage}%` }}
-                  />
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
+      {/* 카테고리별 통계는 총 예산 호버 시 툴팁으로 표시 */}
 
-      {/* 총 예산 */}
-      <div className="rounded-xl border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-green-50 p-4 shadow-md">
+      <div className="rounded-xl border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-green-50 p-4 shadow-md relative group">
         <div className="flex items-center justify-between">
           <span className="font-bold text-xl text-emerald-700">총 예산</span>
           <span className="text-emerald-900 font-bold text-2xl">
             {totalForSelected.toLocaleString()} 원
           </span>
+        </div>
+        <div className="pointer-events-none absolute right-3 bottom-full mb-2 w-64 rounded-lg border border-slate-200 bg-white p-3 shadow-xl opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200 z-50">
+          <div className="text-xs font-bold text-slate-700 mb-2">카테고리별 예산</div>
+          <ul className="space-y-1">
+            {COST_CATEGORIES.map((cat) => {
+              const amount = categoryStats[cat]
+              const percentage = totalForSelected > 0 ? (amount / totalForSelected) * 100 : 0
+              return (
+                <li key={cat} className="flex items-center justify-between text-xs">
+                  <span className="text-slate-600">{COST_CATEGORY_LABELS[cat]}</span>
+                  <span className="text-slate-900 font-semibold">
+                    {amount.toLocaleString()}원
+                    <span className="ml-1 text-[10px] text-slate-500">
+                      {percentage > 0 ? percentage.toFixed(1) : '0'}%
+                    </span>
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
         </div>
       </div>
     </aside>

@@ -14,6 +14,7 @@ interface YTextEditorProps {
   singleLine?: boolean
   variant?: 'input' | 'plain'
   numericOnly?: boolean
+  size?: 'xs' | 'sm' | 'md' | 'lg'
 }
 
 const normalizeSingleLine = (text: string, singleLine: boolean | undefined) =>
@@ -27,10 +28,30 @@ const YTextEditor = ({
   singleLine,
   variant = 'input',
   numericOnly = false,
+  size = 'md',
 }: YTextEditorProps) => {
   const isRemoteRef = useRef(false)
   const isComposingRef = useRef(false)
   const pendingRemoteTextRef = useRef<string | null>(null)
+
+  const sizeClasses = useMemo(() => {
+    const textSizes = {
+      xs: 'text-xs',
+      sm: 'text-sm',
+      md: 'text-sm',
+      lg: 'text-base',
+    }
+    const paddingClasses = {
+      xs: 'px-2 py-1',
+      sm: 'px-2.5 py-1',
+      md: 'px-3 py-1.5',
+      lg: 'px-4 py-2',
+    }
+    return {
+      text: textSizes[size],
+      padding: paddingClasses[size],
+    }
+  }, [size])
 
   const initialContent = useMemo(
     () => normalizeSingleLine(ytext.toString(), singleLine),
@@ -112,8 +133,10 @@ const YTextEditor = ({
       content: initialContent,
       editorProps: {
         attributes: {
-          class:
-            'prose prose-sm max-w-none focus:outline-none min-h-[1.5rem] bg-transparent text-inherit leading-tight',
+          class: cn(
+            'prose max-w-none focus:outline-none min-h-[1.5rem] bg-transparent text-inherit leading-tight',
+            sizeClasses.text
+          ),
           ...(numericOnly && {
             inputmode: 'numeric',
             pattern: '[0-9]*',
@@ -234,7 +257,11 @@ const YTextEditor = ({
       className={cn(
         variant === 'plain'
           ? 'w-full min-h-[2rem]'
-          : 'w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-900 shadow-sm transition-all hover:border-blue-300 hover:shadow-md focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-100 flex items-center',
+          : cn(
+              'w-full rounded-lg border border-slate-300 bg-white font-medium text-slate-900 shadow-sm transition-all hover:border-blue-300 hover:shadow-md focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-100 flex items-center',
+              sizeClasses.padding,
+              sizeClasses.text
+            ),
         className
       )}
       onClick={() => {
