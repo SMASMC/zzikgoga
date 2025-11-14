@@ -159,14 +159,18 @@ export class YDocLoaderService {
               yScheduleItem.set('has_location', !!schedule.has_location)
 
               if (schedule.has_location && location) {
-                yScheduleItem.set('location', {
-                  id: location.id,
-                  name: location.name,
-                  full_address: location.full_address,
-                  detail: location.detail,
-                  latitude: location.latitude,
-                  longitude: location.longitude,
-                })
+                const yLocation = new Y.Map<any>()
+                yLocation.set('id', location.id)
+                yLocation.set('name', new Y.Text(location.name || ''))
+                yLocation.set('full_address', location.full_address || '')
+                yLocation.set('detail', location.detail || '')
+                yLocation.set('sido', location.sido || '')
+                yLocation.set('sigungu', location.sigungu || '')
+                yLocation.set('road_name', location.road_name || '')
+                yLocation.set('building_num', location.building_num || '')
+                yLocation.set('latitude', location.latitude)
+                yLocation.set('longitude', location.longitude)
+                yScheduleItem.set('location', yLocation)
               } else {
                 yScheduleItem.set('location', null)
               }

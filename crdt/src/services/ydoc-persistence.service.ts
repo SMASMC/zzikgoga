@@ -292,6 +292,7 @@ export class YDocPersistenceService {
   // Schedule 관련
   private async upsertScheduleItem(tripId: number, scheduleItem: Y.Map<any>, dateKey: string): Promise<void> {
     const id = scheduleItem.get('id') as number | undefined
+    const uid = scheduleItem.get('uid') as string | undefined
     const isDeleted = scheduleItem.get('_deleted') === true
 
     if (isDeleted && id) {
@@ -301,6 +302,11 @@ export class YDocPersistenceService {
       } catch (err) {
         console.error('[YDocPersistenceService] Failed to delete schedule:', err)
       }
+      return
+    }
+
+    if (isDeleted && !id) {
+      console.log(`[YDocPersistenceService] Skipping delete - no DB id yet for uid=${uid}`)
       return
     }
 
