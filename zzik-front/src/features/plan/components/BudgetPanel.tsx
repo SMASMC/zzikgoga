@@ -23,16 +23,39 @@ const CATEGORY_OPTIONS = COST_CATEGORIES.map((cat) => ({
 }))
 
 const BudgetAmountEditor = ({ yItem }: { yItem: Y.Map<unknown> }) => {
-  const amountText = (() => {
+  // 1) 렌더 중 문서 수정 금지: 로컬 상태로 보관
+  const [amountText, setAmountText] = useState<Y.Text | null>(null)
+
+  // 2) 마운트 이후(커밋 단계) 문서에 필드 보장
+  useEffect(() => {
+    let mounted = true
     const existing = yItem.get('amount_text')
-    if (existing instanceof Y.Text) return existing
+
+    if (existing instanceof Y.Text) {
+      if (mounted) setAmountText(existing)
+      return () => {
+        mounted = false
+      }
+    }
+
     const currentAmount = yItem.get('amount') as number | undefined
     const y = new Y.Text(typeof currentAmount === 'number' ? String(currentAmount) : '')
-    yItem.set('amount_text', y)
-    return y
-  })()
 
+    // 문서 변경은 커밋 이후에!
+    yItem.doc?.transact(() => {
+      yItem.set('amount_text', y)
+    }, 'init-budget-amount-text')
+
+    if (mounted) setAmountText(y)
+    return () => {
+      mounted = false
+    }
+  }, [yItem])
+
+  // 3) 숫자 동기화 옵저버도 amountText 준비된 뒤에만 등록
   useEffect(() => {
+    if (!amountText) return
+
     const syncToNumber = () => {
       const raw = amountText.toString().replace(/[^0-9]/g, '')
       const num = raw.length ? Number(raw) : 0
@@ -43,10 +66,28 @@ const BudgetAmountEditor = ({ yItem }: { yItem: Y.Map<unknown> }) => {
         }, 'update-budget-amount')
       }
     }
+
+    // 초기 1회 동기화 + 관찰 시작
     syncToNumber()
     amountText.observe(syncToNumber)
     return () => amountText.unobserve(syncToNumber)
   }, [amountText, yItem])
+
+  // 4) 데이터 없을 때 예외 처리(로딩 가드)
+  if (!amountText) {
+    return (
+      <div className="flex items-center gap-1 min-w-[140px]">
+        <div className="w-28">
+          <input
+            className="w-full rounded-md border px-2 py-1 opacity-60"
+            placeholder="금액"
+            disabled
+          />
+        </div>
+        <span className="text-slate-600">원</span>
+      </div>
+    )
+  }
 
   return (
     <div className="flex items-center gap-1 min-w-[140px]">
