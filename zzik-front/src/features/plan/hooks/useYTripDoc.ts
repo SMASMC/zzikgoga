@@ -479,7 +479,7 @@ export const useYTripDoc = (roomId: string) => {
 
   const updateScheduleTime = useCallback(
     (
-      dateKey: string,
+      rawKey: string,
       yArrayIndex: number,
       updates: { startTimeLocal?: string; offsetHHMM?: string | null }
     ) => {
@@ -487,8 +487,11 @@ export const useYTripDoc = (roomId: string) => {
       if (!entry) return
       const { doc } = entry
       const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
-      const yArr = schedulesMap.get(dateKey)
-      if (!(yArr instanceof Y.Array)) return
+      const yArr = schedulesMap.get(rawKey)
+      if (!(yArr instanceof Y.Array)) {
+        console.error(`[updateScheduleTime] yArr not found for rawKey=${rawKey}`)
+        return
+      }
       const yItem = yArr.get(yArrayIndex) as Y.Map<unknown> | undefined
       if (!yItem) {
         console.error(`[updateScheduleTime] yItem not found at index ${yArrayIndex}`)
@@ -496,7 +499,7 @@ export const useYTripDoc = (roomId: string) => {
       }
 
       console.log(
-        `[updateScheduleTime] dateKey=${dateKey}, yArrayIndex=${yArrayIndex}, updates=`,
+        `[updateScheduleTime] rawKey=${rawKey}, yArrayIndex=${yArrayIndex}, updates=`,
         updates
       )
 
@@ -516,8 +519,29 @@ export const useYTripDoc = (roomId: string) => {
       }
 
       if (updates.startTimeLocal) {
+        // For now, just update in place since each schedule is in its own Y.Array
+        // We don't support moving schedules to different dates via this function
+        doc.transact(() => {
+          console.log(`[updateScheduleTime] Setting start_time to ${updates.startTimeLocal}`)
+          yItem.set('start_time', updates.startTimeLocal!)
+          const t = yItem.get('start_hhmm_text')
+          const val = hhmmFromIsoLocal(updates.startTimeLocal!)
+          if (t instanceof Y.Text) {
+            t.delete(0, t.length)
+            t.insert(0, val)
+          } else {
+            yItem.set('start_hhmm_text', new Y.Text(val))
+          }
+          applyOffset(yItem)
+        }, 'update-schedule-time')
+      } else {
+        doc.transact(() => applyOffset(yItem), 'update-schedule-offset')
+      }
+
+      // Old code for moving between dates - commented out for now
+      /* if (updates.startTimeLocal) {
         const newDateKey = dateKeyOf(updates.startTimeLocal)
-        if (newDateKey === dateKey) {
+        if (newDateKey === rawKey) {
           doc.transact(() => {
             yItem.set('start_time', updates.startTimeLocal!)
             const t = yItem.get('start_hhmm_text')
@@ -599,12 +623,12 @@ export const useYTripDoc = (roomId: string) => {
             nextArr.push([newMap])
 
             yArr.delete(yArrayIndex, 1)
-            if (yArr.length === 0) schedulesMap.delete(dateKey)
+            if (yArr.length === 0) schedulesMap.delete(rawKey)
           }, 'move-schedule-day')
         }
       } else {
         doc.transact(() => applyOffset(yItem), 'update-schedule-offset')
-      }
+      } */
     },
     []
   )

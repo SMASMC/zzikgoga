@@ -242,8 +242,14 @@ const ScheduleItem = ({
     if (!doc || !yItem) return
     doc.transact(() => {
       if (which === 'start') {
-        yItem.set('start_time', `${selectedDateKey}T${valueHHMM}`)
+        // Use the date portion from existing start_time, not selectedDateKey
+        const existingStartTime = String(yItem.get('start_time') ?? schedule.start_time)
+        const datePart = existingStartTime.slice(0, 10) // "YYYY-MM-DD"
+        const newStartTime = `${datePart}T${valueHHMM}`
+        console.log(`[syncCanonical] Setting start_time to: ${newStartTime}`)
+        yItem.set('start_time', newStartTime)
       } else {
+        console.log(`[syncCanonical] Setting offset_time to: ${valueHHMM || '00:00'}`)
         yItem.set('offset_time', valueHHMM || '00:00')
       }
     }, `sync-${which}-canonical`)
@@ -328,7 +334,7 @@ const ScheduleItem = ({
           <ScheduleMemoEditor
             doc={doc}
             awareness={awareness}
-            dateKey={selectedDateKey}
+            dateKey={rawKey}
             index={realIndex}
             fieldKey={`memo-${schedule.uid}`}
             initialText={schedule.memo}
@@ -396,8 +402,9 @@ const ScheduleItem = ({
                     setFallbackStart(toTimeFromAny(schedule.start_time))
                     return
                   }
-                  onUpdateTime(selectedDateKey, realIndex, {
-                    startTimeLocal: `${selectedDateKey}T${fallbackStart}`,
+                  const datePart = schedule.start_time.slice(0, 10)
+                  onUpdateTime(rawKey, realIndex, {
+                    startTimeLocal: `${datePart}T${fallbackStart}`,
                     offsetHHMM: fallbackOffset || null,
                   })
                 }}
@@ -445,8 +452,10 @@ const ScheduleItem = ({
                     setFallbackOffset(normalizeOffsetToHHMM(schedule.offset_time))
                     return
                   }
-                  onUpdateTime(selectedDateKey, realIndex, {
-                    startTimeLocal: `${selectedDateKey}T${fallbackStart || toTimeFromAny(schedule.start_time)}`,
+                  const datePart = schedule.start_time.slice(0, 10)
+                  const timePart = fallbackStart || toTimeFromAny(schedule.start_time)
+                  onUpdateTime(rawKey, realIndex, {
+                    startTimeLocal: `${datePart}T${timePart}`,
                     offsetHHMM: norm,
                   })
                 }}
@@ -498,7 +507,7 @@ const ScheduleItem = ({
                   })
                   return
                 }
-                onUpdateTime(selectedDateKey, realIndex, {
+                onUpdateTime(rawKey, realIndex, {
                   startTimeLocal: iso,
                   offsetHHMM: editOffset ? off : null,
                 })
