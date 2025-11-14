@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import com.zzik.backend.domain.auth.entity.Member;
 import com.zzik.backend.domain.cost.entity.CostSettlement;
+import com.zzik.backend.domain.cost.entity.Settlement;
 import com.zzik.backend.domain.cost.entity.SettlementStatus;
 import com.zzik.backend.domain.cost.repository.CostSettlementRepository;
 import com.zzik.backend.domain.plan.entity.TripMember;
@@ -19,6 +20,7 @@ import com.zzik.backend.global.external.bank.dto.BankHeaderDto;
 import com.zzik.backend.global.external.bank.dto.BankTransferRequest;
 import com.zzik.backend.global.external.bank.dto.BankTransferResponse;
 import com.zzik.backend.global.external.bank.exception.BankApiException;
+import com.zzik.backend.global.external.bank.exception.BankErrorCode;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +35,7 @@ public class CostSettlementService {
 	private final CostSettlementRepository costSettlementRepository;
 	private final BankApiClient bankApiClient;
 	private final BankApiConfig bankApiConfig;
+	private final SettlementRepository settlementRepository;
 
 	public void processSettlement(Long tripId, Long memberId) {
 		// 0. 여행에 속해있는 모든 멤버 확인
@@ -50,8 +53,9 @@ public class CostSettlementService {
 		}
 		// 3. 모든 플로우들을 토대로 순차적으로 DB트랜잭션 수행
 		// 3-1. 여행 별 정산 상태 엔티티 생성
-		costSettlementRepository.save(new CostSettlement(
+		settlementRepository.save(new Settlement(
 			tripId,
+			null,
 			SettlementStatus.IN_PROGRESSING,
 			0,
 			null,
@@ -91,7 +95,13 @@ public class CostSettlementService {
 		try{
 			response = bankApiClient.transfer(request);
 		} catch(BankApiException e){
-			
+			// 잔액 부족 시의 로직(함수로 빼기)
+			switch(e.getErrorCode()){
+				case INVALID_AMOUNT -> {
+					//잔액 부족
+
+				}
+			}
 		}
 	}
 }
