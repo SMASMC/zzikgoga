@@ -228,6 +228,11 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
       setIsEditing(false)
       const response = await CostDetailService.getCostDetail(Number(tripId), costId)
       setCostDetail(response)
+
+      // 목록 및 정산 내역 새로고침
+      if (onRefresh) {
+        onRefresh()
+      }
     } catch (err) {
       console.error('비용 수정 실패:', err)
       setError('비용 수정에 실패했습니다. 다시 시도해주세요.')
@@ -356,7 +361,7 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
       {/* Modal Content */}
       <div className="relative w-full max-w-md sm:max-w-lg bg-gradient-to-br from-white via-background-500 to-background-600 rounded-3xl shadow-xl p-6 sm:p-8 font-bmjua max-h-[90vh] overflow-y-auto custom-scrollbar">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-6 pt-6">
           <h2 className="text-xl font-bold text-text-500 font-bmjua">
             {isEditing ? '결제 내역 수정' : '결제 내역 상세'}
           </h2>
@@ -400,95 +405,101 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
             <>
               {isEditing ? (
                 // 수정 모드
-                <div className="bg-gray-50 rounded-xl p-4 space-y-4">
-                  <h3 className="text-lg font-bold text-text-500">기본 정보</h3>
+                <>
+                  {/* 기본 정보 카드 */}
+                  <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                    <h3 className="text-lg font-bold text-text-500">기본 정보</h3>
 
-                  {/* 결제자 선택 */}
-                  <div>
-                    <p className="text-sm text-text-600 mb-2">결제자</p>
-                    <div className="bg-white rounded-2xl p-3 shadow-sm flex items-center space-x-3">
-                      <div className="flex-shrink-0">
-                        {payer?.picture ? (
-                          <img
-                            src={payer.picture}
-                            alt={payer.name}
-                            className="w-12 h-12 rounded-full object-cover border-2 border-blue-400"
-                          />
-                        ) : (
-                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center border-2 border-blue-400">
-                            <span className="text-white font-bold text-lg">
-                              {payer?.name.charAt(0) || 'U'}
-                            </span>
-                          </div>
-                        )}
+                    {/* 결제자 선택 */}
+                    <div>
+                      <p className="text-sm text-text-600 mb-1">결제자</p>
+                      <div className="bg-white rounded-2xl p-3 shadow-sm flex items-center space-x-3">
+                        <div className="flex-shrink-0">
+                          {payer?.picture ? (
+                            <img
+                              src={payer.picture}
+                              alt={payer.name}
+                              className="w-12 h-12 rounded-full object-cover border-2 border-blue-400"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center border-2 border-blue-400">
+                              <span className="text-white font-bold text-lg">
+                                {payer?.name.charAt(0) || 'U'}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-bold text-text-500">{payer?.name || '사용자'}</p>
+                        </div>
+                        <button
+                          type="button"
+                          className="px-3 py-1.5 text-sm bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors font-bold"
+                          onClick={() => setIsPayerModalOpen(true)}
+                        >
+                          변경
+                        </button>
                       </div>
-                      <div className="flex-1">
-                        <p className="font-bold text-text-500">{payer?.name || '사용자'}</p>
-                      </div>
-                      <button
-                        type="button"
-                        className="px-3 py-1.5 text-sm bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors font-bold"
-                        onClick={() => setIsPayerModalOpen(true)}
-                      >
-                        변경
-                      </button>
+                    </div>
+
+                    {/* 결제 일시 */}
+                    <div>
+                      <p className="text-sm text-text-600 mb-1">결제 일시</p>
+                      <input
+                        type="datetime-local"
+                        value={formData.paidAt}
+                        onChange={(e) => setFormData({ ...formData, paidAt: e.target.value })}
+                        className="w-full px-4 py-2.5 text-sm text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md"
+                      />
+                    </div>
+
+                    {/* 장소 */}
+                    <div>
+                      <p className="text-sm text-text-600 mb-1">장소</p>
+                      <input
+                        type="text"
+                        value={formData.place}
+                        onChange={(e) => setFormData({ ...formData, place: e.target.value })}
+                        placeholder="예: 스타벅스 강남점"
+                        className="w-full px-4 py-2.5 text-sm text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md placeholder:text-gray-400"
+                      />
+                    </div>
+
+                    {/* 메모 */}
+                    <div>
+                      <p className="text-sm text-text-600 mb-1">메모</p>
+                      <textarea
+                        value={formData.memo || ''}
+                        onChange={(e) => setFormData({ ...formData, memo: e.target.value })}
+                        placeholder="메모를 입력하세요"
+                        rows={3}
+                        className="w-full px-4 py-2.5 text-sm text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md resize-none placeholder:text-gray-400"
+                      />
                     </div>
                   </div>
 
-                  {/* 결제 일시 */}
-                  <div>
-                    <p className="text-sm text-text-600 mb-2">결제 일시</p>
-                    <input
-                      type="datetime-local"
-                      value={formData.paidAt}
-                      onChange={(e) => setFormData({ ...formData, paidAt: e.target.value })}
-                      className="w-full px-4 py-2.5 text-sm text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md"
-                    />
-                  </div>
-
-                  {/* 장소 */}
-                  <div>
-                    <p className="text-sm text-text-600 mb-2">장소</p>
-                    <input
-                      type="text"
-                      value={formData.place}
-                      onChange={(e) => setFormData({ ...formData, place: e.target.value })}
-                      placeholder="예: 스타벅스 강남점"
-                      className="w-full px-4 py-2.5 text-sm text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md placeholder:text-gray-400"
-                    />
-                  </div>
-
-                  {/* 메모 */}
-                  <div>
-                    <p className="text-sm text-text-600 mb-2">메모</p>
-                    <textarea
-                      value={formData.memo || ''}
-                      onChange={(e) => setFormData({ ...formData, memo: e.target.value })}
-                      placeholder="메모를 입력하세요"
-                      rows={3}
-                      className="w-full px-4 py-2.5 text-sm text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md resize-none placeholder:text-gray-400"
-                    />
-                  </div>
-
-                  {/* 메뉴 목록 */}
+                  {/* 상세 정보 카드 */}
                   {formData.menus.length > 0 && (
-                    <div>
-                      <p className="text-sm text-text-600 mb-2">메뉴 목록</p>
+                    <div className="bg-blue-50 rounded-xl p-4">
+                      <h3 className="text-lg font-bold text-text-500 mb-2">상세 정보</h3>
                       <div className="space-y-2">
                         {formData.menus.map((menu, index) => (
-                          <div key={index} className="bg-white rounded-lg p-3 space-y-2">
-                            <input
-                              type="text"
-                              value={menu.menuName}
-                              onChange={(e) => {
-                                const newMenus = [...formData.menus]
-                                newMenus[index].menuName = e.target.value
-                                setFormData({ ...formData, menus: newMenus })
-                              }}
-                              placeholder="메뉴명"
-                              className="w-full px-3 py-2 bg-gray-50 border border-blue-300 rounded-lg text-sm outline-none focus:outline-none focus:ring-0 focus:border-blue-400"
-                            />
-                            <div className="flex gap-2">
+                          <div key={index} className="bg-white rounded-lg p-3 sm:p-4 space-y-3 sm:space-y-4 overflow-hidden mb-3 sm:mb-4">
+                            <div>
+                              <label className="block text-xs text-text-500 mb-1 sm:mb-2">품목명</label>
+                              <input
+                                type="text"
+                                value={menu.menuName}
+                                onChange={(e) => {
+                                  const newMenus = [...formData.menus]
+                                  newMenus[index].menuName = e.target.value
+                                  setFormData({ ...formData, menus: newMenus })
+                                }}
+                                className="w-full px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-50 border border-blue-300 rounded-lg text-sm outline-none focus:outline-none focus:ring-0 focus:border-blue-400"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-text-500 mb-1 sm:mb-2">금액</label>
                               <input
                                 type="number"
                                 value={menu.amount || ''}
@@ -497,9 +508,11 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
                                   newMenus[index].amount = Number(e.target.value)
                                   setFormData({ ...formData, menus: newMenus })
                                 }}
-                                placeholder="금액"
-                                className="flex-1 px-3 py-2 bg-gray-50 border border-blue-300 rounded-lg text-sm outline-none focus:outline-none focus:ring-0 focus:border-blue-400"
+                                className="w-full px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-50 border border-blue-300 rounded-lg text-sm outline-none focus:outline-none focus:ring-0 focus:border-blue-400"
                               />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-text-500 mb-1 sm:mb-2">수량</label>
                               <input
                                 type="number"
                                 value={menu.count || ''}
@@ -508,13 +521,12 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
                                   newMenus[index].count = Number(e.target.value)
                                   setFormData({ ...formData, menus: newMenus })
                                 }}
-                                placeholder="수량"
-                                className="w-20 px-3 py-2 bg-gray-50 border border-blue-300 rounded-lg text-sm outline-none focus:outline-none focus:ring-0 focus:border-blue-400"
+                                className="w-full px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-50 border border-blue-300 rounded-lg text-sm outline-none focus:outline-none focus:ring-0 focus:border-blue-400"
                               />
                             </div>
                             {/* 참여자 선택 */}
                             <div>
-                              <p className="text-xs text-text-500 mb-1">참여자</p>
+                              <label className="block text-xs text-text-500 mb-1 sm:mb-2">결제 참여자</label>
                               {menu.payerIds && menu.payerIds.length > 0 && (
                                 <div className="flex flex-wrap gap-2 mb-2">
                                   {menu.payerIds.map((memberId) => {
@@ -629,11 +641,11 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
                         }}
                         className="mt-2 px-3 py-1 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-bold"
                       >
-                        + 메뉴 추가
+                        + 품목 추가
                       </button>
                     </div>
                   )}
-                </div>
+                </>
               ) : (
                 // 읽기 모드
                 <div className="bg-gray-50 rounded-xl p-4 space-y-3">
