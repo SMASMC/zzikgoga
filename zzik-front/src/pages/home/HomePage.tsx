@@ -30,8 +30,7 @@ const slides: OnboardingSlide[] = [
     title: '간편한 여행 정산',
     description:
       '친구들과 함께한 여행 경비를 쉽고 빠르게 정산하세요. 누가 얼마를 냈는지 한눈에 확인하고 공정하게 나눌 수 있습니다.',
-    image:
-      'https://images.unsplash.com/photo-1593168098026-10d982cb9055?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0cmF2ZWwlMjBhZHZlbnR1cmUlMjBtb3VudGFpbnN8ZW58MXx8fHwxNzYxMjA5Nzk5fDA&ixlib=rb-4.1.0&q=80&w=1080',
+    image: '/home/settle.jpg',
     icon: <Wallet />,
     color: '#3B82F6',
   },

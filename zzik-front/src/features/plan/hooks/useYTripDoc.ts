@@ -169,7 +169,6 @@ const snapshotSchedules = (doc: Y.Doc): Record<string, YScheduleItem[]> => {
   return result
 }
 
-
 /** ===== 순서 변경 시 시각 재흐름 ===== */
 const reflowScheduleTimes = (yArr: Y.Array<Y.Map<unknown>>) => {
   if (yArr.length === 0) return
