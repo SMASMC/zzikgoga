@@ -229,9 +229,9 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
       const response = await CostDetailService.getCostDetail(Number(tripId), costId)
       setCostDetail(response)
 
-      // 목록 및 정산 내역 새로고침
+      // 목록 및 정산 내역 새로고침 (비동기 처리)
       if (onRefresh) {
-        onRefresh()
+        await onRefresh()
       }
     } catch (err) {
       console.error('비용 수정 실패:', err)

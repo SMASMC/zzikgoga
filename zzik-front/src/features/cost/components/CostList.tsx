@@ -359,7 +359,10 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
           onClose={handleCloseModal}
           tripId={tripId}
           costId={selectedCostId}
-          onRefresh={loadCostList}
+          onRefresh={async () => {
+            await loadCostList()
+            await loadSettleInfo()
+          }}
         />
       )}
     </div>
