@@ -2,6 +2,7 @@ package com.zzik.backend.domain.cost.entity;
 
 import java.util.Map;
 
+import org.hibernate.annotations.JdbcType;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -78,6 +79,7 @@ public class SettlementMemberTransfer extends BaseEntity {
 	/** 송금 상태 (보낼 금액이 있을 때만) */
 	@Enumerated(EnumType.STRING)
 	@Column(name = "send_status", columnDefinition = "network_detail_status")
+	@JdbcType(org.hibernate.dialect.PostgreSQLEnumJdbcType.class)
 	private NetworkDetailStatus sendStatus;
 
 	/** 송금 실패 시 에러 코드 */
@@ -87,6 +89,7 @@ public class SettlementMemberTransfer extends BaseEntity {
 	/** 수신 상태 (받을 금액이 있을 때만) */
 	@Enumerated(EnumType.STRING)
 	@Column(name = "receive_status", columnDefinition = "network_detail_status")
+	@JdbcType(org.hibernate.dialect.PostgreSQLEnumJdbcType.class)
 	private NetworkDetailStatus receiveStatus;
 
 	/** 수신 실패 시 에러 코드 */

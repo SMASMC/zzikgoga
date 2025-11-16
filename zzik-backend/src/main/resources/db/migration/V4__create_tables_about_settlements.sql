@@ -41,8 +41,8 @@ CREATE TABLE "settlement_transaction" (
                                           "error_code" VARCHAR(100) NULL,  -- 외부 API에서 내리는 에러코드, 상태가 FAILED라면 값이 채워져있음
                                           "bank_transaction_id" VARCHAR(1000) NULL,  -- 외부 API와의 멱등성을 위함 (중복 요청 방지)
                                           "retry_count" INT NOT NULL DEFAULT 0,
-                                          "created_at" TIMESTAMP with time NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                                          "updated_at" TIMESTAMP with time NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                          "created_at" TIMESTAMP with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                          "updated_at" TIMESTAMP with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
                                           CONSTRAINT fk_settlement_transaction_settlement FOREIGN KEY ("settlement_id") REFERENCES "settlement"("id")
 );
 

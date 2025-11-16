@@ -1,5 +1,7 @@
 package com.zzik.backend.domain.cost.entity;
 
+import org.hibernate.annotations.JdbcType;
+
 import com.zzik.backend.global.base.entity.BaseEntity;
 
 import jakarta.persistence.Column;
@@ -62,6 +64,7 @@ public class SettlementTransaction extends BaseEntity {
 	/** 송금 상태 */
 	@Enumerated(EnumType.STRING)
 	@Column(name = "status", nullable = false, columnDefinition = "network_detail_status DEFAULT 'TRANSFERRING'")
+	@JdbcType(org.hibernate.dialect.PostgreSQLEnumJdbcType.class)
 	private NetworkDetailStatus status;
 
 	/** 외부 API 에러 코드 (FAILED 상태일 때 값 존재) */

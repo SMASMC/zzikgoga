@@ -3,6 +3,8 @@ package com.zzik.backend.domain.cost.entity;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.hibernate.annotations.JdbcType;
+
 import com.zzik.backend.global.base.entity.BaseEntity;
 
 import jakarta.persistence.CascadeType;
@@ -47,6 +49,7 @@ public class Settlement extends BaseEntity {
 	/** 정산 상태 */
 	@Enumerated(EnumType.STRING)
 	@Column(name = "status", nullable = false, columnDefinition = "settlement_status DEFAULT 'IN_PROGRESSING'")
+	@JdbcType(org.hibernate.dialect.PostgreSQLEnumJdbcType.class)
 	private SettlementStatus status;
 
 	/** 실패 횟수 */
