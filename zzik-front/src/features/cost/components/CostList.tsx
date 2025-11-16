@@ -161,7 +161,12 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
   return (
     <div className="bg-white rounded-3xl shadow-lg p-6 h-full">
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-text-500 mb-4 font-bmjua">정산 내역</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-text-500 font-bmjua">정산 내역</h2>
+          <SolidButton onClick={handleViewFinal} size="sm" className="flex-shrink-0">
+            정산 결과 확인하기
+          </SolidButton>
+        </div>
         <div className="flex gap-4 text-sm">
           <div className="bg-blue-50 px-4 py-2 rounded-lg">
             <span className="text-text-600">총 건수: </span>
@@ -343,9 +348,9 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
               {settleInfo &&
               settleInfo.acceptedCount === settleInfo.totalMemberCount &&
               settleInfo.totalMemberCount > 0 ? (
-                <SolidButton onClick={handleViewFinal} size="lg" className="w-full sm:w-auto">
-                  정산 결과 확인하기
-                </SolidButton>
+                <div className="bg-blue-50 px-4 py-3 rounded-lg text-center sm:text-left">
+                  <span className="text-text-600 text-sm">정산이 완료되었습니다</span>
+                </div>
               ) : (
                 <SolidButton
                   onClick={handleSettle}
@@ -368,7 +373,10 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
           onClose={handleCloseModal}
           tripId={tripId}
           costId={selectedCostId}
-          onRefresh={loadCostList}
+          onRefresh={async () => {
+            await loadCostList()
+            await loadSettleInfo()
+          }}
         />
       )}
 

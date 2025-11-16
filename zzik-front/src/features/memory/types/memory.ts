@@ -38,8 +38,6 @@ export type MemoryEntity = {
   mintStatus: string
   mintHash: string | null
   storageType: string | null
-  createdAt: string
-  updatedAt: string
 }
 
 export type MemoryPdfResponse = {
@@ -62,4 +60,8 @@ export type TripPhotoListResponse = {
   pageInfo: {
     nextCursor?: number | null
   }
+}
+export interface TripPhotoUploadResponse {
+  photoId: number
+  s3Url: string
 }

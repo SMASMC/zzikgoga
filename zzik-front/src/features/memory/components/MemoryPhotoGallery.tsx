@@ -47,6 +47,13 @@ const MemoryPhotoGallery = ({ tripId }: Props) => {
     e.dataTransfer.setData('text/plain', md)
     e.dataTransfer.setData('text/zzik-image-url', p.s3Url)
     e.dataTransfer.effectAllowed = 'copy'
+    // 드래그 이미지 설정 (선택사항)
+    if (e.currentTarget.querySelector('img')) {
+      const img = e.currentTarget.querySelector('img') as HTMLImageElement
+      if (img && img.complete) {
+        e.dataTransfer.setDragImage(img, img.width / 2, img.height / 2)
+      }
+    }
   }, [])
 
   const totalPages = useMemo(
