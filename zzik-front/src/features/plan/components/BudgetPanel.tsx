@@ -324,7 +324,9 @@ const BudgetPanel = () => {
                   key={`${selectedDateKey}-${it.id ?? 'n'}-${idx}`}
                   className="rounded-lg border border-slate-200 bg-white p-2 shadow-sm hover:shadow-md transition-shadow"
                 >
-                  <div className="flex items-start justify-between gap-2 mb-1.5">
+                  {/* 카테고리 왼쪽, 가격 + 삭제 버튼 오른쪽 */}
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    {/* 카테고리 */}
                     <div className="flex items-center gap-1.5 flex-1 min-w-0">
                       <div
                         className={`w-2 h-2 rounded-full shrink-0 ${CATEGORY_COLORS[it.category as CostCategory]}`}
@@ -347,21 +349,26 @@ const BudgetPanel = () => {
                         </span>
                       )}
                     </div>
-                    <DeleteButton
-                      onClick={() => removeBudget(selectedDateKey, it.id ?? it.uid!)}
-                      variant="text"
-                    />
-                  </div>
-                  <div className="flex items-center gap-1 mb-1.5">
-                    {yItemRef ? (
-                      <div className="flex-1">
-                        <BudgetAmountEditor yItem={yItemRef} />
+
+                    {/* 가격 + 삭제 버튼 */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {/* 가격 */}
+                      <div className="flex items-center gap-1">
+                        {yItemRef ? (
+                          <BudgetAmountEditor yItem={yItemRef} />
+                        ) : (
+                          <span className="text-xs font-bold text-slate-700">
+                            {it.amount.toLocaleString()}원
+                          </span>
+                        )}
                       </div>
-                    ) : (
-                      <span className="text-xs font-bold text-slate-700">
-                        {it.amount.toLocaleString()}원
-                      </span>
-                    )}
+
+                      {/* 삭제 버튼 */}
+                      <DeleteButton
+                        onClick={() => removeBudget(selectedDateKey, it.id ?? it.uid!)}
+                        variant="text"
+                      />
+                    </div>
                   </div>
                   <div className="mt-1.5 pt-1.5 border-t border-slate-200">
                     <div className="flex items-center gap-1 mb-1">
