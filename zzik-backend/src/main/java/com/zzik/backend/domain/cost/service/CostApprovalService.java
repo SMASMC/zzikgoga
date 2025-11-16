@@ -45,6 +45,12 @@ public class CostApprovalService {
 		tripMember.setIsCostAccepted(true);
 		// NOTE: @Transactional엔 save 필요없음 영속성 보장됨.
 		// tripMemberRepository.save(tripMember);
+
+		// 최종 정산인지 확인 -> 실제 결제 서비스 실행
+		applicationEventPublisher.publishEvent(
+			new CostFinalApprovalEvent(tripId, memberId)
+		);
+
 		return CostApprovalResponse.builder()
 			.isAccepted(tripMember.getIsCostAccepted())
 			.acceptedAt(LocalDateTime.now().toString())
@@ -89,12 +95,7 @@ public class CostApprovalService {
 			? (acceptedCount * 100.0) / totalMemberCount
 			: 0.0;
 
-		// 4. 최종 정산인지 확인 -> 실제 결제 서비스 실행
-		applicationEventPublisher.publishEvent(
-			new CostFinalApprovalEvent(tripId, memberId)
-		);
-
-		// 5. 응답 생성
+		// 4. 응답 생성
 		var response = CostApprovalStatusResponse.builder()
 			.tripId(tripId)
 			.acceptedMembers(acceptedMembers)

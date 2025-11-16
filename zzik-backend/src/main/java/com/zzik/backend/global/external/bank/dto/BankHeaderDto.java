@@ -7,9 +7,14 @@ import java.util.concurrent.ThreadLocalRandom;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.zzik.backend.global.external.bank.BankApiType;
 
+import lombok.Getter;
+import lombok.ToString;
+
 /**
  * 은행 API 공통 헤더
  */
+@Getter
+@ToString
 public class BankHeaderDto {
 	/** API 이름 (호출 api uri의 마지막 path명 */
 	@JsonProperty("apiName")
