@@ -7,7 +7,7 @@ import * as syncProtocol from 'y-protocols/sync'
 import * as awarenessProtocol from 'y-protocols/awareness'
 import { WebSocketServer, WebSocket, RawData } from 'ws'
 
-import { ydocLoaderService, ydocPersistenceService } from './services'
+import { ydocLoaderService, ydocPersistenceService, naverMapService } from './services'
 
 dotenv.config()
 
@@ -186,10 +186,88 @@ async function handleConnection(ws: WebSocket, req: http.IncomingMessage) {
   })
 }
 
-// ------------------------- bootstrap -------------------------
-const server = http.createServer((_req, res) => {
+// ------------------------- HTTP API Handler -------------------------
+async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResponse) {
+  const { url = '/', method } = req
+
+  // CORS 헤더 추가
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+
+  // OPTIONS 요청 처리
+  if (method === 'OPTIONS') {
+    res.writeHead(204)
+    res.end()
+    return
+  }
+
+  const parsedUrl = new URL(url, `http://${req.headers.host || (HOST + ':' + PORT)}`)
+  const pathname = parsedUrl.pathname
+
+  // Naver Map Direction API
+  if (pathname === '/api/naver-map/direction' && method === 'GET') {
+    try {
+      const startParam = parsedUrl.searchParams.get('start')
+      const goalParam = parsedUrl.searchParams.get('goal')
+      const option = parsedUrl.searchParams.get('option') || 'traoptimal'
+
+      if (!startParam || !goalParam) {
+        res.writeHead(400, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: 'start and goal parameters are required' }))
+        return
+      }
+
+      const startParts = startParam.split(',').map(Number)
+      const goalParts = goalParam.split(',').map(Number)
+
+      if (startParts.length !== 2 || goalParts.length !== 2) {
+        res.writeHead(400, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: 'Coordinates must be in format: lng,lat' }))
+        return
+      }
+
+      const [startLng, startLat] = startParts as [number, number]
+      const [goalLng, goalLat] = goalParts as [number, number]
+
+      if (isNaN(startLat) || isNaN(startLng) || isNaN(goalLat) || isNaN(goalLng)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: 'Invalid coordinate format' }))
+        return
+      }
+
+      console.log(`[API] Calculating travel time: ${startParam} -> ${goalParam}`)
+
+      const result = await naverMapService.calculateTravelTime(
+        { lat: startLat, lng: startLng },
+        { lat: goalLat, lng: goalLng },
+        option
+      )
+
+      if (result === null) {
+        res.writeHead(500, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: 'Failed to calculate travel time' }))
+        return
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify(result))
+    } catch (error) {
+      console.error('[API] Error:', error)
+      res.writeHead(500, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ error: 'Internal server error' }))
+    }
+    return
+  }
+
+  // 기본 응답
   res.writeHead(200)
   res.end('y-websocket compatible server alive')
+}
+
+// ------------------------- bootstrap -------------------------
+const server = http.createServer((req, res) => {
+  void handleHttpRequest(req, res)
 })
 
 const wss = new WebSocketServer({ server })

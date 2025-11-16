@@ -136,8 +136,15 @@ export class YDocLoaderService {
           tripInfoMap.clear()
           tripInfoMap.set('id', tripRow.id)
           tripInfoMap.set('title', new Y.Text(tripRow.title || ''))
-          tripInfoMap.set('start_date', toDateKey(tripRow.start_date))
-          tripInfoMap.set('end_date', toDateKey(tripRow.end_date))
+          // Only set dates if they have valid values (avoid empty strings)
+          const startDate = toDateKey(tripRow.start_date)
+          const endDate = toDateKey(tripRow.end_date)
+          if (startDate && startDate.length > 0) {
+            tripInfoMap.set('start_date', startDate)
+          }
+          if (endDate && endDate.length > 0) {
+            tripInfoMap.set('end_date', endDate)
+          }
 
           // Schedules
           const schedulesMap = doc.getMap('schedules')
