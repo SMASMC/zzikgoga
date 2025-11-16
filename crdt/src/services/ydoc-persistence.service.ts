@@ -150,6 +150,12 @@ function normalizeLocation(raw: unknown): {
  * YDocPersistenceService
  */
 export class YDocPersistenceService {
+  // Observer 중복 등록 방지를 위한 추적
+  private observedScheduleArrays = new WeakSet<Y.Array<any>>()
+  private observedScheduleItems = new WeakSet<Y.Map<any>>()
+  private observedBudgetArrays = new WeakSet<Y.Array<any>>()
+  private observedBudgetItems = new WeakSet<Y.Map<any>>()
+
   /**
    * Y.Doc에 observer 설정하여 변경사항을 DB에 반영
    * @param doc Y.Doc 인스턴스
@@ -208,9 +214,6 @@ export class YDocPersistenceService {
     for (const [dateKey, yDayArray] of schedulesMap.entries()) {
       if (!yDayArray) continue
       this.observeScheduleDayArray(yDayArray, tripId, dateKey)
-      yDayArray.toArray().forEach((schedMap) => {
-        if (schedMap instanceof Y.Map) this.hookScheduleItemObservers(schedMap, tripId, dateKey)
-      })
     }
 
     // 새로운 dateKey 추가 감지
@@ -222,15 +225,6 @@ export class YDocPersistenceService {
           const yDayArray = schedulesMap.get(dateKey) as Y.Array<Y.Map<any>> | undefined
           if (yDayArray) {
             this.observeScheduleDayArray(yDayArray, tripId, dateKey)
-            yDayArray.toArray().forEach((item, idx) => {
-              if (item instanceof Y.Map) {
-                const keyId = (item.get('id') ?? item.get('uid') ?? `init-${idx}`) as string | number
-                debounce(`schedule_upsert:${tripId}:${dateKey}:${keyId}`, () => {
-                  this.upsertScheduleItem(tripId, item, dateKey)
-                })
-                this.hookScheduleItemObservers(item, tripId, dateKey)
-              }
-            })
           }
         }
       }
@@ -242,9 +236,6 @@ export class YDocPersistenceService {
     for (const [dateKey, yDayArray] of budgetsMap.entries()) {
       if (!yDayArray) continue
       this.observeBudgetDayArray(yDayArray, tripId, dateKey)
-      yDayArray.toArray().forEach((budgetMap) => {
-        if (budgetMap instanceof Y.Map) this.hookBudgetItemObservers(budgetMap, tripId, dateKey)
-      })
     }
 
     // 새로운 dateKey 추가 감지
@@ -256,15 +247,6 @@ export class YDocPersistenceService {
           const yDayArray = budgetsMap.get(dateKey) as Y.Array<Y.Map<any>> | undefined
           if (yDayArray) {
             this.observeBudgetDayArray(yDayArray, tripId, dateKey)
-            yDayArray.toArray().forEach((item, idx) => {
-              if (item instanceof Y.Map) {
-                const keyId = (item.get('id') ?? item.get('uid') ?? `init-${idx}`) as string | number
-                debounce(`budget_upsert:${tripId}:${dateKey}:${keyId}`, () => {
-                  this.upsertBudgetItem(tripId, item, dateKey)
-                })
-                this.hookBudgetItemObservers(item, tripId, dateKey)
-              }
-            })
           }
         }
       }
@@ -363,6 +345,12 @@ export class YDocPersistenceService {
   }
 
   private observeScheduleDayArray(yDayArray: Y.Array<Y.Map<any>>, tripId: number, dateKey: string): void {
+    // 이미 observer가 등록된 배열이면 스킵
+    if (this.observedScheduleArrays.has(yDayArray)) {
+      return
+    }
+    this.observedScheduleArrays.add(yDayArray)
+
     yDayArray.observe((event: Y.YArrayEvent<Y.Map<any>>, tr: Y.Transaction) => {
       if (!isUserOrigin(tr)) return
 
@@ -387,6 +375,12 @@ export class YDocPersistenceService {
   }
 
   private hookScheduleItemObservers(scheduleItem: Y.Map<any>, tripId: number, dateKey: string): void {
+    // 이미 observer가 등록된 아이템이면 스킵
+    if (this.observedScheduleItems.has(scheduleItem)) {
+      return
+    }
+    this.observedScheduleItems.add(scheduleItem)
+
     // Map 변경
     scheduleItem.observe((_evt: Y.YMapEvent<any>, tr: Y.Transaction) => {
       if (!isUserOrigin(tr)) return
@@ -445,6 +439,12 @@ export class YDocPersistenceService {
   }
 
   private observeBudgetDayArray(yDayArray: Y.Array<Y.Map<any>>, tripId: number, dateKey: string): void {
+    // 이미 observer가 등록된 배열이면 스킵
+    if (this.observedBudgetArrays.has(yDayArray)) {
+      return
+    }
+    this.observedBudgetArrays.add(yDayArray)
+
     yDayArray.observe((event: Y.YArrayEvent<Y.Map<any>>, tr: Y.Transaction) => {
       if (!isUserOrigin(tr)) return
 
@@ -469,6 +469,12 @@ export class YDocPersistenceService {
   }
 
   private hookBudgetItemObservers(budgetItem: Y.Map<any>, tripId: number, dateKey: string): void {
+    // 이미 observer가 등록된 아이템이면 스킵
+    if (this.observedBudgetItems.has(budgetItem)) {
+      return
+    }
+    this.observedBudgetItems.add(budgetItem)
+
     budgetItem.observe((_evt, tr) => {
       if (!isUserOrigin(tr)) return
       const keyId = budgetItem.get('id') ?? budgetItem.get('uid') ?? 'new'
