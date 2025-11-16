@@ -4,14 +4,14 @@ import type { Awareness } from 'y-protocols/awareness'
 import YTextEditor from '../YTextEditor'
 import ScheduleMemoEditor from '../ScheduleMemoEditor'
 import type { YScheduleItem } from '../../hooks/useYTripDoc'
-import { HiLocationMarker, HiMap, HiTrash } from 'react-icons/hi'
+import { HiLocationMarker, HiMap, HiDocumentText } from 'react-icons/hi'
 import TimePicker from '@/components/atoms/TimePicker'
+import DeleteButton from '@/components/atoms/DeleteButton'
 
 /** =========================
  *  공통 스타일 상수(중복 제거)
  *  ========================= */
 
-const clsMonoTiny = 'font-mono text-[10px] text-slate-500'
 const clsMicro = 'text-[10px] text-slate-500'
 
 /** =========================
@@ -265,6 +265,7 @@ const ScheduleItem = ({
   /** Y 구조 참조 */
   const yItemRef = useRef<Y.Map<unknown> | null>(null)
   const yLocationNameRef = useRef<Y.Text | null>(null)
+  const yLocationDetailRef = useRef<Y.Text | null>(null)
   const yStartTextRef = useRef<Y.Text | null>(null)
   const yOffsetTextRef = useRef<Y.Text | null>(null)
 
@@ -272,6 +273,7 @@ const ScheduleItem = ({
     if (!doc) {
       yItemRef.current = null
       yLocationNameRef.current = null
+      yLocationDetailRef.current = null
       yStartTextRef.current = null
       yOffsetTextRef.current = null
       return
@@ -285,8 +287,24 @@ const ScheduleItem = ({
       const yLoc = yItem.get('location') as Y.Map<unknown>
       const name = yLoc.get('name')
       yLocationNameRef.current = name instanceof Y.Text ? name : null
+
+      // detail Y.Text 초기화
+      const ensureLocationText = (key: string, initial: string) => {
+        const cur = yLoc.get(key)
+        if (cur instanceof Y.Text) return cur
+        // 초기값의 앞뒤 따옴표 제거 (데이터 정규화)
+        const cleanedInitial = initial.replace(/^["']|["']$/g, '')
+        const t = new Y.Text(cleanedInitial)
+        doc.transact(() => {
+          yLoc.set(key, t)
+        })
+        return t
+      }
+      // detail은 이미 Y.Text로 저장되어 있으므로 fallback만 제공
+      yLocationDetailRef.current = ensureLocationText('detail', location?.detail || '')
     } else {
       yLocationNameRef.current = null
+      yLocationDetailRef.current = null
     }
 
     if (yItem) {
@@ -309,7 +327,7 @@ const ScheduleItem = ({
       yStartTextRef.current = null
       yOffsetTextRef.current = null
     }
-  }, [doc, rawKey, realIndex, schedule.start_time, schedule.offset_time])
+  }, [doc, rawKey, realIndex, schedule.start_time, schedule.offset_time, location])
 
   /** 라벨(폴백 포함) */
   const startLabel = yStartTextRef.current?.toString() || toTimeFromAny(schedule.start_time) || ''
@@ -445,13 +463,7 @@ const ScheduleItem = ({
             </span>
           )}
         </div>
-        <button
-          type="button"
-          className="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-600 hover:bg-red-100 transition shrink-0"
-          onClick={() => onRemove(rawKey, realIndex)}
-        >
-          <HiTrash className="w-3 h-3" />
-        </button>
+        <DeleteButton onClick={() => onRemove(rawKey, realIndex)} variant="icon" />
       </div>
 
       {/* 위치정보 + 시간설정 (항상 2컬럼) */}
@@ -464,44 +476,45 @@ const ScheduleItem = ({
           </div>
           <div className="space-y-0.5">
             {location?.full_address && (
-              <div className="text-[11px] text-slate-700 line-clamp-1">
-                📍 {location.full_address}
+              <div className="text-[11px] text-slate-700 line-clamp-1 flex items-start gap-1">
+                <HiLocationMarker className="w-3 h-3 text-slate-500 mt-0.5 flex-shrink-0" />
+                <span className="flex-1">{location.full_address}</span>
               </div>
             )}
             {(regionLine || roadLine) && (
               <div className={clsMicro}>{[regionLine, roadLine].filter(Boolean).join(' · ')}</div>
             )}
-            {coordinateLine && <div className={clsMonoTiny}>{coordinateLine}</div>}
-            {/* 상세 주소(협업 가능) */}
-            <div className="pt-1 border-t border-slate-200">
-              <YTextEditor
-                ytext={
-                  yItemRef.current && yItemRef.current.get('location') instanceof Y.Map
-                    ? (() => {
-                        const yLoc = yItemRef.current!.get('location') as Y.Map<unknown>
-                        const detail = yLoc.get('detail')
-                        if (detail instanceof Y.Text) return detail
-                        const t = new Y.Text(location?.detail || '')
-                        doc?.transact(() => yLoc.set('detail', t))
-                        return t
-                      })()
-                    : new Y.Text(location?.detail || '')
-                }
-                variant="plain"
-                size="xs"
-                className="text-[11px] text-slate-600 italic"
-                singleLine
-                placeholder="상세 주소 입력..."
-              />
-            </div>
+            {/* 상세 주소 입력 필드 (location이 있을 때만) */}
+            {location && (
+              <div className="mt-1.5 pt-1.5 border-t border-slate-200">
+                <div className="text-[10px] font-semibold text-slate-500 mb-1">상세 주소</div>
+                {yLocationDetailRef.current ? (
+                  <YTextEditor
+                    ytext={yLocationDetailRef.current}
+                    variant="plain"
+                    size="xs"
+                    className="rounded-full px-2 py-1.5 border border-slate-200"
+                    singleLine
+                    placeholder="상세 주소 입력..."
+                  />
+                ) : (
+                  <div className="rounded-full px-2 py-1.5 border border-slate-200">
+                    {location.detail || '상세 주소 입력...'}
+                  </div>
+                )}
+              </div>
+            )}
+            {/* 위도/경도는 숨김 처리 (값은 유지) */}
+            {coordinateLine && <div className="sr-only">{coordinateLine}</div>}
           </div>
         </div>
 
-        {/* 시간 설정 (legend 제거: 섹션 타이틀/컬러 도트 제거) */}
+        {/* 시간 설정 */}
         <div className="rounded-lg border border-slate-200 bg-white/70 px-2.5 py-2">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-3">
             {/* 시작 */}
             <div>
+              <label className="block text-[10px] font-semibold text-slate-600 mb-1">시작</label>
               {doc && yStartTextRef.current ? (
                 <CollaborativeTimeInput
                   yText={yStartTextRef.current}
@@ -569,6 +582,7 @@ const ScheduleItem = ({
 
             {/* 종료 */}
             <div>
+              <label className="block text-[10px] font-semibold text-slate-600 mb-1">종료</label>
               {doc && yStartTextRef.current && yOffsetTextRef.current ? (
                 <TimePicker
                   value={endTimeLabel}
@@ -592,10 +606,12 @@ const ScheduleItem = ({
                     syncCanonical('offset', newOffset)
                   }}
                   placeholder="종료 HH:MM"
+                  align="right"
                 />
               ) : (
                 <TimePicker
                   value={fallbackEnd}
+                  align="right"
                   onChange={(newEnd) => {
                     setFallbackEnd(newEnd)
                     const newOffset = diffToOffsetHHMM(selectedDateKey, fallbackStart, newEnd)
@@ -624,10 +640,23 @@ const ScheduleItem = ({
             </div>
           </div>
 
-          {/* 소요시간(간단 텍스트만; legend/배지 제거) */}
-          <div className="mt-2 flex items-center justify-between text-[11px]">
-            <span className="text-slate-500">소요</span>
-            <span className="font-semibold text-slate-700">{offsetLabel || '00:00'}</span>
+          {/* 소요시간 및 시간 표시 */}
+          <div className="mt-3 pt-2 border-t border-slate-200">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-slate-500 font-medium">소요시간</span>
+              <span className="font-bold text-slate-700">{offsetLabel || '00:00'}</span>
+            </div>
+            <div className="mt-1.5 flex items-center gap-2 text-[11px]">
+              <div className="flex items-center gap-1">
+                <span className="text-slate-500">시작</span>
+                <span className="font-semibold text-blue-700">{startLabel}</span>
+              </div>
+              <span className="text-slate-400">→</span>
+              <div className="flex items-center gap-1">
+                <span className="text-slate-500">종료</span>
+                <span className="font-semibold text-blue-700">{endTimeLabel}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -695,7 +724,10 @@ const ScheduleItem = ({
 
       {/* 메모: 가장 아래로 이동 */}
       <div className="mt-2 rounded-lg border border-slate-200 bg-white/70 px-2.5 py-2">
-        {/* 제목/legend 제거, 단순 영역만 */}
+        <div className="flex items-center gap-1.5 mb-1">
+          <HiDocumentText className="w-3.5 h-3.5 text-amber-500" />
+          <span className="text-[11px] font-bold text-slate-700">메모</span>
+        </div>
         {doc ? (
           <ScheduleMemoEditor
             doc={doc}
@@ -725,18 +757,18 @@ const ScheduleItem = ({
         </div>
       )}
 
-      {/* 드래그/리사이즈 중 오버레이(간결) */}
+      {/* 드래그/리사이즈 중 오버레이 */}
       {isDragging && (
         <div className="absolute inset-0 flex items-center justify-center bg-blue-500/10 rounded-xl pointer-events-none">
-          <div className="bg-blue-600 text-white px-3 py-1.5 rounded-full text-[12px] font-bold shadow">
-            📍 순서 변경 중
+          <div className="bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
+            순서 변경 중
           </div>
         </div>
       )}
       {isResizing && (
         <div className="absolute inset-0 flex items-center justify-center bg-purple-500/10 rounded-xl pointer-events-none">
-          <div className="bg-purple-600 text-white px-3 py-1.5 rounded-full text-[12px] font-bold shadow">
-            ⏱️ 종료 조정: {offsetLabel || '00:00'}
+          <div className="bg-purple-600 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
+            종료 조정: {offsetLabel || '00:00'}
           </div>
         </div>
       )}

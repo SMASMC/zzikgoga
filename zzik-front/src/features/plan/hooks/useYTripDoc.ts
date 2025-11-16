@@ -132,11 +132,16 @@ const snapshotSchedules = (doc: Y.Doc): Record<string, YScheduleItem[]> => {
         if (raw instanceof Y.Map) {
           const nameValue = raw.get('name')
           const name = nameValue instanceof Y.Text ? nameValue.toString() : String(nameValue ?? '')
+          const detailValue = raw.get('detail')
+          let detail =
+            detailValue instanceof Y.Text ? detailValue.toString() : String(detailValue ?? '')
+          // 앞뒤 따옴표 제거
+          detail = detail.replace(/^["']|["']$/g, '')
           return {
             id: (raw.get('id') as number) ?? null,
             name,
             full_address: (raw.get('full_address') as string) ?? '',
-            detail: (raw.get('detail') as string) ?? '',
+            detail,
             sido: (raw.get('sido') as string) ?? '',
             sigungu: (raw.get('sigungu') as string) ?? '',
             road_name: (raw.get('road_name') as string) ?? '',
@@ -146,11 +151,14 @@ const snapshotSchedules = (doc: Y.Doc): Record<string, YScheduleItem[]> => {
           }
         }
         const obj = raw as Record<string, unknown>
+        let detail = (obj.detail as string) ?? ''
+        // 앞뒤 따옴표 제거
+        detail = detail.replace(/^["']|["']$/g, '')
         return {
           id: (obj.id as number) ?? null,
           name: (obj.name as string) ?? '',
           full_address: (obj.full_address as string) ?? '',
-          detail: (obj.detail as string) ?? '',
+          detail,
           sido: (obj.sido as string) ?? '',
           sigungu: (obj.sigungu as string) ?? '',
           road_name: (obj.road_name as string) ?? '',
@@ -468,7 +476,9 @@ export const useYTripDoc = (roomId: string) => {
         locationMap.set('id', null)
         locationMap.set('name', new Y.Text(finalName))
         locationMap.set('full_address', loc!.full_address ?? '')
-        locationMap.set('detail', loc!.detail ?? '')
+        // detail의 앞뒤 따옴표 제거 후 Y.Text로 저장
+        const cleanDetail = (loc!.detail ?? '').replace(/^["']|["']$/g, '')
+        locationMap.set('detail', new Y.Text(cleanDetail))
         locationMap.set('sido', loc!.sido ?? '')
         locationMap.set('sigungu', loc!.sigungu ?? '')
         locationMap.set('road_name', loc!.road_name ?? '')

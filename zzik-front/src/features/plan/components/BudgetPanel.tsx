@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import SolidButton from '@/components/atoms/SolidButton'
 import Input from '@/components/atoms/Input'
+import DeleteButton from '@/components/atoms/DeleteButton'
 import { ToastDock } from '@/components/blocks/ToastDock'
 import { DropdownSelect } from '@/components/blocks/DropdownSelect'
 import { useYTripDoc } from '../hooks/useYTripDoc'
@@ -21,6 +22,16 @@ const CATEGORY_OPTIONS = COST_CATEGORIES.map((cat) => ({
   label: COST_CATEGORY_LABELS[cat],
   value: cat,
 }))
+
+// 카테고리별 색상 매핑
+const CATEGORY_COLORS: Record<CostCategory, string> = {
+  STAY: 'bg-purple-500',
+  FOOD: 'bg-orange-500',
+  TRANSPORT: 'bg-blue-500',
+  SHOPPING: 'bg-pink-500',
+  LEISURE: 'bg-emerald-500',
+  ETC: 'bg-slate-500',
+}
 
 const BudgetAmountEditor = ({ yItem }: { yItem: Y.Map<unknown> }) => {
   // 1) 렌더 중 문서 수정 금지: 로컬 상태로 보관
@@ -249,27 +260,23 @@ const BudgetPanel = () => {
             className="w-full sm:w-28 text-[11px] [&>button]:py-1 [&>button]:px-2.5 [&>button]:text-[11px]"
           />
 
-          {/* 금액 입력 with prefix/suffix */}
-          <div className="relative w-full">
-            <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">
-              ₩
-            </span>
-            <Input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              placeholder="금액"
-              value={amount}
-              onChange={(e) => {
-                const numericValue = e.target.value.replace(/[^0-9]/g, '')
-                setAmount(numericValue) // 숫자만 상태에 저장 (메모리 낭비/파싱 오류 방지)
-              }}
-              size="xs"
-              className="pl-5 pr-6"
-            />
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">
-              원
-            </span>
+          {/* 금액 입력 */}
+          <div className="flex items-center gap-1 w-full">
+            <div className="flex-1">
+              <Input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="금액"
+                value={amount}
+                onChange={(e) => {
+                  const numericValue = e.target.value.replace(/[^0-9]/g, '')
+                  setAmount(numericValue) // 숫자만 상태에 저장 (메모리 낭비/파싱 오류 방지)
+                }}
+                size="md"
+              />
+            </div>
+            <span className="text-xs font-semibold text-slate-500">원</span>
           </div>
         </div>
 
@@ -279,7 +286,7 @@ const BudgetPanel = () => {
           placeholder="설명 (선택사항)"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          size="xs"
+          size="md"
         />
 
         <SolidButton
@@ -318,7 +325,10 @@ const BudgetPanel = () => {
                   className="rounded-lg border border-slate-200 bg-white p-2 shadow-sm hover:shadow-md transition-shadow"
                 >
                   <div className="flex items-start justify-between gap-2 mb-1.5">
-                    <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                      <div
+                        className={`w-2 h-2 rounded-full shrink-0 ${CATEGORY_COLORS[it.category as CostCategory]}`}
+                      ></div>
                       {yItemRef ? (
                         <DropdownSelect
                           options={CATEGORY_OPTIONS}
@@ -337,13 +347,10 @@ const BudgetPanel = () => {
                         </span>
                       )}
                     </div>
-                    <button
-                      type="button"
+                    <DeleteButton
                       onClick={() => removeBudget(selectedDateKey, it.id ?? it.uid!)}
-                      className="rounded-full border border-red-200 px-1.5 py-0.5 text-[9px] font-semibold text-red-500 transition hover:border-red-400 hover:bg-red-50 flex-shrink-0"
-                    >
-                      삭제
-                    </button>
+                      variant="text"
+                    />
                   </div>
                   <div className="flex items-center gap-1 mb-1.5">
                     {yItemRef ? (
@@ -356,11 +363,25 @@ const BudgetPanel = () => {
                       </span>
                     )}
                   </div>
-                  {yDesc && (
-                    <div className="text-xs text-slate-600 bg-slate-50 rounded-md p-1.5">
-                      <YTextEditor ytext={yDesc} variant="plain" size="xs" />
+                  <div className="mt-1.5 pt-1.5 border-t border-slate-200">
+                    <div className="flex items-center gap-1 mb-1">
+                      <span className="text-[10px] font-semibold text-slate-500">설명</span>
                     </div>
-                  )}
+                    {yDesc ? (
+                      <YTextEditor
+                        ytext={yDesc}
+                        variant="plain"
+                        size="xs"
+                        className="rounded-full px-2 py-1.5 border border-slate-200"
+                        singleLine
+                        placeholder="설명 입력..."
+                      />
+                    ) : (
+                      <div className="rounded-full px-2 py-1.5 border border-slate-200">
+                        {it.description || '설명 입력...'}
+                      </div>
+                    )}
+                  </div>
                 </li>
               )
             })}
@@ -369,28 +390,35 @@ const BudgetPanel = () => {
       </div>
       {/* 카테고리별 통계는 총 예산 호버 시 툴팁으로 표시 */}
 
-      <div className="rounded-xl border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-green-50 p-3 shadow-md relative group">
-        <div className="flex items-center justify-between">
-          <span className="font-bold text-lg text-emerald-700">총 예산</span>
-          <span className="text-emerald-900 font-bold text-xl">
-            {totalForSelected.toLocaleString()} 원
+      <div className="rounded-xl border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-slate-50 p-4 shadow-md relative group">
+        <div className="flex items-center justify-between mb-1">
+          <span className="font-bold text-lg text-blue-700">총 예산</span>
+          <span className="text-blue-900 font-bold text-2xl">
+            {totalForSelected.toLocaleString()}
+            <span className="text-base ml-1 text-blue-700">원</span>
           </span>
         </div>
-        <div className="pointer-events-none absolute right-3 bottom-full mb-2 w-56 rounded-lg border border-slate-200 bg-white p-2.5 shadow-xl opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200 z-50">
-          <div className="text-xs font-bold text-slate-700 mb-1.5">카테고리별 예산</div>
-          <ul className="space-y-0.5">
+        <div className="pointer-events-none absolute right-3 bottom-full mb-2 w-64 rounded-xl border-2 border-blue-200 bg-white p-3 shadow-2xl opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200 z-50">
+          <div className="text-sm font-bold text-blue-700 mb-2 pb-2 border-b border-blue-100">
+            카테고리별 예산
+          </div>
+          <ul className="space-y-1.5">
             {COST_CATEGORIES.map((cat) => {
               const amount = categoryStats[cat]
               const percentage = totalForSelected > 0 ? (amount / totalForSelected) * 100 : 0
+              const colorClass = CATEGORY_COLORS[cat]
               return (
-                <li key={cat} className="flex items-center justify-between text-[11px]">
-                  <span className="text-slate-600">{COST_CATEGORY_LABELS[cat]}</span>
-                  <span className="text-slate-900 font-semibold">
-                    {amount.toLocaleString()}원
-                    <span className="ml-1 text-[10px] text-slate-500">
+                <li key={cat} className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${colorClass}`}></div>
+                    <span className="text-slate-700 font-medium">{COST_CATEGORY_LABELS[cat]}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-900 font-bold">{amount.toLocaleString()}원</span>
+                    <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full min-w-[40px] text-center">
                       {percentage > 0 ? percentage.toFixed(1) : '0'}%
                     </span>
-                  </span>
+                  </div>
                 </li>
               )
             })}

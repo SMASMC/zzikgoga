@@ -15,6 +15,7 @@ import { CHAT_AUTO_HIDE_MS, getRoomId } from '../utils/constants'
 import { ScheduleList } from './place-board'
 import { ChatPanel, ParticipantRoster } from './collaboration'
 import YTextEditor from './YTextEditor'
+import { MAX_TITLE_LENGTH } from '../utils/ytext'
 
 interface PlaceBoardProps {
   cursorSession: SharedCursorSession
@@ -37,6 +38,7 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
     tripInfo,
     doc,
     awareness,
+    addSchedule,
     updateScheduleTime,
     reorderSchedule,
     removeSchedule,
@@ -65,13 +67,22 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
     return value instanceof Y.Text ? value : null
   }, [doc])
 
-  // 여행 제목 초기 보장
+  // 여행 제목 및 날짜 초기 보장
   useEffect(() => {
+    console.log(`titleYText: ${JSON.stringify(titleYText)}`)
     if (!doc) return
     const tripMap = doc.getMap('tripInfo') as Y.Map<unknown>
     const existing = tripMap.get('title')
+    console.log(`tripMap: ${JSON.stringify(tripMap)}`)
+    console.log(`existing: ${JSON.stringify(existing)}`)
+
+    let needsUpdate = false
+    const updates: Array<() => void> = []
+
+    // Title 초기화
     if (!(existing instanceof Y.Text)) {
-      doc.transact(() => {
+      needsUpdate = true
+      updates.push(() => {
         const ytext = new Y.Text()
         if (typeof existing === 'string' && existing.trim().length > 0) {
           ytext.insert(0, existing)
@@ -90,6 +101,51 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
         }
         tripMap.set('title', ytext)
       })
+    }
+
+    // start_date, end_date 초기화 (존재 여부와 유효성 모두 체크)
+    const startDateValue = tripMap.get('start_date') as string | undefined
+    const endDateValue = tripMap.get('end_date') as string | undefined
+    const idValue = tripMap.get('id') as number | undefined
+
+    const hasValidStartDate = startDateValue && startDateValue.length > 0
+    const hasValidEndDate = endDateValue && endDateValue.length > 0
+    const hasValidId = idValue != null
+
+    if (!hasValidStartDate || !hasValidEndDate || !hasValidId) {
+      needsUpdate = true
+      updates.push(() => {
+        if (metaStorageKey && typeof window !== 'undefined') {
+          try {
+            const cached = window.sessionStorage.getItem(metaStorageKey)
+            if (cached) {
+              const parsed = JSON.parse(cached)
+              console.log('[tripInfo 초기화] sessionStorage:', parsed)
+
+              if (!hasValidId && parsed.id) {
+                tripMap.set('id', parsed.id)
+                console.log('[tripInfo 초기화] id:', parsed.id)
+              }
+              if (!hasValidStartDate && parsed.startDate) {
+                tripMap.set('start_date', parsed.startDate)
+                console.log('[tripInfo 초기화] start_date:', parsed.startDate)
+              }
+              if (!hasValidEndDate && parsed.endDate) {
+                tripMap.set('end_date', parsed.endDate)
+                console.log('[tripInfo 초기화] end_date:', parsed.endDate)
+              }
+            }
+          } catch (error) {
+            console.error('Failed to load cached trip info:', error)
+          }
+        }
+      })
+    }
+
+    if (needsUpdate) {
+      doc.transact(() => {
+        updates.forEach((update) => update())
+      }, 'init-trip-info')
     }
   }, [doc, metaStorageKey])
 
@@ -465,6 +521,7 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
               onSetEditingKey={setEditingKey}
               onSetEditStart={setEditStart}
               onSetEditOffset={setEditOffset}
+              onAddSchedule={addSchedule}
               onToast={setToast}
             />
           </div>

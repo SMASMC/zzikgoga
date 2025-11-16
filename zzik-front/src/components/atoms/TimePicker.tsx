@@ -10,6 +10,7 @@ interface TimePickerProps {
   placeholder?: string
   className?: string
   disabled?: boolean
+  align?: 'left' | 'right' // 드롭다운 정렬 방향
 }
 
 const TimePicker = ({
@@ -19,6 +20,7 @@ const TimePicker = ({
   placeholder = '시간 선택',
   className = '',
   disabled = false,
+  align = 'left',
 }: TimePickerProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const [tempHour, setTempHour] = useState('09')
@@ -99,7 +101,11 @@ const TimePicker = ({
 
       {/* 드롭다운 패널 */}
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-full min-w-[280px] bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 overflow-hidden">
+        <div
+          className={`absolute top-full mt-2 w-full min-w-[280px] bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 overflow-hidden ${
+            align === 'right' ? 'right-0' : 'left-0'
+          }`}
+        >
           {/* 빠른 선택 */}
           <div className="p-3 border-b border-slate-100">
             <div className="text-xs font-semibold text-slate-600 mb-2">빠른 선택</div>

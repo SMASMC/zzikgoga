@@ -277,23 +277,25 @@ const PlaceModal = ({ onClose, place }: PlaceModalProps) => {
         offsetPx={24}
         onClose={() => setToastMessage(null)}
       />
-      <div className="w-full max-w-md sm:max-w-lg bg-gradient-to-br from-white via-background-500 to-background-600 rounded-3xl shadow-xl p-6 sm:p-8 font-bmjua relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div className="w-full max-w-md sm:max-w-lg bg-white rounded-3xl shadow-xl border border-slate-200 p-6 sm:p-8 font-bmjua relative max-h-[90vh] overflow-y-auto custom-scrollbar">
         <CloseButton onClick={onClose} className="absolute top-3 right-4" />
 
         <h2 className="text-xl sm:text-2xl text-text-500 mb-4 sm:mb-6 font-bold">장소 추가하기</h2>
 
         <div className="mb-4 sm:mb-6">
-          <h3 className="text-base sm:text-lg mb-2 sm:mb-3 text-text-600">장소</h3>
+          <h3 className="text-base sm:text-lg mb-2 sm:mb-3 text-slate-700 font-semibold">장소</h3>
           <input
             type="text"
             value={place.name}
             readOnly
-            className="w-full px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md hover:scale-[1.02] cursor-not-allowed"
+            className="w-full px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base text-slate-700 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:outline-none focus:ring-2 focus:ring-blue-300 transition-all cursor-not-allowed"
           />
         </div>
 
         <div className="mb-4 sm:mb-6">
-          <h3 className="text-base sm:text-lg mb-2 sm:mb-3 text-text-600">시작 시간</h3>
+          <h3 className="text-base sm:text-lg mb-2 sm:mb-3 text-slate-700 font-semibold">
+            시작 시간
+          </h3>
           <TimePicker
             value={startDateTime}
             onChange={setStartDateTime}
@@ -303,7 +305,9 @@ const PlaceModal = ({ onClose, place }: PlaceModalProps) => {
         </div>
 
         <div className="mb-4 sm:mb-6">
-          <h3 className="text-base sm:text-lg mb-2 sm:mb-3 text-text-600">종료 시간</h3>
+          <h3 className="text-base sm:text-lg mb-2 sm:mb-3 text-slate-700 font-semibold">
+            종료 시간
+          </h3>
           <TimePicker
             value={endDateTime}
             onChange={setEndDateTime}
@@ -323,70 +327,76 @@ const PlaceModal = ({ onClose, place }: PlaceModalProps) => {
         </div>
 
         <div className="mb-4 sm:mb-6">
-          <h3 className="text-base sm:text-lg mb-2 sm:mb-3 text-text-600">활동 메모</h3>
+          <h3 className="text-base sm:text-lg mb-2 sm:mb-3 text-slate-700 font-semibold">
+            활동 메모
+          </h3>
           <textarea
             value={activity}
             onChange={(e) => setActivity(e.target.value)}
             placeholder="예) 체크인, 점심 식사, 관광 등"
             rows={3}
-            className="w-full px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md hover:scale-[1.02] resize-none placeholder:text-gray-400"
+            className="w-full px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base text-slate-700 bg-white rounded-xl border border-slate-200 outline-none focus:outline-none focus:ring-2 focus:ring-blue-300 transition-all resize-none placeholder:text-slate-400"
           />
         </div>
 
         <div className="mb-6 sm:mb-8">
-          <h3 className="text-base sm:text-lg mb-2 sm:mb-3 text-text-600">주소 정보</h3>
+          <h3 className="text-base sm:text-lg mb-2 sm:mb-3 text-slate-700 font-semibold">
+            주소 정보
+          </h3>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-text-500">시/도</label>
+              <label className="text-xs font-semibold text-slate-600">시/도</label>
               <input
                 type="text"
                 value={sido}
                 onChange={(e) => setSido(e.target.value)}
                 placeholder="예) 서울특별시"
-                className="w-full px-4 sm:px-5 py-2 text-sm sm:text-base text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md hover:scale-[1.02] placeholder:text-gray-400"
+                className="w-full px-4 sm:px-5 py-2 text-sm sm:text-base text-slate-700 bg-white rounded-xl border border-slate-200 outline-none focus:outline-none focus:ring-2 focus:ring-blue-300 transition-all placeholder:text-slate-400"
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-text-500">시/군/구</label>
+              <label className="text-xs font-semibold text-slate-600">시/군/구</label>
               <input
                 type="text"
                 value={sigungu}
                 onChange={(e) => setSigungu(e.target.value)}
                 placeholder="예) 강남구"
-                className="w-full px-4 sm:px-5 py-2 text-sm sm:text-base text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md hover:scale-[1.02] placeholder:text-gray-400"
+                className="w-full px-4 sm:px-5 py-2 text-sm sm:text-base text-slate-700 bg-white rounded-xl border border-slate-200 outline-none focus:outline-none focus:ring-2 focus:ring-blue-300 transition-all placeholder:text-slate-400"
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-text-500">도로명</label>
+              <label className="text-xs font-semibold text-slate-600">도로명</label>
               <input
                 type="text"
                 value={roadName}
                 onChange={(e) => setRoadName(e.target.value)}
                 placeholder="예) 강남대로"
-                className="w-full px-4 sm:px-5 py-2 text-sm sm:text-base text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md hover:scale-[1.02] placeholder:text-gray-400"
+                className="w-full px-4 sm:px-5 py-2 text-sm sm:text-base text-slate-700 bg-white rounded-xl border border-slate-200 outline-none focus:outline-none focus:ring-2 focus:ring-blue-300 transition-all placeholder:text-slate-400"
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-text-500">건물 번호</label>
+              <label className="text-xs font-semibold text-slate-600">건물 번호</label>
               <input
                 type="text"
                 value={buildingNum}
                 onChange={(e) => setBuildingNum(e.target.value)}
                 placeholder="예) 123"
-                className="w-full px-4 sm:px-5 py-2 text-sm sm:text-base text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md hover:scale-[1.02] placeholder:text-gray-400"
+                className="w-full px-4 sm:px-5 py-2 text-sm sm:text-base text-slate-700 bg-white rounded-xl border border-slate-200 outline-none focus:outline-none focus:ring-2 focus:ring-blue-300 transition-all placeholder:text-slate-400"
               />
             </div>
           </div>
         </div>
 
         <div className="mb-6 sm:mb-8">
-          <h3 className="text-base sm:text-lg mb-2 sm:mb-3 text-text-600">상세 주소</h3>
+          <h3 className="text-base sm:text-lg mb-2 sm:mb-3 text-slate-700 font-semibold">
+            상세 주소
+          </h3>
           <input
             type="text"
             value={detailAddress}
             onChange={(e) => setDetailAddress(e.target.value)}
             placeholder="상세 주소를 입력해주세요."
-            className="w-full px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md hover:scale-[1.02] placeholder:text-gray-400"
+            className="w-full px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base text-slate-700 bg-white rounded-xl border border-slate-200 outline-none focus:outline-none focus:ring-2 focus:ring-blue-300 transition-all placeholder:text-slate-400"
           />
         </div>
 
