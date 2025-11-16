@@ -125,7 +125,12 @@ const YTextEditor = ({
   const editor = useEditor(
     {
       extensions: [
-        StarterKit.configure({}),
+        StarterKit.configure({
+          history: false, // collaboration extension과 충돌 방지
+          bulletList: false, // <li> 중첩 방지
+          orderedList: false, // <li> 중첩 방지
+          listItem: false, // <li> 중첩 방지
+        }),
         Placeholder.configure({
           placeholder: placeholder ?? '',
         }),

@@ -207,12 +207,6 @@ const ScheduleList = ({
         // 이미 이동시간이 계산되어 있으면 건너뛰기
         const existingDistance = next.travel_distance
         if (typeof existingDistance === 'number' && existingDistance >= 0) {
-          console.log(
-            '[이동시간 계산 건너뛰기] 이미 계산됨:',
-            current.location?.name,
-            '→',
-            next.location?.name
-          )
           continue
         }
 
@@ -228,12 +222,6 @@ const ScheduleList = ({
           { lat: nextLat, lng: nextLng }
         )
 
-        console.log('[API 응답]', {
-          from: current.location?.name,
-          to: next.location?.name,
-          travelResult,
-        })
-
         if (travelResult === null) {
           console.warn(
             '[API 실패] 이동시간 계산 실패:',
@@ -247,16 +235,6 @@ const ScheduleList = ({
         const travelMinutes =
           typeof travelResult === 'number' ? travelResult : travelResult.durationMinutes
         const travelDistance = typeof travelResult === 'object' ? travelResult.distance : undefined
-
-        console.log('[💾 저장 시작]', {
-          from: current.location?.name,
-          to: next.location?.name,
-          travelMinutes,
-          travelDistance,
-          nextUID: next.uid,
-          nextYArrayIndex: next.yArrayIndex,
-          nextRawKey: next.rawKey,
-        })
 
         // 현재 일정의 종료 시간 계산
         const offsetHHMM = normalizeOffsetToHHMM(current.offset_time)
@@ -322,19 +300,11 @@ const ScheduleList = ({
           // 이동시간 및 거리 저장
           if (typeof travelMinutes === 'number') {
             yNextItem.set('travel_duration', travelMinutes)
-            console.log('[✅ travel_duration 저장]', travelMinutes)
           }
 
           if (typeof travelDistance === 'number') {
             yNextItem.set('travel_distance', travelDistance)
-            console.log('[✅ travel_distance 저장]', travelDistance)
           }
-
-          console.log('[✅ 저장 완료]', {
-            location: next.location?.name,
-            travel_duration: yNextItem.get('travel_duration'),
-            travel_distance: yNextItem.get('travel_distance'),
-          })
         }, 'save-travel-time')
       }
 

@@ -102,8 +102,6 @@ const snapshotSchedules = (doc: Y.Doc): Record<string, YScheduleItem[]> => {
   const schedulesMap = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
   const result: Record<string, YScheduleItem[]> = {}
 
-  console.log(`[snapshotSchedules] Called, schedulesMap.size=${schedulesMap.size}`)
-
   const extractDayFromKey = (key: string): string => {
     // 예: "2025-11-12 03:06:00+09" | "2025-11-12T03:06" → "2025-11-12"
     const s = key.replace('T', ' ').trim()
@@ -111,7 +109,6 @@ const snapshotSchedules = (doc: Y.Doc): Record<string, YScheduleItem[]> => {
   }
 
   schedulesMap.forEach((yArr, rawKey) => {
-    console.log(`[snapshotSchedules] Processing rawKey=${rawKey}, yArr.length=${yArr.length}`)
     yArr.forEach((yMap, yArrayIndex) => {
       if (!(yMap instanceof Y.Map)) return
       if (yMap.get('_deleted') === true) return
@@ -123,8 +120,6 @@ const snapshotSchedules = (doc: Y.Doc): Record<string, YScheduleItem[]> => {
       const has_location = Boolean(yMap.get('has_location'))
       const memo = yTextToString(yMap.get('memo'))
       const dayKey = start_time ? dateKeyOf(start_time) : extractDayFromKey(String(rawKey))
-
-      console.log(`[snapshotSchedules]   [${yArrayIndex}] id=${id}, uid=${uid}, dayKey=${dayKey}`)
 
       const location = ((): YLocationItem | null => {
         const raw = yMap.get('location') as unknown

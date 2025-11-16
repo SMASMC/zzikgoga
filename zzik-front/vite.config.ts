@@ -6,12 +6,6 @@ import path from 'path'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-
-  console.log('[Vite] Naver API 키 로드 확인:', {
-    hasClientId: !!env.VITE_NAVER_MAP_CLIENT_ID,
-    hasClientSecret: !!env.VITE_NAVER_MAP_CLIENT_SECRET,
-  })
-
   return {
     plugins: [
       react(),
@@ -100,17 +94,12 @@ export default defineConfig(({ mode }) => {
             path.replace(/^\/api\/naver-direction/, '/map-direction-15/v1/driving'),
           configure: (proxy) => {
             proxy.on('proxyReq', (proxyReq) => {
-              console.log('[Proxy] Direction API 요청:', proxyReq.path)
               if (env.VITE_NAVER_MAP_CLIENT_ID && env.VITE_NAVER_MAP_CLIENT_SECRET) {
                 proxyReq.setHeader('X-NCP-APIGW-API-KEY-ID', env.VITE_NAVER_MAP_CLIENT_ID)
                 proxyReq.setHeader('X-NCP-APIGW-API-KEY', env.VITE_NAVER_MAP_CLIENT_SECRET)
-                console.log('[Proxy] 헤더 설정 완료')
               } else {
                 console.error('[Proxy] API 키가 없습니다!')
               }
-            })
-            proxy.on('proxyRes', (proxyRes) => {
-              console.log('[Proxy] 응답 상태:', proxyRes.statusCode)
             })
           },
         },
@@ -121,17 +110,12 @@ export default defineConfig(({ mode }) => {
           rewrite: (path) => path.replace(/^\/api\/naver-transit/, '/map-direction-15/v1/transit'),
           configure: (proxy) => {
             proxy.on('proxyReq', (proxyReq) => {
-              console.log('[Proxy] Transit API 요청:', proxyReq.path)
               if (env.VITE_NAVER_MAP_CLIENT_ID && env.VITE_NAVER_MAP_CLIENT_SECRET) {
                 proxyReq.setHeader('X-NCP-APIGW-API-KEY-ID', env.VITE_NAVER_MAP_CLIENT_ID)
                 proxyReq.setHeader('X-NCP-APIGW-API-KEY', env.VITE_NAVER_MAP_CLIENT_SECRET)
-                console.log('[Proxy] 헤더 설정 완료')
               } else {
                 console.error('[Proxy] API 키가 없습니다!')
               }
-            })
-            proxy.on('proxyRes', (proxyRes) => {
-              console.log('[Proxy] 응답 상태:', proxyRes.statusCode)
             })
           },
         },

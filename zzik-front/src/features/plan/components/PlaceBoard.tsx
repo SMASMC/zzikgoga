@@ -42,9 +42,9 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
     updateScheduleTime,
     reorderSchedule,
     removeSchedule,
+    isSynced,
   } = useYTripDoc(roomId)
 
-  // console.log(`doc: ${JSON.stringify(doc)}`)
   // 선택일 데이터만 뽑기
   const schedulesForSelected = useMemo(
     () => schedulesByDate[selectedDateKey] ?? [],
@@ -59,22 +59,44 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
   const autoHideTimerRef = useRef<number | null>(null)
   const dragItemRef = useRef<{ dateKey: string; index: number } | null>(null)
 
-  // 제목 Y.Text (불변 객체라 메모에 안전)
-  const titleYText = useMemo(() => {
-    if (!doc) return null
+  // 제목 Y.Text - state로 관리하여 업데이트 가능하게
+  const [titleYText, setTitleYText] = useState<Y.Text | null>(null)
+
+  // doc 변경 및 tripInfo.title 변경 감지
+  useEffect(() => {
+    if (!doc) {
+      setTitleYText(null)
+      return
+    }
+
     const tripMap = doc.getMap('tripInfo') as Y.Map<unknown>
-    const value = tripMap.get('title')
-    return value instanceof Y.Text ? value : null
+
+    const updateTitle = () => {
+      const value = tripMap.get('title')
+      const result = value instanceof Y.Text ? value : null
+      setTitleYText(result)
+    }
+
+    // 초기 설정
+    updateTitle()
+
+    // tripMap 변경 감지
+    const observer = () => {
+      updateTitle()
+    }
+    tripMap.observe(observer)
+
+    return () => {
+      tripMap.unobserve(observer)
+    }
   }, [doc])
 
-  // 여행 제목 및 날짜 초기 보장
+  // 여행 제목 및 날짜 초기 보장 (동기화 완료 후에만 실행)
   useEffect(() => {
-    console.log(`titleYText: ${JSON.stringify(titleYText)}`)
-    if (!doc) return
+    if (!doc || !isSynced) return // 동기화 완료될 때까지 대기
+
     const tripMap = doc.getMap('tripInfo') as Y.Map<unknown>
     const existing = tripMap.get('title')
-    console.log(`tripMap: ${JSON.stringify(tripMap)}`)
-    console.log(`existing: ${JSON.stringify(existing)}`)
 
     let needsUpdate = false
     const updates: Array<() => void> = []
@@ -120,19 +142,15 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
             const cached = window.sessionStorage.getItem(metaStorageKey)
             if (cached) {
               const parsed = JSON.parse(cached)
-              console.log('[tripInfo 초기화] sessionStorage:', parsed)
 
               if (!hasValidId && parsed.id) {
                 tripMap.set('id', parsed.id)
-                console.log('[tripInfo 초기화] id:', parsed.id)
               }
               if (!hasValidStartDate && parsed.startDate) {
                 tripMap.set('start_date', parsed.startDate)
-                console.log('[tripInfo 초기화] start_date:', parsed.startDate)
               }
               if (!hasValidEndDate && parsed.endDate) {
                 tripMap.set('end_date', parsed.endDate)
-                console.log('[tripInfo 초기화] end_date:', parsed.endDate)
               }
             }
           } catch (error) {
@@ -147,7 +165,7 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
         updates.forEach((update) => update())
       }, 'init-trip-info')
     }
-  }, [doc, metaStorageKey])
+  }, [doc, isSynced, metaStorageKey])
 
   const [selfCursor, setSelfCursor] = useState<{ x: number; y: number } | null>(null)
   const [isChatOpen, setIsChatOpen] = useState(false)
@@ -339,10 +357,8 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
   // 삭제
   const handleRemoveSchedule = useCallback(
     (rawKey: string, realIndex: number) => {
-      console.log(`[PlaceBoard.handleRemoveSchedule] rawKey=${rawKey}, realIndex=${realIndex}`)
       setEditingKey(null)
       removeSchedule(rawKey, realIndex)
-      console.log('[PlaceBoard.handleRemoveSchedule] removeSchedule called')
     },
     [removeSchedule]
   )
@@ -485,11 +501,25 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
           {/* 헤더 / 제목 */}
           <header className="flex flex-col gap-3 md:flex-row md:items-start md:gap-4 md:pr-56 lg:pr-[360px]">
             <h2 className="text-4xl font-extrabold text-slate-900 flex-shrink-0">여행 일정</h2>
-            {titleYText ? (
-              <div className="min-w-0 flex-1 max-w-full md:max-w-[32rem]">
-                <YTextEditor ytext={titleYText} />
-              </div>
-            ) : null}
+            <div className="min-w-0 flex-1 max-w-full md:max-w-[32rem]">
+              {titleYText ? (
+                <YTextEditor
+                  ytext={titleYText}
+                  placeholder="여행 제목을 입력해주세요"
+                  maxLength={MAX_TITLE_LENGTH}
+                  singleLine={true}
+                  variant="input"
+                  size="lg"
+                />
+              ) : (
+                <input
+                  type="text"
+                  placeholder={isSynced ? '여행 제목을 입력해주세요' : '동기화 중...'}
+                  disabled
+                  className="w-full rounded-full border-2 border-slate-300 bg-white px-5 py-2.5 text-lg font-semibold text-slate-900 shadow-sm opacity-50 cursor-wait"
+                />
+              )}
+            </div>
           </header>
 
           <WeekCalendar

@@ -15,7 +15,6 @@ export async function calculateTravelTime(
   const distance = Math.sqrt(Math.pow(goal.lat - start.lat, 2) + Math.pow(goal.lng - start.lng, 2))
   if (distance < 0.0001) {
     // 약 10미터 이내
-    console.log('시작점과 도착점이 동일하여 이동시간 0분 반환')
     return { durationMinutes: 0, distance: 0 }
   }
 
