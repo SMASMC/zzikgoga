@@ -2,7 +2,7 @@ package com.zzik.backend.domain.plan.dto.response;
 
 import java.util.List;
 
-import com.zzik.backend.global.pagination.PageInfoResponse;
+import com.zzik.backend.global.pagination.TripPageInfo;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,5 +17,5 @@ import lombok.Setter;
 @Builder
 public class TripListResponse {
 	private List<TripSummaryResponse> trip;
-	private PageInfoResponse pageInfo;
+	private TripPageInfo pageInfo;
 }

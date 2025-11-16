@@ -19,20 +19,28 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
 	List<Trip> findDistinctByTripMembersMemberIdOrderByCreatedAtDesc(Long memberId);
 
 	/**
-	 * Cursor-paged trips for a member ordered by id desc.
+	 * Page-based trips for a member ordered by id desc.
 	 */
 	@Query("""
 		SELECT DISTINCT t FROM Trip t
 		JOIN t.tripMembers tm
 		WHERE tm.member.id = :memberId
-		  AND (:cursor IS NULL OR t.id < :cursor)
 		ORDER BY t.id DESC
 		""")
-	List<Trip> findByMemberIdCursorPaged(
+	List<Trip> findByMemberId(
 		@Param("memberId") Long memberId,
-		@Param("cursor") Long cursor,
 		Pageable pageable
 	);
+
+	/**
+	 * Count trips for a member.
+	 */
+	@Query("""
+		SELECT COUNT(DISTINCT t) FROM Trip t
+		JOIN t.tripMembers tm
+		WHERE tm.member.id = :memberId
+		""")
+	long countByMemberId(@Param("memberId") Long memberId);
 
 	@Query("""
 		    select distinct m.id

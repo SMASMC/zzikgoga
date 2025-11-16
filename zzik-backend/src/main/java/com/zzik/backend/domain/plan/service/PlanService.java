@@ -44,7 +44,7 @@ import com.zzik.backend.domain.plan.repository.TripThemaRepository;
 import com.zzik.backend.global.cloud.s3.service.S3Util;
 import com.zzik.backend.global.exception.BusinessException;
 import com.zzik.backend.global.exception.ExceptionCode;
-import com.zzik.backend.global.pagination.PageInfoResponse;
+import com.zzik.backend.global.pagination.TripPageInfo;
 import com.zzik.backend.global.security.jwt.invite.InviteTokenProvider;
 
 import jakarta.persistence.EntityManager;
@@ -78,27 +78,22 @@ public class PlanService {
 	private String inviteBaseUrl;
 
 	@Transactional(readOnly = true)
-	public TripListResponse getTripList(Long memberId, Long cursor, int size) {
+	public TripListResponse getTripList(Long memberId, int page, int size) {
 
-		if (cursor != null && cursor <= 0) {
-			cursor = null;
-		}
+		// 페이지는 1부터 시작, 내부적으로는 0부터 시작
+		int pageIndex = Math.max(0, page - 1);
 
-		Pageable pageRequest = PageRequest.of(0, size + 1, Sort.by(Sort.Direction.DESC, "id"));
+		Pageable pageRequest = PageRequest.of(pageIndex, size, Sort.by(Sort.Direction.DESC, "id"));
 
-		List<Trip> trips = tripRepository.findByMemberIdCursorPaged(memberId, cursor, pageRequest);
+		List<Trip> trips = tripRepository.findByMemberId(memberId, pageRequest);
 
-		boolean hasNext = trips.size() > size;
-		List<Trip> responseTrips = hasNext ? trips.subList(0, size) : trips;
-
-		Long nextCursor = null;
-		if (hasNext && !responseTrips.isEmpty()) {
-			nextCursor = responseTrips.get(responseTrips.size() - 1).getId();
-		}
+		// 전체 개수 조회
+		long totalCount = tripRepository.countByMemberId(memberId);
+		int totalPages = (int) Math.ceil((double) totalCount / size);
 
 		List<TripSummaryResponse> items = new ArrayList<>();
 
-		for (Trip t : responseTrips) {
+		for (Trip t : trips) {
 			List<Photo> photos = photoRepository.findByTripId(t.getId());
 
 			Photo photo = null;
@@ -121,7 +116,7 @@ public class PlanService {
 
 		return TripListResponse.builder()
 			.trip(items)
-			.pageInfo(new PageInfoResponse(nextCursor))
+			.pageInfo(new TripPageInfo(page, totalPages, totalCount))
 			.build();
 	}
 

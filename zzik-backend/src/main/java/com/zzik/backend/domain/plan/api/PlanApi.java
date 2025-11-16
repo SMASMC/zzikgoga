@@ -42,7 +42,7 @@ public interface PlanApi {
 	)
 	@GetMapping
 	ResponseEntity<ApiResponse<TripListResponse>> getTripList(
-		@RequestParam(required = false) Long cursor,
+		@RequestParam(defaultValue = "1") int page,
 		@RequestParam(defaultValue = "7") int size
 	);
 

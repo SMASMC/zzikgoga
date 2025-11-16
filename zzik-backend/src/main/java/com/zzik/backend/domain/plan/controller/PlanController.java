@@ -29,11 +29,11 @@ public class PlanController implements PlanApi {
 
 	@Override
 	public ResponseEntity<ApiResponse<TripListResponse>> getTripList(
-		@RequestParam(required = false) Long cursor,
+		@RequestParam(defaultValue = "1") int page,
 		@RequestParam(defaultValue = "7") int size
 	) {
 		Long ownerId = SecurityUtil.getCurrentMemberId();
-		TripListResponse list = planService.getTripList(ownerId, cursor, size);
+		TripListResponse list = planService.getTripList(ownerId, page, size);
 		return ResponseEntity.ok(ApiResponse.createSuccess(list));
 	}
 
