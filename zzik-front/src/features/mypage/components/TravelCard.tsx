@@ -73,22 +73,22 @@ const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCard
     <>
       <div
         onClick={handleRootClick}
-        className={`group bg-white rounded-3xl shadow-lg overflow-hidden w-72 p-5 flex flex-col cursor-pointer transition-all duration-300 ${
+        className={`group bg-white rounded-3xl shadow-lg overflow-hidden w-72 max-h-[38vh] min-h-[320px] p-4 flex flex-col cursor-pointer transition-all duration-300 ${
           !isButtonHovered ? 'hover:shadow-xl hover:scale-105' : ''
         }`}
       >
         <img
           src={imageSrc}
           alt={title}
-          className="rounded-2xl h-48 object-cover mb-4"
+          className="rounded-2xl h-[18vh] min-h-[140px] object-cover mb-3"
           onError={handleImageError}
         />
-        <div className="mb-3 flex items-start justify-between gap-2">
-          <div>
-            <h3 className="font-bmjua text-text-500">{title}</h3>
-            <p className="text-gray-500 text-sm">{date}</p>
+        <div className="mb-2 flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <h3 className="font-bmjua text-text-500 truncate">{title}</h3>
+            <p className="text-gray-500 text-sm truncate">{date}</p>
           </div>
-          <div>
+          <div className="shrink-0">
             <button
               type="button"
               onClick={handleCameraButtonClick}
@@ -113,12 +113,12 @@ const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCard
             />
           </div>
         </div>
-        <div className="flex justify-center gap-2 mb-2">
+        <div className="flex justify-center gap-2 mb-1.5">
           <SolidButton
             onClick={handleSettlementClick}
             onMouseEnter={() => setIsButtonHovered(true)}
             onMouseLeave={() => setIsButtonHovered(false)}
-            className="flex-1 transition-all rounded-full"
+            className="flex-1 transition-all rounded-full text-sm py-2"
           >
             정산하기
           </SolidButton>
@@ -128,7 +128,7 @@ const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCard
             onClick={handlePhotoClick}
             onMouseEnter={() => setIsButtonHovered(true)}
             onMouseLeave={() => setIsButtonHovered(false)}
-            className="flex-1 transition-all rounded-full"
+            className="flex-1 transition-all rounded-full text-sm py-2"
           >
             기록하기
           </SolidButton>
@@ -151,11 +151,11 @@ const TravelAddCard = ({ onCreateTravel }: TravelAddCardProps) => {
   return (
     <div
       onClick={onCreateTravel}
-      className="group backdrop-blur-md bg-white/30 border border-white/40 rounded-3xl w-72 h-[400px] shadow-xl flex flex-col justify-center items-center cursor-pointer hover:shadow-2xl hover:scale-105 hover:bg-white transition-all duration-300"
+      className="group backdrop-blur-md bg-white/30 border border-white/40 rounded-3xl w-72 max-h-[38vh] min-h-[320px] shadow-xl flex flex-col justify-center items-center cursor-pointer hover:shadow-2xl hover:scale-105 hover:bg-white transition-all duration-300"
     >
-      <div className="bg-gradient-to-br from-hover-600 to-point-600 w-20 h-20 rounded-3xl flex justify-center items-center mb-6 shadow-lg">
+      <div className="bg-gradient-to-br from-hover-600 to-point-600 w-16 h-16 rounded-3xl flex justify-center items-center mb-4 shadow-lg">
         <svg
-          className="w-12 h-12 text-white"
+          className="w-10 h-10 text-white"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -164,7 +164,7 @@ const TravelAddCard = ({ onCreateTravel }: TravelAddCardProps) => {
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
         </svg>
       </div>
-      <h3 className="font-bmjua text-text-500 text-lg mb-2">여행 시작하기</h3>
+      <h3 className="font-bmjua text-text-500 text-base mb-2">여행 시작하기</h3>
       <p className="text-text-600 text-sm font-medium">바로 추억을 만들어보아요</p>
     </div>
   )

@@ -79,8 +79,18 @@ class ApiClient {
     return data as T
   }
 
-  async get<T>(endpoint: string, config?: RequestConfig): Promise<T> {
-    return this.request<T>(endpoint, { ...config, method: 'GET' })
+  async get<T>(
+    endpoint: string,
+    params?: Record<string, string>,
+    config?: RequestConfig
+  ): Promise<T> {
+    // 쿼리 파라미터가 있으면 URL에 추가
+    let url = endpoint
+    if (params && Object.keys(params).length > 0) {
+      const queryString = new URLSearchParams(params).toString()
+      url = `${endpoint}?${queryString}`
+    }
+    return this.request<T>(url, { ...config, method: 'GET' })
   }
 
   async post<T>(endpoint: string, data?: unknown, config?: RequestConfig): Promise<T> {

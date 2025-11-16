@@ -38,10 +38,23 @@ export interface Travel {
   thema_id: number[]
 }
 
+// 페이지 정보
+export interface PageInfo {
+  currentPage: number
+  totalPages: number
+  totalCount: number
+}
+
 // 여행 목록 조회 응답 (백엔드 실제 형식)
 export interface TravelListApiResponse {
   trip: Travel[]
+  pageInfo: PageInfo
 }
 
 // 여행 목록 조회 응답
-export type TravelListResponse = Travel[]
+export interface TravelListResponse {
+  trips: Travel[]
+  currentPage: number
+  totalPages: number
+  totalCount: number
+}

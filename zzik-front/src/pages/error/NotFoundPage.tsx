@@ -31,14 +31,10 @@ const NotFoundPage = () => {
           {/* 버튼 */}
           <div className="flex flex-col sm:flex-row gap-4">
             <Link to="/">
-              <SolidButton className="px-8 py-3 rounded-full">
-                홈으로 가기
-              </SolidButton>
+              <SolidButton className="px-8 py-3 rounded-full">홈으로 가기</SolidButton>
             </Link>
             <Link to="/mypage">
-              <SolidButton className="px-8 py-3 rounded-full">
-                내 여행 보기
-              </SolidButton>
+              <SolidButton className="px-8 py-3 rounded-full">내 여행 보기</SolidButton>
             </Link>
           </div>
         </div>
@@ -48,4 +44,3 @@ const NotFoundPage = () => {
 }
 
 export default NotFoundPage
-
