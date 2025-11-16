@@ -1,19 +1,32 @@
-import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import * as Y from 'yjs'
 import type { Awareness } from 'y-protocols/awareness'
 import YTextEditor from '../YTextEditor'
 import ScheduleMemoEditor from '../ScheduleMemoEditor'
 import type { YScheduleItem } from '../../hooks/useYTripDoc'
+import { HiLocationMarker, HiMap, HiTrash } from 'react-icons/hi'
+import TimePicker from '@/components/atoms/TimePicker'
 
-/** === 포맷 유틸 === */
+/** =========================
+ *  공통 스타일 상수(중복 제거)
+ *  ========================= */
+
+const clsMonoTiny = 'font-mono text-[10px] text-slate-500'
+const clsMicro = 'text-[10px] text-slate-500'
+
+/** =========================
+ *  포맷 유틸
+ *  ========================= */
+const isValidHHMM = (v: string) => /^\d{2}:\d{2}$/.test(v)
+
 const toTimeFromAny = (isoOrLocal: string) => {
   if (!isoOrLocal) return ''
   const s = isoOrLocal.trim().replace('T', ' ')
   if (s.length >= 16) return s.slice(11, 16)
-  if (/^\d{2}:\d{2}$/.test(s)) return s
+  if (isValidHHMM(s)) return s
   return ''
 }
-const isValidHHMM = (v: string) => /^\d{2}:\d{2}$/.test(v)
+
 const normalizeOffsetToHHMM = (raw?: string | null) => {
   if (!raw) return ''
   const s = String(raw)
@@ -29,23 +42,48 @@ const normalizeOffsetToHHMM = (raw?: string | null) => {
   if (hr) hours = Number(hr[1]) || 0
   const mn = s.match(/(\d+)\s*minute/)
   if (mn) minutes = Number(mn[1]) || 0
-  const total = hours * 60 + minutes
+  const total = Math.max(0, hours * 60 + minutes)
   const hh = String(Math.floor(total / 60)).padStart(2, '0')
   const mm = String(total % 60).padStart(2, '0')
   return `${hh}:${mm}`
 }
 
-/** === 협업 타임 인풋 === */
+/** 순수 함수: 시작/오프셋 → 종료 HH:MM */
+const calcEndHHMM = (dateKey: string, startHHMM: string, offsetHHMM: string) => {
+  if (!isValidHHMM(startHHMM) || !isValidHHMM(offsetHHMM)) return ''
+  const [oh, om] = offsetHHMM.split(':').map(Number)
+  const base = new Date(`${dateKey}T${startHHMM}`)
+  if (Number.isNaN(base.getTime())) return ''
+  const end = new Date(base.getTime() + (oh * 60 + om) * 60000)
+  const hh = String(end.getHours()).padStart(2, '0')
+  const mm = String(end.getMinutes()).padStart(2, '0')
+  return `${hh}:${mm}`
+}
+
+/** 순수 함수: 시작/종료 → 오프셋 HH:MM */
+const diffToOffsetHHMM = (dateKey: string, startHHMM: string, endHHMM: string) => {
+  if (!isValidHHMM(startHHMM) || !isValidHHMM(endHHMM)) return ''
+  const start = new Date(`${dateKey}T${startHHMM}`)
+  const end = new Date(`${dateKey}T${endHHMM}`)
+  const diff = end.getTime() - start.getTime()
+  if (diff < 0) return ''
+  const total = Math.floor(diff / 60000)
+  const hh = String(Math.floor(total / 60)).padStart(2, '0')
+  const mm = String(total % 60).padStart(2, '0')
+  return `${hh}:${mm}`
+}
+
+/** =========================
+ *  협업 타임 인풋
+ *  ========================= */
 function CollaborativeTimeInput({
   yText,
-  step = 60,
   placeholder,
-  className,
   onValidatedChange,
   onInvalid,
 }: {
   yText: Y.Text
-  type: 'time' | 'duration'
+  type?: 'time' | 'duration'
   step?: number
   placeholder?: string
   className?: string
@@ -62,7 +100,7 @@ function CollaborativeTimeInput({
     const observer = () => {
       const next = yText.toString()
       if (next !== value) {
-        setValue(next)
+        setValue(isValidHHMM(next) ? next : '')
         if (isValidHHMM(next)) lastGoodRef.current = next
       }
     }
@@ -71,48 +109,53 @@ function CollaborativeTimeInput({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [yText])
 
+  const handleChange = (newValue: string) => {
+    setValue(newValue)
+    yText.delete(0, yText.length)
+    yText.insert(0, newValue)
+  }
+
+  const handleBlur = () => {
+    const cur = yText.toString()
+    const norm = isValidHHMM(cur) ? cur : ''
+    if (!norm) {
+      const prev = lastGoodRef.current || ''
+      yText.delete(0, yText.length)
+      yText.insert(0, prev)
+      setValue(prev)
+      onInvalid?.(prev)
+      return
+    }
+    lastGoodRef.current = norm
+    onValidatedChange?.(norm)
+  }
+
   return (
-    <input
-      type="time"
-      step={step}
+    <TimePicker
       value={value}
+      onChange={handleChange}
+      onBlur={handleBlur}
       placeholder={placeholder}
-      onChange={(e) => {
-        const v = e.currentTarget.value
-        setValue(v)
-        yText.delete(0, yText.length)
-        yText.insert(0, v)
-      }}
-      onBlur={() => {
-        const cur = yText.toString()
-        const norm = isValidHHMM(cur) ? cur : ''
-        if (!norm) {
-          const prev = lastGoodRef.current || ''
-          yText.delete(0, yText.length)
-          yText.insert(0, prev)
-          setValue(prev)
-          onInvalid?.(prev)
-          return
-        }
-        lastGoodRef.current = norm
-        onValidatedChange?.(norm)
-      }}
-      className={className}
     />
   )
 }
 
+/** =========================
+ *  컴포넌트
+ *  ========================= */
 interface ScheduleItemProps {
   schedule: YScheduleItem
   selectedDateKey: string
   realIndex: number
-  rawKey: string // Original key from Y.Map
+  rawKey: string
   editingKey: string | null
   editStart: string
   editOffset: string
   doc: Y.Doc | null
   awareness: Awareness | null
   dragItemRef: RefObject<{ dateKey: string; index: number } | null>
+  nextSchedule?: YScheduleItem | null
+  allSchedules?: YScheduleItem[]
   onDragStart: (dateKey: string, index: number) => void
   onDragEnd: () => void
   onDropWithinDate: (dateKey: string, index: number) => void
@@ -143,6 +186,7 @@ const ScheduleItem = ({
   doc,
   awareness,
   dragItemRef,
+  allSchedules = [],
   onDragStart,
   onDragEnd,
   onDropWithinDate,
@@ -153,10 +197,56 @@ const ScheduleItem = ({
   onSetEditOffset,
   onToast,
 }: ScheduleItemProps) => {
+  const [isDragging, setIsDragging] = useState(false)
+  const [isResizing, setIsResizing] = useState(false)
+  const [resizeStartY, setResizeStartY] = useState(0)
+  const [resizeStartOffset, setResizeStartOffset] = useState(0)
   const isEditing = editingKey === `${rawKey}:${realIndex}`
   const location = schedule.location
 
-  /** 장소 라인 */
+  /** 시간 겹침 검증 함수 */
+  const checkTimeOverlap = useCallback(
+    (newStartHHMM: string, newOffsetHHMM: string): boolean => {
+      if (!isValidHHMM(newStartHHMM) || !isValidHHMM(newOffsetHHMM)) return false
+
+      // 새로운 시작/종료 시간 계산
+      const newStartDate = new Date(`${selectedDateKey}T${newStartHHMM}`)
+      const [offsetH, offsetM] = newOffsetHHMM.split(':').map(Number)
+      const newEndDate = new Date(newStartDate.getTime() + (offsetH * 60 + offsetM) * 60000)
+
+      // 다른 모든 일정과 겹치는지 확인
+      for (const other of allSchedules) {
+        // 자기 자신은 제외
+        if (other.uid === schedule.uid) continue
+
+        const otherStartHHMM = toTimeFromAny(other.start_time)
+        const otherOffsetHHMM = normalizeOffsetToHHMM(other.offset_time)
+
+        if (!isValidHHMM(otherStartHHMM) || !isValidHHMM(otherOffsetHHMM)) continue
+
+        const otherStartDate = new Date(`${selectedDateKey}T${otherStartHHMM}`)
+        const [otherOffsetH, otherOffsetM] = otherOffsetHHMM.split(':').map(Number)
+        const otherEndDate = new Date(
+          otherStartDate.getTime() + (otherOffsetH * 60 + otherOffsetM) * 60000
+        )
+
+        // 겹침 확인: (A 시작 < B 종료) AND (B 시작 < A 종료)
+        if (newStartDate < otherEndDate && otherStartDate < newEndDate) {
+          onToast({
+            variant: 'warning',
+            title: '시간 겹침',
+            message: `다른 일정(${other.location?.name || '일정'})과 시간이 겹칩니다.`,
+          })
+          return true
+        }
+      }
+
+      return false
+    },
+    [allSchedules, schedule.uid, selectedDateKey, onToast]
+  )
+
+  /** 장소 라인(간결 표기) */
   const regionLine = useMemo(() => {
     if (!location) return ''
     return [location.sido, location.sigungu].filter(Boolean).join(' ')
@@ -172,7 +262,7 @@ const ScheduleItem = ({
     return `(${latitude.toFixed(5)}, ${longitude.toFixed(5)})`
   }, [location])
 
-  /** 현재 아이템의 Y 구조만 접근(공유 방지) */
+  /** Y 구조 참조 */
   const yItemRef = useRef<Y.Map<unknown> | null>(null)
   const yLocationNameRef = useRef<Y.Text | null>(null)
   const yStartTextRef = useRef<Y.Text | null>(null)
@@ -221,20 +311,14 @@ const ScheduleItem = ({
     }
   }, [doc, rawKey, realIndex, schedule.start_time, schedule.offset_time])
 
-  /** 종료시간 라벨 */
-  const startLabel = yStartTextRef.current?.toString() ?? toTimeFromAny(schedule.start_time)
+  /** 라벨(폴백 포함) */
+  const startLabel = yStartTextRef.current?.toString() || toTimeFromAny(schedule.start_time) || ''
   const offsetLabel =
-    yOffsetTextRef.current?.toString() ?? normalizeOffsetToHHMM(schedule.offset_time)
-  const endTimeLabel = useMemo(() => {
-    if (!isValidHHMM(startLabel) || !isValidHHMM(offsetLabel)) return ''
-    const [dh, dm] = offsetLabel.split(':').map(Number)
-    const base = new Date(`${selectedDateKey}T${startLabel}`)
-    if (Number.isNaN(base.getTime())) return ''
-    const end = new Date(base.getTime() + (dh * 60 + dm) * 60000)
-    const hh = String(end.getHours()).padStart(2, '0')
-    const mm = String(end.getMinutes()).padStart(2, '0')
-    return `${hh}:${mm}`
-  }, [selectedDateKey, startLabel, offsetLabel])
+    yOffsetTextRef.current?.toString() || normalizeOffsetToHHMM(schedule.offset_time) || ''
+  const endTimeLabel = useMemo(
+    () => calcEndHHMM(selectedDateKey, startLabel, offsetLabel),
+    [selectedDateKey, startLabel, offsetLabel]
+  )
 
   /** 협업 텍스트 → 원본 필드 동기화 */
   const syncCanonical = (which: 'start' | 'offset', valueHHMM: string) => {
@@ -242,37 +326,96 @@ const ScheduleItem = ({
     if (!doc || !yItem) return
     doc.transact(() => {
       if (which === 'start') {
-        // Use the date portion from existing start_time, not selectedDateKey
         const existingStartTime = String(yItem.get('start_time') ?? schedule.start_time)
-        const datePart = existingStartTime.slice(0, 10) // "YYYY-MM-DD"
+        const datePart = existingStartTime.slice(0, 10) || selectedDateKey
         const newStartTime = `${datePart}T${valueHHMM}`
-        console.log(`[syncCanonical] Setting start_time to: ${newStartTime}`)
         yItem.set('start_time', newStartTime)
       } else {
-        console.log(`[syncCanonical] Setting offset_time to: ${valueHHMM || '00:00'}`)
         yItem.set('offset_time', valueHHMM || '00:00')
       }
     }, `sync-${which}-canonical`)
   }
 
-  /** doc 없음 대비 */
+  /** 리사이즈 핸들 */
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsResizing(true)
+    setResizeStartY(e.clientY)
+    const currentOffsetMinutes = (offsetLabel || '00:00')
+      .split(':')
+      .reduce((acc, v, i) => acc + (Number(v) || 0) * (i === 0 ? 60 : 1), 0)
+    setResizeStartOffset(currentOffsetMinutes)
+  }
+
+  useEffect(() => {
+    if (!isResizing) return
+    const handleMouseMove = (e: MouseEvent) => {
+      const deltaY = e.clientY - resizeStartY
+      const deltaMinutes = Math.round(deltaY / 2)
+      const newOffsetMinutes = Math.max(0, resizeStartOffset + deltaMinutes)
+      const newOffset = `${String(Math.floor(newOffsetMinutes / 60)).padStart(2, '0')}:${String(newOffsetMinutes % 60).padStart(2, '0')}`
+      if (yOffsetTextRef.current) {
+        yOffsetTextRef.current.delete(0, yOffsetTextRef.current.length)
+        yOffsetTextRef.current.insert(0, newOffset)
+      }
+    }
+    const handleMouseUp = () => {
+      setIsResizing(false)
+      if (yOffsetTextRef.current) {
+        syncCanonical('offset', yOffsetTextRef.current.toString())
+      }
+    }
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isResizing, resizeStartY, resizeStartOffset])
+
+  /** doc 없음 대비(폴백) */
   const [fallbackStart, setFallbackStart] = useState<string>(toTimeFromAny(schedule.start_time))
-  const [fallbackOffset, setFallbackOffset] = useState<string>(
-    normalizeOffsetToHHMM(schedule.offset_time)
+  const [fallbackEnd, setFallbackEnd] = useState<string>(
+    () =>
+      calcEndHHMM(
+        selectedDateKey,
+        toTimeFromAny(schedule.start_time),
+        normalizeOffsetToHHMM(schedule.offset_time)
+      ) || ''
   )
   useEffect(() => {
     if (!doc) setFallbackStart(toTimeFromAny(schedule.start_time))
   }, [doc, schedule.start_time])
   useEffect(() => {
-    if (!doc) setFallbackOffset(normalizeOffsetToHHMM(schedule.offset_time))
-  }, [doc, schedule.offset_time])
+    if (!doc) {
+      const end = calcEndHHMM(
+        selectedDateKey,
+        toTimeFromAny(schedule.start_time),
+        normalizeOffsetToHHMM(schedule.offset_time)
+      )
+      setFallbackEnd(end || '')
+    }
+  }, [doc, schedule.start_time, schedule.offset_time, selectedDateKey])
 
   return (
     <li
-      className="rounded-xl border-2 border-slate-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
-      draggable={!isEditing}
-      onDragStart={() => onDragStart(selectedDateKey, realIndex)}
-      onDragEnd={onDragEnd}
+      className={`group relative rounded-lg border p-2 shadow-sm transition-all ${
+        isDragging
+          ? 'border-blue-300 bg-blue-50'
+          : isResizing
+            ? 'border-purple-300 bg-purple-50/50'
+            : 'border-slate-200 bg-white'
+      }`}
+      draggable={!isEditing && !isResizing}
+      onDragStart={() => {
+        setIsDragging(true)
+        onDragStart(selectedDateKey, realIndex)
+      }}
+      onDragEnd={() => {
+        setIsDragging(false)
+        onDragEnd()
+      }}
       onDragOver={(e) => {
         if (dragItemRef.current) e.preventDefault()
       }}
@@ -282,206 +425,229 @@ const ScheduleItem = ({
         onDropWithinDate(selectedDateKey, realIndex)
       }}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        {yLocationNameRef.current ? (
-          <div className="flex-1 min-w-0">
-            <YTextEditor
-              ytext={yLocationNameRef.current}
-              variant="plain"
-              className="text-lg font-bold text-slate-800"
-              singleLine
-              placeholder="장소 이름"
-            />
-          </div>
-        ) : (
-          <span className="text-lg font-bold text-slate-800">
-            {schedule.location?.name || '일정'}
-          </span>
-        )}
-        <div className="flex items-center gap-2 text-sm text-slate-600">
-          <span className="font-semibold">{startLabel || '시간 미정'}</span>
-          <span className="text-xs text-slate-400">~</span>
-          <span className="font-semibold">
-            {endTimeLabel || (offsetLabel ? '계산 오류' : '시간 미정')}
-          </span>
-          {offsetLabel ? (
-            <span className="text-xs text-slate-500 font-medium">(+{offsetLabel})</span>
-          ) : null}
+      {/* 헤더: 장소 + 삭제 버튼 한 줄 */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+          <HiLocationMarker className="w-4 h-4 text-blue-500 shrink-0" />
+          {yLocationNameRef.current ? (
+            <div className="flex-1 min-w-0">
+              <YTextEditor
+                ytext={yLocationNameRef.current}
+                variant="plain"
+                className="text-sm font-semibold text-slate-800 bg-transparent"
+                singleLine
+                placeholder="장소"
+              />
+            </div>
+          ) : (
+            <span className="text-sm font-semibold text-slate-800">
+              {schedule.location?.name || '일정'}
+            </span>
+          )}
         </div>
-      </div>
-
-      {/* 삭제 */}
-      <div className="mt-2 flex flex-wrap items-end justify-end gap-2 text-[11px] text-slate-500">
         <button
           type="button"
-          className="rounded-full border border-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-500 transition hover:border-red-300 hover:bg-red-50"
-          onClick={() => {
-            console.log(
-              `[ScheduleItem] Delete clicked: rawKey=${rawKey}, realIndex=${realIndex}, schedule.id=${schedule.id}, schedule.uid=${schedule.uid}`
-            )
-            onRemove(rawKey, realIndex)
-          }}
+          className="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-600 hover:bg-red-100 transition shrink-0"
+          onClick={() => onRemove(rawKey, realIndex)}
         >
-          삭제
+          <HiTrash className="w-3 h-3" />
         </button>
       </div>
 
-      {/* 메모 */}
-      <div className="mt-3">
-        <div className="mb-1 text-[12px] font-semibold text-text-600">메모</div>
-        {doc ? (
-          <ScheduleMemoEditor
-            doc={doc}
-            awareness={awareness}
-            dateKey={rawKey}
-            index={realIndex}
-            fieldKey={`memo-${schedule.uid}`}
-            initialText={schedule.memo}
-          />
-        ) : (
-          <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-400">
-            {schedule.memo?.trim() ? schedule.memo : '메모를 추가해보세요.'}
+      {/* 위치정보 + 시간설정 (항상 2컬럼) */}
+      <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+        {/* 위치 정보 */}
+        <div className="rounded-lg border border-slate-200 bg-white/70 px-2.5 py-2">
+          <div className="flex items-center gap-1.5 mb-1">
+            <HiMap className="w-3.5 h-3.5 text-green-500" />
+            <span className="text-[11px] font-bold text-slate-700">위치</span>
           </div>
-        )}
-      </div>
-
-      {/* 위치 상세 */}
-      {location ? (
-        <div className="mt-1 space-y-0.5 text-[11px] text-slate-500">
-          {location.full_address ? (
-            <div className="line-clamp-1">{location.full_address}</div>
-          ) : null}
-          {regionLine ? <div className="line-clamp-1">{regionLine}</div> : null}
-          {roadLine ? <div className="line-clamp-1">{roadLine}</div> : null}
-          {location.detail ? (
-            <div className="line-clamp-1 text-slate-400">{location.detail}</div>
-          ) : null}
-          {coordinateLine ? (
-            <div className="font-mono text-[10px] text-slate-400">{coordinateLine}</div>
-          ) : null}
-        </div>
-      ) : null}
-
-      {/* 시간 입력 */}
-      <div className="mt-3 grid grid-cols-2 gap-3">
-        <div>
-          <div className="text-[12px] mb-1 text-text-600">시작 시간</div>
-          {doc && yStartTextRef.current ? (
-            <div className="bg-white rounded-2xl p-3 shadow-sm border border-slate-100">
-              <CollaborativeTimeInput
-                yText={yStartTextRef.current}
-                type="time"
-                step={60}
-                placeholder="예: 09:30"
-                className="w-full bg-transparent text-text-500 text-xs focus:outline-none"
-                onValidatedChange={(hhmm) => syncCanonical('start', hhmm)}
-                onInvalid={() =>
-                  onToast({
-                    variant: 'warning',
-                    title: '입력 형식 확인',
-                    message: 'HH:MM 형식으로 입력하세요.',
-                  })
+          <div className="space-y-0.5">
+            {location?.full_address && (
+              <div className="text-[11px] text-slate-700 line-clamp-1">
+                📍 {location.full_address}
+              </div>
+            )}
+            {(regionLine || roadLine) && (
+              <div className={clsMicro}>{[regionLine, roadLine].filter(Boolean).join(' · ')}</div>
+            )}
+            {coordinateLine && <div className={clsMonoTiny}>{coordinateLine}</div>}
+            {/* 상세 주소(협업 가능) */}
+            <div className="pt-1 border-t border-slate-200">
+              <YTextEditor
+                ytext={
+                  yItemRef.current && yItemRef.current.get('location') instanceof Y.Map
+                    ? (() => {
+                        const yLoc = yItemRef.current!.get('location') as Y.Map<unknown>
+                        const detail = yLoc.get('detail')
+                        if (detail instanceof Y.Text) return detail
+                        const t = new Y.Text(location?.detail || '')
+                        doc?.transact(() => yLoc.set('detail', t))
+                        return t
+                      })()
+                    : new Y.Text(location?.detail || '')
                 }
+                variant="plain"
+                size="xs"
+                className="text-[11px] text-slate-600 italic"
+                singleLine
+                placeholder="상세 주소 입력..."
               />
             </div>
-          ) : (
-            <div className="bg-white rounded-2xl p-3 shadow-sm border border-slate-100">
-              <input
-                type="time"
-                step={60}
-                value={fallbackStart}
-                onChange={(e) => setFallbackStart(e.currentTarget.value)}
-                onBlur={() => {
-                  if (!isValidHHMM(fallbackStart)) {
+          </div>
+        </div>
+
+        {/* 시간 설정 (legend 제거: 섹션 타이틀/컬러 도트 제거) */}
+        <div className="rounded-lg border border-slate-200 bg-white/70 px-2.5 py-2">
+          <div className="grid grid-cols-2 gap-2">
+            {/* 시작 */}
+            <div>
+              {doc && yStartTextRef.current ? (
+                <CollaborativeTimeInput
+                  yText={yStartTextRef.current}
+                  type="time"
+                  placeholder="시작 HH:MM"
+                  onValidatedChange={(hhmm) => {
+                    // 시간 겹침 검증
+                    const currentOffset =
+                      yOffsetTextRef.current?.toString() ||
+                      normalizeOffsetToHHMM(schedule.offset_time) ||
+                      '00:00'
+                    if (checkTimeOverlap(hhmm, currentOffset)) {
+                      // 겹침이 있으면 원래 값으로 되돌리기
+                      const originalStart = toTimeFromAny(schedule.start_time)
+                      if (yStartTextRef.current) {
+                        yStartTextRef.current.delete(0, yStartTextRef.current.length)
+                        yStartTextRef.current.insert(0, originalStart)
+                      }
+                      return
+                    }
+
+                    syncCanonical('start', hhmm)
+                    if (isValidHHMM(endTimeLabel) && yOffsetTextRef.current) {
+                      const newOffset = diffToOffsetHHMM(selectedDateKey, hhmm, endTimeLabel)
+                      if (newOffset) {
+                        yOffsetTextRef.current.delete(0, yOffsetTextRef.current.length)
+                        yOffsetTextRef.current.insert(0, newOffset)
+                        syncCanonical('offset', newOffset)
+                      }
+                    }
+                  }}
+                  onInvalid={() =>
                     onToast({
                       variant: 'warning',
                       title: '입력 형식 확인',
                       message: 'HH:MM 형식으로 입력하세요.',
                     })
-                    setFallbackStart(toTimeFromAny(schedule.start_time))
-                    return
                   }
-                  const datePart = schedule.start_time.slice(0, 10)
-                  onUpdateTime(rawKey, realIndex, {
-                    startTimeLocal: `${datePart}T${fallbackStart}`,
-                    offsetHHMM: fallbackOffset || null,
-                  })
-                }}
-                className="w-full bg-transparent text-text-500 text-xs focus:outline-none"
-              />
-            </div>
-          )}
-        </div>
+                />
+              ) : (
+                <TimePicker
+                  value={fallbackStart}
+                  onChange={(newStart) => {
+                    setFallbackStart(newStart)
+                    if (isValidHHMM(newStart) && isValidHHMM(fallbackEnd)) {
+                      const newOffset = diffToOffsetHHMM(selectedDateKey, newStart, fallbackEnd)
+                      if (newOffset) {
+                        // 시간 겹침 검증
+                        if (checkTimeOverlap(newStart, newOffset)) {
+                          return
+                        }
 
-        <div>
-          <div className="text-[12px] mb-1 text-text-600">예정 소요시간</div>
-          {doc && yOffsetTextRef.current ? (
-            <div className="bg-white rounded-2xl p-3 shadow-sm border border-slate-100">
-              <CollaborativeTimeInput
-                yText={yOffsetTextRef.current}
-                type="duration"
-                step={60}
-                placeholder="예: 01:30"
-                className="w-full bg-transparent text-text-500 text-xs focus:outline-none"
-                onValidatedChange={(hhmm) => syncCanonical('offset', hhmm)}
-                onInvalid={() =>
-                  onToast({
-                    variant: 'warning',
-                    title: '입력 형식 확인',
-                    message: 'HH:MM 형식으로 입력하세요.',
-                  })
-                }
-              />
+                        const datePart = schedule.start_time.slice(0, 10)
+                        onUpdateTime(rawKey, realIndex, {
+                          startTimeLocal: `${datePart}T${newStart}`,
+                          offsetHHMM: newOffset,
+                        })
+                      }
+                    }
+                  }}
+                  placeholder="시작 HH:MM"
+                />
+              )}
             </div>
-          ) : (
-            <div className="bg-white rounded-2xl p-3 shadow-sm border border-slate-100">
-              <input
-                type="time"
-                step={60}
-                value={fallbackOffset}
-                onChange={(e) => setFallbackOffset(e.currentTarget.value)}
-                onBlur={() => {
-                  const norm = normalizeOffsetToHHMM(fallbackOffset)
-                  if (!isValidHHMM(norm)) {
-                    onToast({
-                      variant: 'warning',
-                      title: '입력 형식 확인',
-                      message: 'HH:MM 형식으로 입력하세요.',
+
+            {/* 종료 */}
+            <div>
+              {doc && yStartTextRef.current && yOffsetTextRef.current ? (
+                <TimePicker
+                  value={endTimeLabel}
+                  onChange={(newEnd) => {
+                    const newOffset = diffToOffsetHHMM(selectedDateKey, startLabel, newEnd)
+                    if (!newOffset) {
+                      onToast({
+                        variant: 'warning',
+                        message: '종료 시간은 시작 시간보다 빠를 수 없습니다.',
+                      })
+                      return
+                    }
+
+                    // 시간 겹침 검증
+                    if (checkTimeOverlap(startLabel, newOffset)) {
+                      return
+                    }
+
+                    yOffsetTextRef.current?.delete(0, yOffsetTextRef.current.length)
+                    yOffsetTextRef.current?.insert(0, newOffset)
+                    syncCanonical('offset', newOffset)
+                  }}
+                  placeholder="종료 HH:MM"
+                />
+              ) : (
+                <TimePicker
+                  value={fallbackEnd}
+                  onChange={(newEnd) => {
+                    setFallbackEnd(newEnd)
+                    const newOffset = diffToOffsetHHMM(selectedDateKey, fallbackStart, newEnd)
+                    if (!newOffset) {
+                      onToast({
+                        variant: 'warning',
+                        message: '종료 시간은 시작 시간보다 빠를 수 없습니다.',
+                      })
+                      return
+                    }
+
+                    // 시간 겹침 검증
+                    if (checkTimeOverlap(fallbackStart, newOffset)) {
+                      return
+                    }
+
+                    const datePart = schedule.start_time.slice(0, 10)
+                    onUpdateTime(rawKey, realIndex, {
+                      startTimeLocal: `${datePart}T${fallbackStart}`,
+                      offsetHHMM: newOffset,
                     })
-                    setFallbackOffset(normalizeOffsetToHHMM(schedule.offset_time))
-                    return
-                  }
-                  const datePart = schedule.start_time.slice(0, 10)
-                  const timePart = fallbackStart || toTimeFromAny(schedule.start_time)
-                  onUpdateTime(rawKey, realIndex, {
-                    startTimeLocal: `${datePart}T${timePart}`,
-                    offsetHHMM: norm,
-                  })
-                }}
-                className="w-full bg-transparent text-text-500 text-xs focus:outline-none"
-              />
+                  }}
+                  placeholder="종료 HH:MM"
+                />
+              )}
             </div>
-          )}
+          </div>
+
+          {/* 소요시간(간단 텍스트만; legend/배지 제거) */}
+          <div className="mt-2 flex items-center justify-between text-[11px]">
+            <span className="text-slate-500">소요</span>
+            <span className="font-semibold text-slate-700">{offsetLabel || '00:00'}</span>
+          </div>
         </div>
       </div>
 
-      {/* 고급 편집 */}
+      {/* 고급 편집(간결) */}
       {isEditing ? (
-        <div className="mt-2 flex flex-wrap items-center gap-2 rounded border border-slate-100 bg-slate-50/60 p-2">
-          <label className="text-[11px] text-slate-500">start_time</label>
+        <div className="mt-2 flex flex-wrap items-center gap-2 rounded border border-slate-200 bg-slate-50 px-2 py-2">
+          <label className={clsMicro}>start_time</label>
           <input
             value={editStart}
             onChange={(e) => onSetEditStart(e.target.value)}
             placeholder="YYYY-MM-DD-HH-MM"
-            className="w-44 rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 focus:border-blue-400 focus:outline-none"
+            className="w-44 rounded border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-700 focus:border-blue-400 focus:outline-none"
           />
-          <label className="text-[11px] text-slate-500">offset_time</label>
+          <label className={clsMicro}>offset_time</label>
           <input
             value={editOffset}
             onChange={(e) => onSetEditOffset(e.target.value)}
             placeholder="HH:MM"
-            className="w-24 rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 focus:border-blue-400 focus:outline-none"
+            className="w-24 rounded border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-700 focus:border-blue-400 focus:outline-none"
           />
           <div className="ml-auto flex items-center gap-2">
             <button
@@ -526,6 +692,54 @@ const ScheduleItem = ({
           </div>
         </div>
       ) : null}
+
+      {/* 메모: 가장 아래로 이동 */}
+      <div className="mt-2 rounded-lg border border-slate-200 bg-white/70 px-2.5 py-2">
+        {/* 제목/legend 제거, 단순 영역만 */}
+        {doc ? (
+          <ScheduleMemoEditor
+            doc={doc}
+            awareness={awareness}
+            dateKey={rawKey}
+            index={realIndex}
+            fieldKey={`memo-${schedule.uid}`}
+            initialText={schedule.memo}
+          />
+        ) : (
+          <div className="rounded border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] text-slate-500">
+            {schedule.memo?.trim() ? schedule.memo : '메모를 추가해보세요.'}
+          </div>
+        )}
+      </div>
+
+      {/* 리사이즈 핸들 */}
+      {!isEditing && (
+        <div
+          className={`absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize flex items-center justify-center ${
+            isResizing ? 'opacity-100' : 'opacity-60 hover:opacity-100'
+          }`}
+          onMouseDown={handleResizeStart}
+          title="드래그하여 소요시간 조정"
+        >
+          <div className="w-10 h-[3px] rounded bg-slate-300" />
+        </div>
+      )}
+
+      {/* 드래그/리사이즈 중 오버레이(간결) */}
+      {isDragging && (
+        <div className="absolute inset-0 flex items-center justify-center bg-blue-500/10 rounded-xl pointer-events-none">
+          <div className="bg-blue-600 text-white px-3 py-1.5 rounded-full text-[12px] font-bold shadow">
+            📍 순서 변경 중
+          </div>
+        </div>
+      )}
+      {isResizing && (
+        <div className="absolute inset-0 flex items-center justify-center bg-purple-500/10 rounded-xl pointer-events-none">
+          <div className="bg-purple-600 text-white px-3 py-1.5 rounded-full text-[12px] font-bold shadow">
+            ⏱️ 종료 조정: {offsetLabel || '00:00'}
+          </div>
+        </div>
+      )}
     </li>
   )
 }

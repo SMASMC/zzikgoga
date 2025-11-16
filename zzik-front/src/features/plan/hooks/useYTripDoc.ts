@@ -36,6 +36,8 @@ export interface YScheduleItem {
   has_location: boolean
   location: YLocationItem | null
   memo: string
+  travel_duration?: number // 이동 시간(분)
+  travel_distance?: number // 이동 거리(미터)
   yArrayIndex?: number
   rawKey?: string // Original key from schedulesMap
 }
@@ -158,6 +160,10 @@ const snapshotSchedules = (doc: Y.Doc): Record<string, YScheduleItem[]> => {
         }
       })()
 
+      // 이동 시간 및 거리 정보 추출
+      const travel_duration = yMap.get('travel_duration') as number | undefined
+      const travel_distance = yMap.get('travel_distance') as number | undefined
+
       if (!result[dayKey]) result[dayKey] = [] // 재선언/중복 없이 최초만 생성
       result[dayKey].push({
         id,
@@ -167,6 +173,8 @@ const snapshotSchedules = (doc: Y.Doc): Record<string, YScheduleItem[]> => {
         has_location,
         location,
         memo,
+        travel_duration,
+        travel_distance,
         yArrayIndex,
         rawKey: String(rawKey), // Store the original key from schedulesMap
       })

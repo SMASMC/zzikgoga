@@ -25,6 +25,10 @@ const resolveCredentials = () => {
   const clientId = import.meta.env.VITE_NAVER_MAP_CLIENT_ID
   const clientSecret = import.meta.env.VITE_NAVER_MAP_CLIENT_SECRET
 
+  console.log('[Naver Directions] Credentials:', {
+    clientId,
+    clientSecret,
+  })
   if (!clientId || !clientSecret) {
     return null
   }

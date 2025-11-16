@@ -41,7 +41,7 @@ const YCollabEditor = ({
     content: '',
     editorProps: {
       attributes: {
-        class: `prose prose-sm max-w-none focus:outline-none min-h-[2.25rem] border border-slate-200 rounded-md px-2 py-1 ${
+        class: `prose prose-sm max-w-none focus:outline-none min-h-[1.5rem] border border-slate-200 rounded-full px-2 py-0.5 ${
           className || ''
         }`,
       },

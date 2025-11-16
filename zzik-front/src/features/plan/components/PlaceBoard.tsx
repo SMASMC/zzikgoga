@@ -248,6 +248,11 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
         return
       }
       reorderSchedule(dateKey, sourceIndex, targetIndex)
+      setToast({
+        variant: 'success',
+        title: '일정 순서 변경',
+        message: '일정 순서가 변경되었고, 시간이 자동으로 조정되었습니다.',
+      })
     },
     [reorderSchedule]
   )
@@ -266,6 +271,11 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
       }
       const nextIndex = schedulesByDate[dateKey]?.length ?? 0
       reorderSchedule(dateKey, sourceIndex, nextIndex)
+      setToast({
+        variant: 'success',
+        title: '일정 순서 변경',
+        message: '일정 순서가 변경되었고, 시간이 자동으로 조정되었습니다.',
+      })
     },
     [reorderSchedule, schedulesByDate]
   )

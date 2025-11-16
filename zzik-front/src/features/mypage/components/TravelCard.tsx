@@ -7,6 +7,7 @@ import { TravelAddCardProps, TravelCardProps } from '../types/mypage'
 import SolidButton from '@/components/atoms/SolidButton'
 import { Camera } from 'lucide-react'
 import { MediaService } from '@/features/memory/services/memoryService'
+import { ToastDock } from '@/components/blocks/ToastDock'
 
 const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCardProps) => {
   const navigate = useNavigate()
@@ -14,6 +15,11 @@ const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCard
   const [imageSrc, setImageSrc] = useState(img || '/pwa-512x512.png')
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [toast, setToast] = useState<{
+    open: boolean
+    variant: 'success' | 'warning' | 'error' | 'hint'
+    message: string
+  }>({ open: false, variant: 'success', message: '' })
 
   const handleCardClick = () => {
     const travelMeta = { travelTitle: title, startDate, endDate }
@@ -50,7 +56,7 @@ const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCard
       e.target.value = ''
     } catch (err) {
       console.error(err)
-      alert('사진 업로드에 실패했습니다.')
+      setToast({ open: true, variant: 'error', message: '사진 업로드에 실패했습니다.' })
     } finally {
       setUploading(false)
     }
@@ -64,69 +70,79 @@ const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCard
   }
 
   return (
-    <div
-      onClick={handleRootClick}
-      className={`group bg-white rounded-3xl shadow-lg overflow-hidden w-72 p-5 flex flex-col cursor-pointer transition-all duration-300 ${
-        !isButtonHovered ? 'hover:shadow-xl hover:scale-105' : ''
-      }`}
-    >
-      <img
-        src={imageSrc}
-        alt={title}
-        className="rounded-2xl h-48 object-cover mb-4"
-        onError={handleImageError}
-      />
-      <div className="mb-3 flex items-start justify-between gap-2">
-        <div>
-          <h3 className="font-bmjua text-text-500">{title}</h3>
-          <p className="text-gray-500 text-sm">{date}</p>
+    <>
+      <div
+        onClick={handleRootClick}
+        className={`group bg-white rounded-3xl shadow-lg overflow-hidden w-72 p-5 flex flex-col cursor-pointer transition-all duration-300 ${
+          !isButtonHovered ? 'hover:shadow-xl hover:scale-105' : ''
+        }`}
+      >
+        <img
+          src={imageSrc}
+          alt={title}
+          className="rounded-2xl h-48 object-cover mb-4"
+          onError={handleImageError}
+        />
+        <div className="mb-3 flex items-start justify-between gap-2">
+          <div>
+            <h3 className="font-bmjua text-text-500">{title}</h3>
+            <p className="text-gray-500 text-sm">{date}</p>
+          </div>
+          <div>
+            <button
+              type="button"
+              onClick={handleCameraButtonClick}
+              onMouseDown={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+              onMouseEnter={() => setIsButtonHovered(true)}
+              onMouseLeave={() => setIsButtonHovered(false)}
+              className="p-2 rounded-full border bg-white hover:bg-slate-50 text-slate-700 shadow-sm disabled:opacity-50"
+              disabled={uploading}
+              aria-label="사진 업로드"
+            >
+              <Camera size={16} />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleFileChange}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
         </div>
-        <div>
-          <button
-            type="button"
-            onClick={handleCameraButtonClick}
-            onMouseDown={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
+        <div className="flex justify-center gap-2 mb-2">
+          <SolidButton
+            onClick={handleSettlementClick}
             onMouseEnter={() => setIsButtonHovered(true)}
             onMouseLeave={() => setIsButtonHovered(false)}
-            className="p-2 rounded-full border bg-white hover:bg-slate-50 text-slate-700 shadow-sm disabled:opacity-50"
-            disabled={uploading}
-            aria-label="사진 업로드"
+            className="flex-1 transition-all rounded-full"
           >
-            <Camera size={16} />
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={handleFileChange}
-            onClick={(e) => e.stopPropagation()}
-          />
+            정산하기
+          </SolidButton>
+        </div>
+        <div className="flex justify-end gap-2">
+          <SolidButton
+            onClick={handlePhotoClick}
+            onMouseEnter={() => setIsButtonHovered(true)}
+            onMouseLeave={() => setIsButtonHovered(false)}
+            className="flex-1 transition-all rounded-full"
+          >
+            기록하기
+          </SolidButton>
         </div>
       </div>
-      <div className="flex justify-center gap-2 mb-2">
-        <SolidButton
-          onClick={handleSettlementClick}
-          onMouseEnter={() => setIsButtonHovered(true)}
-          onMouseLeave={() => setIsButtonHovered(false)}
-          className="flex-1 transition-all rounded-full"
-        >
-          정산하기
-        </SolidButton>
-      </div>
-      <div className="flex justify-end gap-2">
-        <SolidButton
-          onClick={handlePhotoClick}
-          onMouseEnter={() => setIsButtonHovered(true)}
-          onMouseLeave={() => setIsButtonHovered(false)}
-          className="flex-1 transition-all rounded-full"
-        >
-          기록하기
-        </SolidButton>
-      </div>
-    </div>
+
+      {/* Toast */}
+      <ToastDock
+        open={toast.open}
+        variant={toast.variant}
+        message={toast.message}
+        onClose={() => setToast({ ...toast, open: false })}
+      />
+    </>
   )
 }
 

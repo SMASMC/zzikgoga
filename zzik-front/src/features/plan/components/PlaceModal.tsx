@@ -1,5 +1,6 @@
 import SolidButton from '@/components/atoms/SolidButton'
 import CloseButton from '@/components/atoms/CloseButton'
+import TimePicker from '@/components/atoms/TimePicker'
 import { useMemo, useState, useCallback, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { ToastDock } from '@/components/blocks/ToastDock'
@@ -178,18 +179,57 @@ const PlaceModal = ({ onClose, place }: PlaceModalProps) => {
       notifyOutOfRange()
       return
     }
-    // 선택된 날짜에 이미 일정이 있는지 확인
-    const existingSchedules = schedulesByDate[selectedDateKey] || []
-    if (existingSchedules.length > 0) {
-      setToastMessage('선택한 날짜에 이미 일정이 있습니다. 다른 날짜를 선택해주세요.')
-      return
-    }
+
+    // 시간 유효성 검사
     if (endDateTime) {
       const start = new Date(`${selectedDateKey}T${startDateTime}`)
       const end = new Date(`${selectedDateKey}T${endDateTime}`)
       if (end.getTime() - start.getTime() < 0) {
         setToastMessage('종료 시간은 시작 시간보다 빠를 수 없습니다.')
         return
+      }
+    }
+
+    // 시간 겹침 체크
+    const existingSchedules = schedulesByDate[selectedDateKey] || []
+    if (existingSchedules.length > 0) {
+      const newStart = new Date(`${selectedDateKey}T${startDateTime}`)
+      const newEnd = endDateTime
+        ? new Date(`${selectedDateKey}T${endDateTime}`)
+        : new Date(newStart.getTime() + 60 * 60 * 1000) // 종료시간 없으면 1시간 후로 가정
+
+      // 기존 일정과 시간 겹침 확인
+      for (const schedule of existingSchedules) {
+        const existingStart = new Date(schedule.start_time)
+
+        // 기존 일정의 종료시간 계산
+        let existingEnd: Date
+        if (schedule.offset_time) {
+          const offsetMatch = String(schedule.offset_time).match(/^(\d+):(\d+)$/)
+          if (offsetMatch) {
+            const hours = parseInt(offsetMatch[1], 10)
+            const minutes = parseInt(offsetMatch[2], 10)
+            existingEnd = new Date(existingStart.getTime() + (hours * 60 + minutes) * 60 * 1000)
+          } else {
+            existingEnd = new Date(existingStart.getTime() + 60 * 60 * 1000) // 기본 1시간
+          }
+        } else {
+          existingEnd = new Date(existingStart.getTime() + 60 * 60 * 1000) // 기본 1시간
+        }
+
+        // 시간 겹침 확인: 겹치지 않으려면 (newEnd <= existingStart) 또는 (newStart >= existingEnd)
+        const isOverlapping = !(
+          newEnd.getTime() <= existingStart.getTime() || newStart.getTime() >= existingEnd.getTime()
+        )
+
+        if (isOverlapping) {
+          const existingStartTime = existingStart.toTimeString().slice(0, 5)
+          const existingEndTime = existingEnd.toTimeString().slice(0, 5)
+          setToastMessage(
+            `선택한 시간이 기존 일정(${existingStartTime} ~ ${existingEndTime})과 겹칩니다. 다른 시간을 선택해주세요.`
+          )
+          return
+        }
       }
     }
 
@@ -254,21 +294,21 @@ const PlaceModal = ({ onClose, place }: PlaceModalProps) => {
 
         <div className="mb-4 sm:mb-6">
           <h3 className="text-base sm:text-lg mb-2 sm:mb-3 text-text-600">시작 시간</h3>
-          <input
-            type="time"
+          <TimePicker
             value={startDateTime}
-            onChange={(e) => setStartDateTime(e.target.value)}
-            className="w-full px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md hover:scale-[1.02]"
+            onChange={setStartDateTime}
+            placeholder="시작 시간"
+            className="w-full"
           />
         </div>
 
         <div className="mb-4 sm:mb-6">
           <h3 className="text-base sm:text-lg mb-2 sm:mb-3 text-text-600">종료 시간</h3>
-          <input
-            type="time"
+          <TimePicker
             value={endDateTime}
-            onChange={(e) => setEndDateTime(e.target.value)}
-            className="w-full px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md hover:scale-[1.02]"
+            onChange={setEndDateTime}
+            placeholder="종료 시간"
+            className="w-full"
           />
           <div className="mt-2 flex items-center justify-between text-xs">
             <span className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-600">

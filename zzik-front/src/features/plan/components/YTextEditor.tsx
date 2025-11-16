@@ -42,10 +42,10 @@ const YTextEditor = ({
       lg: 'text-base',
     }
     const paddingClasses = {
-      xs: 'px-2 py-1',
-      sm: 'px-2.5 py-1',
-      md: 'px-3 py-1.5',
-      lg: 'px-4 py-2',
+      xs: 'px-2 py-0.5',
+      sm: 'px-2.5 py-0.5',
+      md: 'px-3 py-1',
+      lg: 'px-4 py-1.5',
     }
     return {
       text: textSizes[size],
@@ -134,7 +134,7 @@ const YTextEditor = ({
       editorProps: {
         attributes: {
           class: cn(
-            'prose max-w-none focus:outline-none min-h-[1.5rem] bg-transparent text-inherit leading-tight',
+            'prose max-w-none focus:outline-none min-h-[1rem] bg-transparent text-inherit leading-tight',
             sizeClasses.text
           ),
           ...(numericOnly && {
@@ -256,9 +256,9 @@ const YTextEditor = ({
     <div
       className={cn(
         variant === 'plain'
-          ? 'w-full min-h-[2rem]'
+          ? 'w-full min-h-[1.2rem]'
           : cn(
-              'w-full rounded-lg border border-slate-300 bg-white font-medium text-slate-900 shadow-sm transition-all hover:border-blue-300 hover:shadow-md focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-100 flex items-center',
+              'w-full rounded-full border border-slate-300 bg-white font-medium text-slate-900 shadow-sm transition-all hover:border-blue-300 hover:shadow-md focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-100 flex items-center',
               sizeClasses.padding,
               sizeClasses.text
             ),

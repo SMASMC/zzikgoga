@@ -9,6 +9,7 @@ import { SettleResponse } from '../types/settle'
 import CostDetailModal from './CostDetailModal'
 import SolidButton from '@/components/atoms/SolidButton'
 import { useAuthStore } from '@/shared/stores/useAuthStore'
+import { ToastDock } from '@/components/blocks/ToastDock'
 
 interface CostListProps {
   tripId: string
@@ -27,6 +28,11 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
   const [isSettling, setIsSettling] = useState(false)
   const [settleInfo, setSettleInfo] = useState<SettleResponse | null>(null)
   const [showSettleTooltip, setShowSettleTooltip] = useState(false)
+  const [toast, setToast] = useState<{
+    open: boolean
+    variant: 'success' | 'warning' | 'error' | 'hint'
+    message: string
+  }>({ open: false, variant: 'success', message: '' })
 
   // 현재 사용자가 이미 수락했는지 확인
   const isAlreadyAccepted = settleInfo
@@ -116,7 +122,11 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
       await loadCostList()
     } catch (error) {
       console.error('결제 내역 삭제 실패:', error)
-      alert('결제 내역 삭제에 실패했습니다. 다시 시도해주세요.')
+      setToast({
+        open: true,
+        variant: 'error',
+        message: '결제 내역 삭제에 실패했습니다. 다시 시도해주세요.',
+      })
     } finally {
       setDeletingCostId(null)
     }
@@ -131,10 +141,14 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
       await CostSettleService.acceptSettle(Number(tripId), { accept: true })
       // 정산 상태 다시 조회
       await loadSettleInfo()
-      alert('정산 수락이 완료되었습니다.')
+      setToast({ open: true, variant: 'success', message: '정산 수락이 완료되었습니다.' })
     } catch (error) {
       console.error('정산 수락 실패:', error)
-      alert('정산 수락에 실패했습니다. 다시 시도해주세요.')
+      setToast({
+        open: true,
+        variant: 'error',
+        message: '정산 수락에 실패했습니다. 다시 시도해주세요.',
+      })
     } finally {
       setIsSettling(false)
     }
@@ -357,6 +371,14 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
           onRefresh={loadCostList}
         />
       )}
+
+      {/* Toast */}
+      <ToastDock
+        open={toast.open}
+        variant={toast.variant}
+        message={toast.message}
+        onClose={() => setToast({ ...toast, open: false })}
+      />
     </div>
   )
 }
