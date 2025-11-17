@@ -132,6 +132,13 @@ public class CostCalculateService {
 				tm -> tm.getMember().getName()
 			));
 
+		// thumbnailUrl도 Map으로 저장
+		Map<Long, String> memberThumbnailMap = trip.getTripMembers().stream()
+			.collect(Collectors.toMap(
+				tm -> tm.getMember().getId(),
+				tm -> tm.getMember().getThumbnailUrl()
+			));
+
 		Set<Long> memberIds = memberNameMap.keySet();
 		if (!memberIds.contains(userId)) {
 			throw BusinessException.from(ExceptionCode.NOT_TRIP_MEMBER);
@@ -196,6 +203,7 @@ public class CostCalculateService {
 			.map(e -> CostCalculateResponse.ToSend.builder()
 				.targetMemberId(e.getKey())
 				.targetMemberName(memberNameMap.get(e.getKey()))
+				.targetThumbnailUrl(memberThumbnailMap.get(e.getKey()))
 				.amount(e.getValue())
 				.build())
 			.toList();
@@ -205,6 +213,7 @@ public class CostCalculateService {
 			.map(e -> CostCalculateResponse.ToReceive.builder()
 				.fromMemberId(e.getKey())
 				.fromMemberName(memberNameMap.get(e.getKey()))
+				.fromThumbnailUrl(memberThumbnailMap.get(e.getKey()))
 				.amount(e.getValue())
 				.build())
 			.toList();
@@ -217,6 +226,7 @@ public class CostCalculateService {
 				CostCalculateResponse.CombinedSettlement.builder()
 					.memberId(userId)
 					.memberName(memberNameMap.get(userId))
+					.thumbnailUrl(memberThumbnailMap.get(userId))
 					.memberCount(relatedCount)
 					.toSend(toSend)
 					.toReceive(toReceive)
