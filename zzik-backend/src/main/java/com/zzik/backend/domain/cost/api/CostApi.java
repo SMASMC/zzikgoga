@@ -67,7 +67,8 @@ public interface CostApi {
 		),
 		errors = {
 			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.INVALID_TRIP),
-			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.ZERO_TOTAL_AMOUNT)
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.ZERO_TOTAL_AMOUNT),
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.COST_PAYER_IDS_EMPTY)
 		}
 	)
 	@PostMapping(

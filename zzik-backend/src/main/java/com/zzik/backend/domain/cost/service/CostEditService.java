@@ -66,6 +66,11 @@ public class CostEditService {
 
 		// 5) upsert (INSERT/UPDATE)
 		for (var m : safe(req.menus())) {
+			// payerIds 빈 리스트 검증
+			if (m.payerIds() != null && m.payerIds().isEmpty()) {
+				throw BusinessException.from(ExceptionCode.COST_PAYER_IDS_EMPTY);
+			}
+
 			int cnt = m.count();
 			List<Long> mustPayerIds = safe(m.payerIds()).stream().distinct().toList();
 

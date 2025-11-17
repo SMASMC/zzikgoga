@@ -34,7 +34,8 @@ public interface CostEditApi {
 			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.NOT_TRIP_MEMBER),
 			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.COST_MENU_NOT_FOUND),
 			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.EDIT_LOCK_NOT_FOUND),
-			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.TRIP_COST_ALREADY_COMPLETED)
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.TRIP_COST_ALREADY_COMPLETED),
+		@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.COST_PAYER_IDS_EMPTY)
 		}
 	)
 	@PutMapping(
