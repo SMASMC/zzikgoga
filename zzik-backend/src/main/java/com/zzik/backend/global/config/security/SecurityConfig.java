@@ -40,7 +40,9 @@ public class SecurityConfig {
 		"/auth/kakao",
 		"/auth/callback",
 		"/auth/signup",
-		"/auth/reissue"
+		"/auth/reissue",
+		// --- 테스트 API (로컬 환경 전용) ---
+		"/auth/test/**"
 	};
 
 	private final CorsConfigurationSource corsConfigurationSource;
