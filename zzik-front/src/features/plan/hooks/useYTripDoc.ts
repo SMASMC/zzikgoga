@@ -184,6 +184,22 @@ const snapshotSchedules = (doc: Y.Doc): Record<string, YScheduleItem[]> => {
     })
   })
 
+  // 각 날짜별 일정을 시간순으로 정렬
+  Object.keys(result).forEach((dateKey) => {
+    result[dateKey].sort((a, b) => {
+      // start_time을 기준으로 정렬
+      const timeA = new Date(a.start_time).getTime()
+      const timeB = new Date(b.start_time).getTime()
+
+      // 시간이 같으면 yArrayIndex로 정렬 (원래 순서 유지)
+      if (timeA === timeB) {
+        return (a.yArrayIndex ?? 0) - (b.yArrayIndex ?? 0)
+      }
+
+      return timeA - timeB
+    })
+  })
+
   return result
 }
 

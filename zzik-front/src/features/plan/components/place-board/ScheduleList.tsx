@@ -195,7 +195,8 @@ const ScheduleList = ({
     }
 
     setIsCalculating(true)
-    const sortedSchedules = [...schedules].sort((a, b) => a.start_time.localeCompare(b.start_time))
+    // schedules는 이미 useYTripDoc에서 시간순으로 정렬되어 있음
+    const sortedSchedules = schedules
 
     try {
       for (let i = 0; i < sortedSchedules.length - 1; i++) {
@@ -438,7 +439,6 @@ const ScheduleList = ({
         >
           {schedules
             .map((it, originalIndex) => ({ it, originalIndex }))
-            .sort((a, b) => a.it.start_time.localeCompare(b.it.start_time))
             .map(({ it, originalIndex }, sortedIndex, sortedArray) => {
               // Use actual Y.Array index (accurate even if items are deleted)
               const realIndex = it.yArrayIndex ?? originalIndex
