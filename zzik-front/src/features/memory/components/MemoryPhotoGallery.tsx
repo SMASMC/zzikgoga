@@ -78,11 +78,13 @@ const MemoryPhotoGallery = ({ tripId }: Props) => {
     <div className="h-full p-4 flex flex-col min-h-0">
       {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
 
-      <div className="flex items-center justify-between mb-3 shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-slate-600">페이지 크기</span>
+      {/* 페이지네이션 컨트롤 */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-4 shrink-0">
+        {/* 페이지 크기 선택 */}
+        <div className="flex items-center gap-2 bg-gradient-to-br from-blue-50 to-blue-100 rounded-full px-4 py-2 shadow-sm">
+          <span className="text-sm font-bold text-text-500 whitespace-nowrap">페이지 크기</span>
           <select
-            className="border rounded px-2 py-1 text-sm"
+            className="bg-white border-2 border-blue-300 rounded-full px-3 py-1 text-sm font-semibold text-text-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all cursor-pointer"
             value={pageSize}
             onChange={(e) => {
               const size = Number(e.target.value)
@@ -90,29 +92,39 @@ const MemoryPhotoGallery = ({ tripId }: Props) => {
               setPage(0)
             }}
           >
-            <option value={8}>8</option>
-            <option value={12}>12</option>
-            <option value={16}>16</option>
+            <option value={8}>8개</option>
+            <option value={12}>12개</option>
+            <option value={16}>16개</option>
           </select>
         </div>
-        <div className="flex items-center gap-2">
+
+        {/* 페이지 네비게이션 */}
+        <div className="flex items-center gap-2 justify-center sm:justify-end">
           <button
-            className="px-2 py-1 text-sm border rounded disabled:opacity-50"
+            className="inline-flex items-center justify-center whitespace-nowrap font-bmjua px-4 py-2 text-sm rounded-full bg-gradient-to-br from-gray-100 to-gray-200 text-text-500 hover:from-gray-200 hover:to-gray-300 shadow-md transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 disabled:hover:scale-100"
             disabled={page === 0}
             onClick={goPrev}
           >
-            이전
+            ← 이전
           </button>
-          <span className="text-sm text-slate-600">
-            {page + 1} / {totalPages}
-            {nextCursor ? '+' : ''}
-          </span>
+
+          <div className="flex items-center gap-1 bg-gradient-to-br from-blue-50 to-blue-100 rounded-full px-4 py-2 shadow-sm min-w-[80px] justify-center">
+            <span className="text-sm font-bold text-blue-600">
+              {page + 1}
+            </span>
+            <span className="text-sm text-text-600">/</span>
+            <span className="text-sm font-bold text-text-500">
+              {totalPages}
+              {nextCursor ? '+' : ''}
+            </span>
+          </div>
+
           <button
-            className="px-2 py-1 text-sm border rounded disabled:opacity-50"
+            className="inline-flex items-center justify-center whitespace-nowrap font-bmjua px-4 py-2 text-sm rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-white hover:from-blue-500 hover:to-blue-700 shadow-md transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 disabled:hover:scale-100"
             onClick={goNext}
             disabled={loading || (!nextCursor && end >= photos.length)}
           >
-            다음
+            다음 →
           </button>
         </div>
       </div>
