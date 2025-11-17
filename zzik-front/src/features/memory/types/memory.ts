@@ -1,6 +1,6 @@
 export type MemoryStatus = string
 
-export type MemoryBlockType = 'heading1' | 'heading2' | 'heading3' | 'paragraph' | 'image'
+export type MemoryBlockType = 'heading1' | 'heading2' | 'heading3' | 'paragraph' | 'image' | 'list'
 
 export type MemoryBlock = {
   id: string
@@ -11,6 +11,9 @@ export type MemoryBlock = {
     text?: string
     url?: string
     caption?: string
+    // list
+    style?: 'unordered' | 'ordered'
+    items?: string[]
   }
 }
 

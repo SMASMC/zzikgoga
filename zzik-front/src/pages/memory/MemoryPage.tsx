@@ -99,6 +99,18 @@ const MemoryPage = () => {
           parts.push(`![${alt}](${url})`)
           break
         }
+        case 'list': {
+          const style = b.data.style
+          const items = b.data.items ?? []
+          if (style === 'ordered') {
+            const lines = items.map((item, idx) => `${idx + 1}. ${item}`)
+            parts.push(lines.join('\n'))
+          } else {
+            const lines = items.map((item) => `- ${item}`)
+            parts.push(lines.join('\n'))
+          }
+          break
+        }
         default:
           parts.push(b.data.text ?? '')
       }
@@ -348,25 +360,6 @@ const MemoryPage = () => {
                 <div className="bg-gray-50 rounded-lg p-4">
                   <code className="text-blue-600">[링크 텍스트](URL)</code>
                   <div className="text-gray-600 mt-1">→ 클릭 가능한 링크</div>
-                </div>
-              </div>
-
-              {/* 코드 */}
-              <div>
-                <h3 className="text-lg font-bold text-text-500 mb-2">코드</h3>
-                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                  <div>
-                    <code className="text-blue-600">`인라인 코드`</code>
-                    <div className="text-gray-600 mt-1">→ 인라인 코드</div>
-                  </div>
-                  <div className="mt-2">
-                    <code className="text-blue-600">```</code>
-                    <br />
-                    <code className="text-blue-600">코드 블록</code>
-                    <br />
-                    <code className="text-blue-600">```</code>
-                    <div className="text-gray-600 mt-1">→ 코드 블록</div>
-                  </div>
                 </div>
               </div>
             </div>
