@@ -189,9 +189,6 @@ const ScheduleItem = ({
   onSetEditOffset,
   onToast,
 }: ScheduleItemProps) => {
-  const [isResizing, setIsResizing] = useState(false)
-  const [resizeStartY, setResizeStartY] = useState(0)
-  const [resizeStartOffset, setResizeStartOffset] = useState(0)
   const isEditing = editingKey === `${rawKey}:${realIndex}`
   const location = schedule.location
 
@@ -345,44 +342,6 @@ const ScheduleItem = ({
     }, `sync-${which}-canonical`)
   }
 
-  /** 리사이즈 핸들 */
-  const handleResizeStart = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsResizing(true)
-    setResizeStartY(e.clientY)
-    const currentOffsetMinutes = (offsetLabel || '00:00')
-      .split(':')
-      .reduce((acc, v, i) => acc + (Number(v) || 0) * (i === 0 ? 60 : 1), 0)
-    setResizeStartOffset(currentOffsetMinutes)
-  }
-
-  useEffect(() => {
-    if (!isResizing) return
-    const handleMouseMove = (e: MouseEvent) => {
-      const deltaY = e.clientY - resizeStartY
-      const deltaMinutes = Math.round(deltaY / 2)
-      const newOffsetMinutes = Math.max(0, resizeStartOffset + deltaMinutes)
-      const newOffset = `${String(Math.floor(newOffsetMinutes / 60)).padStart(2, '0')}:${String(newOffsetMinutes % 60).padStart(2, '0')}`
-      if (yOffsetTextRef.current) {
-        yOffsetTextRef.current.delete(0, yOffsetTextRef.current.length)
-        yOffsetTextRef.current.insert(0, newOffset)
-      }
-    }
-    const handleMouseUp = () => {
-      setIsResizing(false)
-      if (yOffsetTextRef.current) {
-        syncCanonical('offset', yOffsetTextRef.current.toString())
-      }
-    }
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseup', handleMouseUp)
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-    }
-  }, [isResizing, resizeStartY, resizeStartOffset])
-
   /** doc 없음 대비(폴백) */
   const [fallbackStart, setFallbackStart] = useState<string>(toTimeFromAny(schedule.start_time))
   const [fallbackEnd, setFallbackEnd] = useState<string>(
@@ -408,13 +367,7 @@ const ScheduleItem = ({
   }, [doc, schedule.start_time, schedule.offset_time, selectedDateKey])
 
   return (
-    <li
-      className={`group relative rounded-lg border-2 p-2 shadow-sm transition-all ${
-        isResizing
-          ? 'border-purple-300 bg-purple-50/50'
-          : 'border-slate-300 bg-slate-100'
-      }`}
-    >
+    <li className="group relative rounded-lg border-2 p-2 shadow-sm transition-all">
       {/* 헤더: 장소 + 삭제 버튼 한 줄 */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 flex-1 min-w-0">
@@ -703,35 +656,6 @@ const ScheduleItem = ({
           </div>
         </div>
       ) : null}
-
-      {/* 리사이즈 핸들 */}
-      {!isEditing && (
-        <div
-          className={`absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize flex items-center justify-center ${
-            isResizing ? 'opacity-100' : 'opacity-60 hover:opacity-100'
-          }`}
-          onMouseDown={handleResizeStart}
-          title="드래그하여 소요시간 조정"
-        >
-          <div className="w-10 h-[3px] rounded bg-slate-300" />
-        </div>
-      )}
-
-      {/* 드래그/리사이즈 중 오버레이 */}
-      {isDragging && (
-        <div className="absolute inset-0 flex items-center justify-center bg-blue-500/10 rounded-xl pointer-events-none">
-          <div className="bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
-            순서 변경 중
-          </div>
-        </div>
-      )}
-      {isResizing && (
-        <div className="absolute inset-0 flex items-center justify-center bg-purple-500/10 rounded-xl pointer-events-none">
-          <div className="bg-purple-600 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
-            종료 조정: {offsetLabel || '00:00'}
-          </div>
-        </div>
-      )}
     </li>
   )
 }
