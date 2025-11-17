@@ -27,6 +27,7 @@ import com.zzik.backend.domain.media.repository.PhotoRepository;
 import com.zzik.backend.domain.plan.dto.request.CreateTripRequest;
 import com.zzik.backend.domain.plan.dto.response.ExitTripResponse;
 import com.zzik.backend.domain.plan.dto.response.InviteAcceptResponse;
+import com.zzik.backend.domain.plan.dto.response.TripCursorResponse;
 import com.zzik.backend.domain.plan.dto.response.TripListResponse;
 import com.zzik.backend.domain.plan.dto.response.TripSummaryResponse;
 import com.zzik.backend.domain.plan.entity.Companion;
@@ -117,6 +118,57 @@ public class PlanService {
 		return TripListResponse.builder()
 			.trip(items)
 			.pageInfo(new TripPageInfo(page, totalPages, totalCount))
+			.build();
+	}
+
+	@Transactional(readOnly = true)
+	public TripCursorResponse getTripListWithCursor(Long memberId, Long cursor, int size) {
+		// 커서 기반으로 size+1개 조회 (hasMore 판단용)
+		Pageable pageRequest = PageRequest.of(0, size + 1, Sort.by(Sort.Direction.DESC, "id"));
+
+		List<Trip> trips = tripRepository.findByMemberIdWithCursor(memberId, cursor, pageRequest);
+
+		// 전체 개수 조회
+		long totalCount = tripRepository.countByMemberId(memberId);
+
+		// hasMore 판단: size+1개를 요청했으므로, size+1개가 왔다면 더 있음
+		boolean hasMore = trips.size() > size;
+
+		// 실제 반환할 데이터는 size개만
+		List<Trip> resultTrips = hasMore ? trips.subList(0, size) : trips;
+
+		List<TripSummaryResponse> items = new ArrayList<>();
+		Long nextCursor = null;
+
+		for (Trip t : resultTrips) {
+			List<Photo> photos = photoRepository.findByTripId(t.getId());
+
+			Photo photo = null;
+			if (!photos.isEmpty()) {
+				photo = photos.get(
+					ThreadLocalRandom.current().nextInt(photos.size())
+				);
+			}
+
+			items.add(TripSummaryResponse.builder()
+				.tripId(t.getId())
+				.title(t.getTitle())
+				.startDate(t.getStartDate())
+				.endDate(t.getEndDate())
+				.thumbnail(photo != null
+					? s3Util.generatePresignedUrl(photo.getS3Url())
+					: null)
+				.build());
+
+			// 마지막 trip의 ID를 다음 커서로 사용
+			nextCursor = t.getId();
+		}
+
+		return TripCursorResponse.builder()
+			.trips(items)
+			.nextCursor(hasMore ? nextCursor : null)
+			.hasMore(hasMore)
+			.totalCount(totalCount)
 			.build();
 	}
 

@@ -17,6 +17,7 @@ import com.zzik.backend.domain.plan.dto.request.InviteAcceptRequest;
 import com.zzik.backend.domain.plan.dto.response.ExitTripResponse;
 import com.zzik.backend.domain.plan.dto.response.InviteAcceptResponse;
 import com.zzik.backend.domain.plan.dto.response.InviteLinkResponse;
+import com.zzik.backend.domain.plan.dto.response.TripCursorResponse;
 import com.zzik.backend.domain.plan.dto.response.TripListResponse;
 import com.zzik.backend.global.annotation.swagger.ApiErrorResponseExplanation;
 import com.zzik.backend.global.annotation.swagger.ApiResponseExplanations;
@@ -31,7 +32,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RequestMapping("/plan")
 public interface PlanApi {
 
-	@Operation(summary = "여행 목록 조회")
+	@Operation(summary = "여행 목록 조회 (페이지네이션)")
 	@ApiResponseExplanations(
 		success = @ApiSuccessResponseExplanation(
 			description = "여행 목록 조회 성공",
@@ -44,6 +45,21 @@ public interface PlanApi {
 	ResponseEntity<ApiResponse<TripListResponse>> getTripList(
 		@RequestParam(defaultValue = "1") int page,
 		@RequestParam(defaultValue = "7") int size
+	);
+
+	@Operation(summary = "여행 목록 조회 (커서 기반 - 무한 스크롤)")
+	@ApiResponseExplanations(
+		success = @ApiSuccessResponseExplanation(
+			description = "커서 기반 여행 목록 조회 성공",
+			responseClass = TripCursorResponse.class
+		),
+		errors = {
+		}
+	)
+	@GetMapping("/cursor")
+	ResponseEntity<ApiResponse<TripCursorResponse>> getTripListWithCursor(
+		@RequestParam(required = false) Long cursor,
+		@RequestParam(defaultValue = "10") int size
 	);
 
 	@Operation(summary = "여행 생성")

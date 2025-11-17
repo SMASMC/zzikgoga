@@ -13,6 +13,7 @@ import com.zzik.backend.domain.plan.dto.request.InviteAcceptRequest;
 import com.zzik.backend.domain.plan.dto.response.ExitTripResponse;
 import com.zzik.backend.domain.plan.dto.response.InviteAcceptResponse;
 import com.zzik.backend.domain.plan.dto.response.InviteLinkResponse;
+import com.zzik.backend.domain.plan.dto.response.TripCursorResponse;
 import com.zzik.backend.domain.plan.dto.response.TripListResponse;
 import com.zzik.backend.domain.plan.service.PlanService;
 import com.zzik.backend.global.exception.ExceptionCode;
@@ -35,6 +36,16 @@ public class PlanController implements PlanApi {
 		Long ownerId = SecurityUtil.getCurrentMemberId();
 		TripListResponse list = planService.getTripList(ownerId, page, size);
 		return ResponseEntity.ok(ApiResponse.createSuccess(list));
+	}
+
+	@Override
+	public ResponseEntity<ApiResponse<TripCursorResponse>> getTripListWithCursor(
+		@RequestParam(required = false) Long cursor,
+		@RequestParam(defaultValue = "10") int size
+	) {
+		Long memberId = SecurityUtil.getCurrentMemberId();
+		TripCursorResponse result = planService.getTripListWithCursor(memberId, cursor, size);
+		return ResponseEntity.ok(ApiResponse.createSuccess(result));
 	}
 
 	@Override
