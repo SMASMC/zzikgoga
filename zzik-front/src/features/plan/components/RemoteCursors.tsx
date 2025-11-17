@@ -15,31 +15,8 @@ const REMOTE_CURSOR_Z_INDEX = 12
 const SELF_CURSOR_Z_INDEX = 120
 
 const getInitial = (name: string) => {
-  if (!name) {
-    return '?'
-  }
-  return name.trim().charAt(0).toUpperCase()
-}
-
-// 텍스트를 20자 단위로 줄바꿈 (한글 기준)
-const wrapText = (text: string, maxChars: number = 20): string => {
-  if (text.length <= maxChars) {
-    return text
-  }
-
-  const lines: string[] = []
-  let currentLine = ''
-
-  for (let i = 0; i < text.length; i++) {
-    currentLine += text[i]
-
-    if (currentLine.length === maxChars || i === text.length - 1) {
-      lines.push(currentLine)
-      currentLine = ''
-    }
-  }
-
-  return lines.join('\n')
+  const n = (name ?? '').trim()
+  return n ? n.charAt(0).toUpperCase() : '?'
 }
 
 const RemoteCursors = ({ cursors }: RemoteCursorsProps) => {
@@ -81,80 +58,89 @@ const RemoteCursors = ({ cursors }: RemoteCursorsProps) => {
     })
 
     previousPositionsRef.current = nextPositions
-
     return next
   }, [cursors])
 
   return (
     <>
-      {renderedCursors.map(({ clientId, cursor, color, name, picture, message, isSelf }) => (
-        <div
-          key={clientId}
-          className="pointer-events-none absolute select-none"
-          style={{
-            left: `${cursor.x}%`,
-            top: `${cursor.y}%`,
-            zIndex: isSelf ? SELF_CURSOR_Z_INDEX : REMOTE_CURSOR_Z_INDEX,
-          }}
-        >
-          <div className="relative -translate-x-2 -translate-y-2">
-            {message?.text ? (
+      {renderedCursors.map(({ clientId, cursor, color, name, picture, message, isSelf }) => {
+        const text = message?.text?.trim() ?? ''
+        const showBubble = text.length > 0
+
+        return (
+          <div
+            key={clientId}
+            className="pointer-events-none absolute select-none"
+            style={{
+              left: `${cursor.x}%`,
+              top: `${cursor.y}%`,
+              zIndex: isSelf ? SELF_CURSOR_Z_INDEX : REMOTE_CURSOR_Z_INDEX,
+            }}
+          >
+            <div className="relative -translate-x-3 -translate-y-3">
+              {showBubble ? (
+                <div
+                  className={cn(
+                    'absolute bottom-full left-0 mb-2',
+                    'rounded-2xl border-2 px-4 py-3 text-2xl font-bold leading-snug',
+                    'text-white shadow-2xl backdrop-blur'
+                  )}
+                  style={{
+                    background: `linear-gradient(135deg, ${color}, ${color})`,
+                    borderColor: `${color}`,
+                  }}
+                >
+                  <p className="whitespace-nowrap">{text}</p>
+                </div>
+              ) : null}
+
+              <MousePointer2
+                size={36} // 커서 아이콘 크게
+                strokeWidth={2}
+                className={cn(
+                  'transition-transform duration-150',
+                  'drop-shadow-[0_6px_14px_rgba(15,23,42,0.35)]',
+                  isSelf && 'scale-110'
+                )}
+                style={{ color, fill: color }}
+              />
+
               <div
-                className="absolute bottom-full left-0 mb-1 max-w-[20em] rounded-xl border-2 px-3.5 py-2 text-xl font-semibold text-white shadow-lg backdrop-blur"
+                className={cn(
+                  'mt-1 flex items-center gap-1.5 rounded-full px-3.5 py-1.5',
+                  'text-sm font-semibold text-white shadow-lg backdrop-blur',
+                  'border border-white/40',
+                  isSelf ? 'scale-[1.03]' : 'opacity-95'
+                )}
                 style={{
-                  background: `linear-gradient(135deg, ${color}, ${color})`,
-                  borderColor: `${color}`,
+                  background: `linear-gradient(to right, ${color}, ${color})`,
                 }}
               >
-                <p className="whitespace-pre-wrap break-words leading-snug">
-                  {wrapText(message.text, 20)}
-                </p>
+                {picture ? (
+                  <img
+                    src={picture}
+                    alt={name}
+                    className="h-6 w-6 rounded-full border border-white/30 object-cover"
+                  />
+                ) : (
+                  <span
+                    className="flex h-6 w-6 items-center justify-center rounded-full border border-white/30 text-[11px] font-bold text-white"
+                    style={{ backgroundColor: color }}
+                  >
+                    {getInitial(name)}
+                  </span>
+                )}
+                <span className="pr-0.5">{isSelf ? `${name} (나)` : name}</span>
+                {isSelf ? (
+                  <span className="rounded bg-white/25 px-2 text-[11px] font-extrabold text-white/95">
+                    내 커서
+                  </span>
+                ) : null}
               </div>
-            ) : null}
-            <MousePointer2
-              size={25}
-              strokeWidth={2}
-              className={cn(
-                'drop-shadow-[0_4px_8px_rgba(15,23,42,0.25)] transition-transform duration-150',
-                isSelf && 'scale-110'
-              )}
-              style={{ color, fill: color }}
-            />
-
-            <div
-              className={cn(
-                'mt-1 flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium text-white shadow-lg backdrop-blur',
-                'border border-white/40',
-                isSelf ? 'scale-[1.02]' : 'opacity-90'
-              )}
-              style={{
-                background: `linear-gradient(to right, ${color}, ${color})`,
-              }}
-            >
-              {picture ? (
-                <img
-                  src={picture}
-                  alt={name}
-                  className="h-4 w-4 rounded-full border border-white/30 object-cover"
-                />
-              ) : (
-                <span
-                  className="flex h-4 w-4 items-center justify-center rounded-full border border-white/30 text-[10px] font-semibold text-white"
-                  style={{ backgroundColor: color }}
-                >
-                  {getInitial(name)}
-                </span>
-              )}
-              <span>{isSelf ? `${name} (나)` : name}</span>
-              {isSelf ? (
-                <span className="rounded bg-white/25 px-1.5 text-[10px] font-semibold text-white/90">
-                  내 커서
-                </span>
-              ) : null}
             </div>
           </div>
-        </div>
-      ))}
+        )
+      })}
     </>
   )
 }

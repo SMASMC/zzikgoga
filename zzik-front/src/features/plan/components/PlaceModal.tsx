@@ -105,6 +105,7 @@ const PlaceModal = ({ onClose, place }: PlaceModalProps) => {
   const metaStorageKey = useMemo(() => (tripId ? `plan-meta-${tripId}` : null), [tripId])
   const [selectedDateKey, setSelectedDateKey] = useState<string>('')
   const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const isWithinTripRange = useCallback(
     (dateKey: string) => {
@@ -167,6 +168,11 @@ const PlaceModal = ({ onClose, place }: PlaceModalProps) => {
   }, [metaStorageKey, tripId])
 
   const handleSubmit = () => {
+    // 중복 제출 방지
+    if (isSubmitting) {
+      return
+    }
+
     if (!startDateTime) {
       setToastMessage('시간을 선택해주세요.')
       return
@@ -179,6 +185,9 @@ const PlaceModal = ({ onClose, place }: PlaceModalProps) => {
       notifyOutOfRange()
       return
     }
+
+    // 제출 시작
+    setIsSubmitting(true)
 
     // 시간 유효성 검사
     if (endDateTime) {
@@ -257,17 +266,24 @@ const PlaceModal = ({ onClose, place }: PlaceModalProps) => {
 
     // console.log('[PlaceModal] Submitting location data:', locationData)
 
-    addSchedule({
-      startTimeLocal: startIso,
-      endTimeLocal: endIso,
-      memo: activity,
-      location: locationData,
-    })
-    onClose()
+    try {
+      addSchedule({
+        startTimeLocal: startIso,
+        endTimeLocal: endIso,
+        memo: activity,
+        location: locationData,
+      })
+      onClose()
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4">
+    <div
+      className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4"
+      onClick={onClose}
+    >
       <ToastDock
         open={Boolean(toastMessage)}
         variant="warning"
@@ -277,7 +293,10 @@ const PlaceModal = ({ onClose, place }: PlaceModalProps) => {
         offsetPx={24}
         onClose={() => setToastMessage(null)}
       />
-      <div className="w-full max-w-md sm:max-w-lg bg-white rounded-3xl shadow-xl border border-slate-200 p-6 sm:p-8 font-bmjua relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div
+        className="w-full max-w-md sm:max-w-lg bg-white rounded-3xl shadow-xl border border-slate-200 p-6 sm:p-8 font-bmjua relative max-h-[90vh] overflow-y-auto custom-scrollbar"
+        onClick={(e) => e.stopPropagation()}
+      >
         <CloseButton onClick={onClose} className="absolute top-3 right-4" />
 
         <h2 className="text-xl sm:text-2xl text-text-500 mb-4 sm:mb-6 font-bold">장소 추가하기</h2>
@@ -403,9 +422,14 @@ const PlaceModal = ({ onClose, place }: PlaceModalProps) => {
         <div className="flex justify-center">
           <SolidButton
             onClick={handleSubmit}
-            className="w-full sm:w-auto bg-gradient-to-br from-hover-600 to-point-600 text-white text-base sm:text-lg px-8 sm:px-12 py-2.5 sm:py-3 rounded-full shadow-lg hover:scale-105 hover:from-point-600 hover:to-main-800 transition-all font-bold"
+            disabled={isSubmitting}
+            className={`w-full sm:w-auto bg-gradient-to-br from-hover-600 to-point-600 text-white text-base sm:text-lg px-8 sm:px-12 py-2.5 sm:py-3 rounded-full shadow-lg transition-all font-bold ${
+              isSubmitting
+                ? 'opacity-50 cursor-not-allowed'
+                : 'hover:scale-105 hover:from-point-600 hover:to-main-800'
+            }`}
           >
-            장소 추가하기
+            {isSubmitting ? '추가 중...' : '장소 추가하기'}
           </SolidButton>
         </div>
       </div>

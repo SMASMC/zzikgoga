@@ -179,16 +179,18 @@ const MyPage = () => {
 
   const handleCloseTravelModal = useCallback(() => {
     setIsModalOpen(false)
-    // 모바일: 커서 리셋, 데스크톱: URL 리셋
+    // 모바일: 커서 리셋, 데스크톱: 첫 페이지 로드
     if (isMobile) {
       setTravels([])
       setCursor(null)
       setHasMore(true)
       loadMobileInitial()
     } else {
+      // URL을 page=1로 설정하고, 직접 데이터 로드
       setSearchParams({ page: '1' })
+      loadDesktopPage(1)
     }
-  }, [isMobile, loadMobileInitial, setSearchParams])
+  }, [isMobile, loadMobileInitial, setSearchParams, loadDesktopPage])
 
   // ==================== 초기 데이터 로드 ====================
   useEffect(() => {

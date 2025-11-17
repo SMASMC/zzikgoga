@@ -62,6 +62,15 @@ module.exports = {
         bmjua: ['BMJUA', 'Apple SD Gothic Neo', 'Noto Sans KR', 'system-ui', 'sans-serif'],
         sans: ['BMJUA', 'Apple SD Gothic Neo', 'Noto Sans KR', 'system-ui', 'sans-serif'],
       },
+      keyframes: {
+        'slide-in-left': {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(0)' },
+        },
+      },
+      animation: {
+        'slide-in-left': 'slide-in-left 0.3s ease-out',
+      },
     },
   },
   plugins: [require('flowbite/plugin')],

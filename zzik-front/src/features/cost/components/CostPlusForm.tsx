@@ -397,7 +397,7 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
         {/* 메모 */}
         <div className="mb-4 sm:mb-6">
           <label className="block text-base sm:text-lg mb-2 sm:mb-3 text-text-600 font-bmjua">
-            메모
+            메모 (선택사항)
           </label>
           <textarea
             value={formData.memo}

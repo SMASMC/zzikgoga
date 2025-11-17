@@ -5,8 +5,7 @@ import * as Y from 'yjs'
 import type { Awareness } from 'y-protocols/awareness'
 import ScheduleItem from './ScheduleItem'
 import type { YScheduleItem } from '../../hooks/useYTripDoc'
-import { calculateTravelTime, addMinutesToTime } from '../../services/naverMapService'
-import { HiPlus, HiX, HiLocationMarker } from 'react-icons/hi'
+import { HiX, HiLocationMarker } from 'react-icons/hi'
 import { MdDirectionsCar } from 'react-icons/md'
 import TimePicker from '@/components/atoms/TimePicker'
 import Input from '@/components/atoms/Input'
@@ -68,6 +67,8 @@ interface ScheduleListProps {
     title?: string
     message: string
   }) => void
+  isAddingSchedule: boolean
+  onSetIsAddingSchedule: (value: boolean) => void
 }
 
 const ScheduleList = ({
@@ -90,9 +91,9 @@ const ScheduleList = ({
   onSetEditOffset,
   onAddSchedule,
   onToast,
+  isAddingSchedule,
+  onSetIsAddingSchedule,
 }: ScheduleListProps) => {
-  const [isCalculating, setIsCalculating] = useState(false)
-  const [isAddingSchedule, setIsAddingSchedule] = useState(false)
   const [newScheduleStart, setNewScheduleStart] = useState('')
   const [newScheduleEnd, setNewScheduleEnd] = useState('')
   const [newScheduleMemo, setNewScheduleMemo] = useState('')
@@ -167,7 +168,7 @@ const ScheduleList = ({
     })
 
     // 폼 초기화
-    setIsAddingSchedule(false)
+    onSetIsAddingSchedule(false)
     setNewScheduleStart('')
     setNewScheduleEnd('')
     setNewScheduleMemo('')
@@ -179,179 +180,14 @@ const ScheduleList = ({
   }
 
   const handleCancelAddSchedule = () => {
-    setIsAddingSchedule(false)
+    onSetIsAddingSchedule(false)
     setNewScheduleStart('')
     setNewScheduleEnd('')
     setNewScheduleMemo('')
   }
 
-  const handleCalculateAllTravelTimes = async () => {
-    if (schedules.length < 2) {
-      onToast({
-        variant: 'hint',
-        message: '이동시간 계산을 위해서는 최소 2개 이상의 일정이 필요합니다.',
-      })
-      return
-    }
-
-    setIsCalculating(true)
-    // schedules는 이미 useYTripDoc에서 시간순으로 정렬되어 있음
-    const sortedSchedules = schedules
-
-    try {
-      for (let i = 0; i < sortedSchedules.length - 1; i++) {
-        const current = sortedSchedules[i]
-        const next = sortedSchedules[i + 1]
-
-        if (!current.location || !next.location) continue
-
-        // 이미 이동시간이 계산되어 있으면 건너뛰기
-        const existingDistance = next.travel_distance
-        if (typeof existingDistance === 'number' && existingDistance >= 0) {
-          continue
-        }
-
-        const currentLat = current.location.latitude
-        const currentLng = current.location.longitude
-        const nextLat = next.location.latitude
-        const nextLng = next.location.longitude
-
-        if (!currentLat || !currentLng || !nextLat || !nextLng) continue
-
-        const travelResult = await calculateTravelTime(
-          { lat: currentLat, lng: currentLng },
-          { lat: nextLat, lng: nextLng }
-        )
-
-        if (travelResult === null) {
-          console.warn(
-            '[API 실패] 이동시간 계산 실패:',
-            current.location?.name,
-            '→',
-            next.location?.name
-          )
-          continue
-        }
-
-        const travelMinutes =
-          typeof travelResult === 'number' ? travelResult : travelResult.durationMinutes
-        const travelDistance = typeof travelResult === 'object' ? travelResult.distance : undefined
-
-        // 현재 일정의 종료 시간 계산
-        const offsetHHMM = normalizeOffsetToHHMM(current.offset_time)
-        const offsetMatch = offsetHHMM.match(/^(\d+):(\d+)$/)
-
-        if (!offsetMatch) {
-          console.warn('[⚠️ 건너뛰기] offset_time 형식 오류:', {
-            original: current.offset_time,
-            normalized: offsetHHMM,
-          })
-          continue
-        }
-
-        const hours = parseInt(offsetMatch[1], 10)
-        const minutes = parseInt(offsetMatch[2], 10)
-        const currentEndTime = addMinutesToTime(current.start_time, hours * 60 + minutes)
-
-        // 다음 일정의 새로운 시작시간
-        const newNextStartTime = addMinutesToTime(currentEndTime, travelMinutes)
-
-        // Y.js로 다음 일정 업데이트
-        if (!doc) {
-          console.error('[❌ 저장 실패] doc 없음')
-          continue
-        }
-
-        if (next.yArrayIndex === undefined) {
-          console.error('[❌ 저장 실패] yArrayIndex undefined')
-          continue
-        }
-
-        const schedulesMap = doc.getMap('schedules') as Y.Map<unknown>
-        const nextRawKey = next.rawKey ?? selectedDateKey
-        const yArr = schedulesMap.get(nextRawKey) as Y.Array<Y.Map<unknown>> | undefined
-
-        if (!yArr) {
-          console.error('[❌ 저장 실패] yArr 없음:', nextRawKey)
-          continue
-        }
-
-        const yNextItem = yArr.get(next.yArrayIndex) as Y.Map<unknown> | undefined
-
-        if (!yNextItem) {
-          console.error('[❌ 저장 실패] yNextItem 없음:', {
-            nextRawKey,
-            yArrayIndex: next.yArrayIndex,
-            yArrLength: yArr.length,
-          })
-          continue
-        }
-
-        // 저장!
-        doc.transact(() => {
-          // 시작 시간 업데이트
-          yNextItem.set('start_time', newNextStartTime)
-          const startText = yNextItem.get('start_hhmm_text')
-          if (startText instanceof Y.Text) {
-            const newHHMM = newNextStartTime.slice(11, 16)
-            startText.delete(0, startText.length)
-            startText.insert(0, newHHMM)
-          }
-
-          // 이동시간 및 거리 저장
-          if (typeof travelMinutes === 'number') {
-            yNextItem.set('travel_duration', travelMinutes)
-          }
-
-          if (typeof travelDistance === 'number') {
-            yNextItem.set('travel_distance', travelDistance)
-          }
-        }, 'save-travel-time')
-      }
-
-      onToast({
-        variant: 'success',
-        title: '이동시간 자동 계산 완료',
-        message: '자차 기준으로 모든 일정의 시간이 자동 조정되었습니다.',
-      })
-    } catch (error) {
-      console.error('이동시간 계산 오류:', error)
-      onToast({
-        variant: 'error',
-        message: '이동시간 계산 중 오류가 발생했습니다.',
-      })
-    } finally {
-      setIsCalculating(false)
-    }
-  }
-
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      {/* 버튼 그룹 */}
-      <div className="mb-6 flex gap-3 justify-between items-center">
-        {/* 새 일정 추가 버튼 */}
-        <button
-          type="button"
-          className="rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50 hover:border-slate-400 flex items-center gap-2 shadow-sm"
-          onClick={() => setIsAddingSchedule(true)}
-        >
-          <HiPlus className="w-4 h-4" />새 일정
-        </button>
-
-        {/* 이동시간 계산 버튼 */}
-        {schedules.length >= 2 && (
-          <button
-            type="button"
-            className="rounded-full border border-blue-300 bg-blue-50 px-5 py-2.5 text-sm font-semibold text-blue-700 transition-all hover:bg-blue-100 hover:border-blue-400 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm"
-            onClick={handleCalculateAllTravelTimes}
-            disabled={isCalculating}
-          >
-            <MdDirectionsCar className="w-5 h-5" />
-            {isCalculating ? '계산 중...' : '이동시간 계산'}
-          </button>
-        )}
-      </div>
-
+    <div>
       {/* 새 일정 추가 폼 */}
       {isAddingSchedule && (
         <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50/50 p-5 shadow-sm">
