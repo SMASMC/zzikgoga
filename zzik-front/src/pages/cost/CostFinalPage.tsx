@@ -17,6 +17,7 @@ const CostFinalPage = () => {
         setError(null)
         try {
           const response = await CostSettleService.getSettleFinal(Number(tripId))
+          console.log(`response: ${JSON.stringify(response)}`)
           setSettleFinal(response)
         } catch {
           setError('정산 결과를 불러오는데 실패했습니다.')
@@ -52,7 +53,6 @@ const CostFinalPage = () => {
               className="bg-white/95 backdrop-blur-sm shadow-2xl rounded-3xl p-4 sm:p-6 md:p-10 mb-8 sm:mb-16 border border-gray-200/50"
             >
               <div className="flex items-center gap-3 mb-6 sm:mb-10">
-                <Wallet className="w-7 h-7 sm:w-8 sm:h-8 text-blue-600" strokeWidth={2.5} />
                 <h2 className="text-xl sm:text-2xl font-bold text-text-500 font-bmjua">
                   {s.memberName}님의 돈 흐름 다이어그램
                 </h2>
@@ -83,7 +83,7 @@ const CostFinalPage = () => {
                               className="rounded-full h-8 w-8 sm:h-9 sm:w-9 object-cover border-2 border-green-400 shadow-md"
                             />
                           ) : (
-                            <span className="rounded-full bg-gradient-to-br from-green-400 to-green-600 h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center text-white shadow-md text-sm sm:text-base">
+                            <span className="rounded-full bg-green-400 h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center text-white shadow-md text-sm sm:text-base">
                               {item.fromMemberName.slice(0, 1)}
                             </span>
                           )}
