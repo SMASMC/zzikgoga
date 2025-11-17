@@ -17,7 +17,9 @@ import com.zzik.backend.domain.cost.entity.SettlementTransaction;
 import com.zzik.backend.domain.cost.repository.SettlementMemberTransferRepository;
 import com.zzik.backend.domain.cost.repository.SettlementRepository;
 import com.zzik.backend.domain.cost.repository.SettlementTransactionRepository;
+import com.zzik.backend.domain.plan.entity.Trip;
 import com.zzik.backend.domain.plan.entity.TripMember;
+import com.zzik.backend.domain.plan.repository.TripRepository;
 import com.zzik.backend.domain.plan.service.TripMemberService;
 import com.zzik.backend.global.external.bank.BankApiClient;
 import com.zzik.backend.global.external.bank.BankApiType;
@@ -41,6 +43,7 @@ public class CostSettlementService {
 	private final SettlementRepository settlementRepository;
 	private final SettlementTransactionRepository settlementTransactionRepository;
 	private final SettlementMemberTransferRepository settlementMemberTransferRepository;
+	private final TripRepository tripRepository;
 
 	@Transactional
 	public void processSettlement(Long tripId, Long memberId) {
@@ -235,6 +238,15 @@ public class CostSettlementService {
 		}
 		log.debug("[단계 4] Phase 1 완료 - 성공: {}건", phase1Count);
 
+		// Phase 1과 Phase 2 사이 지연 (금융 API 시간 구분용)
+		try {
+			Thread.sleep(2000); // 2초 대기
+			log.debug("[지연] Phase 1과 Phase 2 사이 2초 대기 완료");
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			log.warn("[지연] Phase 대기 중 인터럽트 발생: {}", e.getMessage());
+		}
+
 		// ============================================================
 		// 5. 실제 송금 수행 (Phase 2: 서비스 계좌 → 수신자)
 		//    - 서비스 계좌에서 각 수신자에게 받을 금액 이체
@@ -346,12 +358,18 @@ public class CostSettlementService {
 		log.debug("[단계 6] 송금자 상태 업데이트 완료 - {}건", completedCount);
 
 		// ============================================================
-		// 7. 정산 완료 상태 업데이트
+		// 7. 정산 완료 상태 업데이트 및 여행 정산 완료 플래그 설정
 		// ============================================================
 		log.debug("[단계 7] 정산 완료 상태 업데이트 시작");
 		if (settlement.getFailCount() == 0) {
 			settlement.updateStatus(SettlementStatus.COMPLETE);
 			log.debug("[단계 7] 모든 거래 성공 - 정산 상태: COMPLETE");
+
+			// 정산 성공 시 Trip 엔티티의 isCostCompleted를 true로 설정
+			Trip trip = tripRepository.findById(tripId)
+				.orElseThrow(() -> new IllegalStateException("Trip not found: " + tripId));
+			trip.completeCostSettlement();
+			log.debug("[단계 7] 여행 정산 완료 플래그 설정 완료 - tripId: {}", tripId);
 		} else {
 			settlement.updateStatus(SettlementStatus.FAILED);
 			log.debug("[단계 7] 일부 거래 실패 - 정산 상태: FAILED, 실패 카운트: {}", settlement.getFailCount());

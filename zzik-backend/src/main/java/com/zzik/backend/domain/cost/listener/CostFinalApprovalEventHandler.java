@@ -23,8 +23,8 @@ public class CostFinalApprovalEventHandler {
 		Long memberId = event.getMemberId();
 		Long tripId = event.getTripId();
 		// 1. 정산처리 서비스의 정산 처리 호출
-		log.debug("handleCostFinalApprovalEvent");
+		log.info("====handleCostFinalApprovalEvent 시작, (tripId={})", tripId);
 		costSettlementService.processSettlement(tripId, memberId);
-		// 2.
+		log.info("====최종 정산 완료, (tripId={})", tripId);
 	}
 }
