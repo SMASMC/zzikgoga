@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { User } from '@/features/auth/types/auth'
 import { PlanService } from '../services/planServices'
+import { KakaoShareService } from '@/features/auth/services/kakaoShare'
 
 interface FriendInviteModalProps {
   isOpen: boolean
@@ -14,6 +15,7 @@ const FriendInviteModal = ({ isOpen, onClose, tripId }: FriendInviteModalProps) 
   const [isLoading, setIsLoading] = useState(false)
   const [inviteUrl, setInviteUrl] = useState<string>('')
   const [isCopied, setIsCopied] = useState(false)
+  const [tripTitle, setTripTitle] = useState<string>('')
 
   const loadFriends = useCallback(async () => {
     setIsLoading(true)
@@ -52,12 +54,31 @@ const FriendInviteModal = ({ isOpen, onClose, tripId }: FriendInviteModalProps) 
     if (isOpen) {
       loadFriends()
       loadInviteUrl()
+      // 여행 제목 가져오기 (세션 스토리지에서)
+      try {
+        const metaKey = `plan-meta-${tripId}`
+        const cached = window.sessionStorage.getItem(metaKey)
+        if (cached) {
+          const parsed = JSON.parse(cached)
+          setTripTitle(parsed.travelTitle || '')
+        }
+      } catch {
+        // ignore
+      }
     } else {
       // 모달이 닫힐 때 선택 상태 초기화
       setSelectedFriends(new Set())
       setIsCopied(false)
     }
-  }, [isOpen, loadFriends, loadInviteUrl])
+  }, [isOpen, loadFriends, loadInviteUrl, tripId])
+
+  const handleKakaoShare = () => {
+    if (!inviteUrl) return
+
+    KakaoShareService.shareInvite(inviteUrl, tripTitle)
+    setIsCopied(true)
+    setTimeout(() => setIsCopied(false), 2000)
+  }
 
   const copyToClipboard = async () => {
     try {
@@ -138,26 +159,36 @@ const FriendInviteModal = ({ isOpen, onClose, tripId }: FriendInviteModalProps) 
         {/* 초대 링크 */}
         <div className="space-y-2">
           <h3 className="text-sm font-bold text-text-500">초대 링크로 공유하기</h3>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={inviteUrl}
-              readOnly
-              className="flex-1 px-3 py-2 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm text-gray-700 focus:outline-none"
-              placeholder={
-                inviteUrl === '' && !isLoading ? '링크 생성 실패' : '초대 링크 생성 중...'
-              }
-            />
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={inviteUrl}
+                readOnly
+                className="flex-1 px-3 py-2 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm text-gray-700 focus:outline-none"
+                placeholder={
+                  inviteUrl === '' && !isLoading ? '링크 생성 실패' : '초대 링크 생성 중...'
+                }
+              />
+              <button
+                onClick={copyToClipboard}
+                disabled={!inviteUrl}
+                className={`px-4 py-2 rounded-full font-bold text-sm transition-all ${
+                  isCopied
+                    ? 'bg-green-500 text-white'
+                    : 'bg-blue-500 text-white hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed'
+                }`}
+              >
+                {isCopied ? '✓ 복사됨' : '링크 복사'}
+              </button>
+            </div>
             <button
-              onClick={copyToClipboard}
+              onClick={handleKakaoShare}
               disabled={!inviteUrl}
-              className={`px-4 py-2 rounded-full font-bold text-sm transition-all ${
-                isCopied
-                  ? 'bg-green-500 text-white'
-                  : 'bg-blue-500 text-white hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed'
-              }`}
+              className="w-full px-4 py-2.5 rounded-full font-bold text-sm transition-all bg-gradient-to-br from-kakao-500 to-kakao-600 text-gray-800 hover:from-kakao-700 hover:to-kakao-800 disabled:bg-gray-300 disabled:cursor-not-allowed disabled:text-gray-500 flex items-center justify-center gap-2"
             >
-              {isCopied ? '✓ 복사됨' : '복사'}
+              <img src="/kakao.png" alt="" className="w-5 h-5" />
+              카카오톡으로 공유
             </button>
           </div>
           {inviteUrl ? (
