@@ -40,8 +40,10 @@ const CostFinalPage = () => {
 
   return (
     <GradientBackground>
-      <main className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-20 mt-10 pb-20">
-        <h1 className="text-3xl font-bold text-text-500 mb-10 font-bmjua">정산 결과</h1>
+      <main className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-20 mt-6 sm:mt-10 pb-10 sm:pb-20">
+        <h1 className="text-2xl sm:text-3xl font-bold text-text-500 mb-6 sm:mb-10 font-bmjua">
+          정산 결과
+        </h1>
 
         {settlements.map((s) => {
           const totalReceive = s.toReceive.reduce((acc, cur) => acc + cur.amount, 0)
@@ -51,55 +53,61 @@ const CostFinalPage = () => {
           return (
             <div
               key={s.memberId}
-              className="bg-white/95 backdrop-blur-sm shadow-2xl rounded-3xl p-10 mb-16 border border-gray-200/50"
+              className="bg-white/95 backdrop-blur-sm shadow-2xl rounded-3xl p-4 sm:p-6 md:p-10 mb-8 sm:mb-16 border border-gray-200/50"
             >
-              <h2 className="text-2xl font-bold text-text-500 mb-10 font-bmjua">
+              <h2 className="text-xl sm:text-2xl font-bold text-text-500 mb-6 sm:mb-10 font-bmjua">
                 {s.memberName}님의 돈 흐름 다이어그램
               </h2>
 
               {/* 다이어그램 전체 */}
-              <div className="flex justify-between items-center gap-10 relative">
+              <div className="flex flex-col lg:flex-row justify-between items-center gap-6 lg:gap-10 relative">
                 {/* 왼쪽 : 나에게 돈을 줄 사람들 */}
-                <div className="flex-1 border-2 border-green-400/60 rounded-2xl p-6 bg-gradient-to-br from-green-50 to-green-100/50 shadow-lg">
-                  <p className="text-green-700 font-bold text-lg mb-4">나에게 돈을 줄 사람들</p>
+                <div className="w-full lg:flex-1 border-2 border-green-400/60 rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-green-50 to-green-100/50 shadow-lg">
+                  <p className="text-green-700 font-bold text-base sm:text-lg mb-3 sm:mb-4">
+                    나에게 돈을 줄 사람들
+                  </p>
 
                   {s.toReceive.length > 0 ? (
                     s.toReceive.map((item, i) => (
                       <div
                         key={i}
-                        className="flex items-center justify-between bg-white border-2 border-green-300/50 rounded-xl py-3 px-4 mb-3 shadow-md"
+                        className="flex items-center justify-between bg-white border-2 border-green-300/50 rounded-xl py-2 sm:py-3 px-3 sm:px-4 mb-2 sm:mb-3 shadow-md"
                       >
-                        <div className="flex items-center space-x-3 text-green-700 font-semibold">
-                          <span className="rounded-full bg-gradient-to-br from-green-400 to-green-600 h-9 w-9 flex items-center justify-center text-white shadow-md">
+                        <div className="flex items-center space-x-2 sm:space-x-3 text-green-700 font-semibold">
+                          <span className="rounded-full bg-gradient-to-br from-green-400 to-green-600 h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center text-white shadow-md text-sm sm:text-base">
                             {item.fromMemberName.slice(0, 1)}
                           </span>
-                          <span className="text-text-600">{item.fromMemberName}</span>
+                          <span className="text-text-600 text-sm sm:text-base">
+                            {item.fromMemberName}
+                          </span>
                         </div>
 
-                        <span className="text-green-600 font-bold">
+                        <span className="text-green-600 font-bold text-sm sm:text-base">
                           +{formatAmount(item.amount)}원
                         </span>
                       </div>
                     ))
                   ) : (
-                    <p className="text-text-400">받을 돈이 없습니다.</p>
+                    <p className="text-text-400 text-sm sm:text-base">받을 돈이 없습니다.</p>
                   )}
 
-                  <p className="text-green-700 font-bold mt-3">
+                  <p className="text-green-700 font-bold mt-3 text-sm sm:text-base">
                     총 수입: +{formatAmount(totalReceive)}원
                   </p>
                 </div>
 
                 {/* 중앙 원형 - 나 */}
-                <div className="flex flex-col items-center text-center relative z-10">
-                  <div className="rounded-full h-32 w-32 bg-gradient-to-br from-blue-400 to-blue-600 border-4 border-blue-500 shadow-2xl flex flex-col items-center justify-center text-white font-bold text-xl relative">
+                <div className="flex flex-col items-center text-center relative z-10 my-4 lg:my-0">
+                  <div className="rounded-full h-24 w-24 sm:h-28 sm:w-28 lg:h-32 lg:w-32 bg-gradient-to-br from-blue-400 to-blue-600 border-4 border-blue-500 shadow-2xl flex flex-col items-center justify-center text-white font-bold text-lg sm:text-xl relative">
                     <span className="mb-1">나</span>
-                    <span className="text-sm text-blue-100 mt-1">{formatAmount(net)}원</span>
+                    <span className="text-xs sm:text-sm text-blue-100 mt-1">
+                      {formatAmount(net)}원
+                    </span>
                   </div>
 
-                  {/* 왼쪽 → 중앙 화살표 */}
+                  {/* 왼쪽 → 중앙 화살표 (desktop only) */}
                   {s.toReceive.length > 0 && (
-                    <div className="absolute left-[-64px] top-1/2 -translate-y-1/2 flex items-center w-20">
+                    <div className="hidden lg:flex absolute left-[-64px] top-1/2 -translate-y-1/2 items-center w-20">
                       {/* 선 부분 */}
                       <div className="h-2 w-full bg-gradient-to-r from-green-500 to-green-400"></div>
 
@@ -115,10 +123,10 @@ const CostFinalPage = () => {
                     </div>
                   )}
 
-                  {/* 오른쪽으로 가는 화살표 (줄 돈이 있을 때) */}
+                  {/* 오른쪽으로 가는 화살표 (줄 돈이 있을 때) (desktop only) */}
                   {/* 중앙 → 오른쪽 화살표 */}
                   {s.toSend.length > 0 && (
-                    <div className="absolute right-[-64px] top-1/2 -translate-y-1/2 flex items-center w-20">
+                    <div className="hidden lg:flex absolute right-[-64px] top-1/2 -translate-y-1/2 items-center w-20">
                       {/* 선 부분 */}
                       <div className="h-2 w-full bg-gradient-to-r from-red-400 to-red-500"></div>
                       {/* 삼각형 촉 부분 */}
@@ -135,54 +143,62 @@ const CostFinalPage = () => {
                 </div>
 
                 {/*  오른쪽 : 내가 돈을 줄 사람들 */}
-                <div className="flex-1 border-2 border-red-400/60 rounded-2xl p-6 bg-gradient-to-br from-red-50 to-red-100/50 shadow-lg">
-                  <p className="text-red-700 font-bold text-lg mb-4">내가 돈을 줄 사람들</p>
+                <div className="w-full lg:flex-1 border-2 border-red-400/60 rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-red-50 to-red-100/50 shadow-lg">
+                  <p className="text-red-700 font-bold text-base sm:text-lg mb-3 sm:mb-4">
+                    내가 돈을 줄 사람들
+                  </p>
 
                   {s.toSend.length > 0 ? (
                     s.toSend.map((item, i) => (
                       <div
                         key={i}
-                        className="flex items-center justify-between bg-white border-2 border-red-300/50 rounded-xl py-3 px-4 mb-3 shadow-md"
+                        className="flex items-center justify-between bg-white border-2 border-red-300/50 rounded-xl py-2 sm:py-3 px-3 sm:px-4 mb-2 sm:mb-3 shadow-md"
                       >
-                        <div className="flex items-center space-x-3 text-red-700 font-semibold">
-                          <span className="rounded-full bg-gradient-to-br from-red-400 to-red-600 h-9 w-9 flex items-center justify-center text-white shadow-md">
+                        <div className="flex items-center space-x-2 sm:space-x-3 text-red-700 font-semibold">
+                          <span className="rounded-full bg-gradient-to-br from-red-400 to-red-600 h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center text-white shadow-md text-sm sm:text-base">
                             {item.targetMemberName.slice(0, 1)}
                           </span>
-                          <span className="text-text-600">{item.targetMemberName}</span>
+                          <span className="text-text-600 text-sm sm:text-base">
+                            {item.targetMemberName}
+                          </span>
                         </div>
 
-                        <span className="text-red-600 font-bold">
+                        <span className="text-red-600 font-bold text-sm sm:text-base">
                           -{formatAmount(item.amount)}원
                         </span>
                       </div>
                     ))
                   ) : (
-                    <p className="text-text-400">보낼 돈이 없습니다.</p>
+                    <p className="text-text-400 text-sm sm:text-base">보낼 돈이 없습니다.</p>
                   )}
 
-                  <p className="text-red-700 font-bold mt-3">
+                  <p className="text-red-700 font-bold mt-3 text-sm sm:text-base">
                     총 지출: -{formatAmount(totalSend)}원
                   </p>
                 </div>
               </div>
 
               {/* 요약 섹션 */}
-              <div className="mt-12 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 grid grid-cols-3 gap-4 shadow-inner">
-                <div className="text-center bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-400/60 rounded-xl p-4 shadow-md">
-                  <p className="text-green-700 font-bold mb-2">총 수입</p>
-                  <p className="text-xl font-bold text-green-600">
+              <div className="mt-6 sm:mt-12 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 shadow-inner">
+                <div className="text-center bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-400/60 rounded-xl p-3 sm:p-4 shadow-md">
+                  <p className="text-green-700 font-bold mb-2 text-sm sm:text-base">총 수입</p>
+                  <p className="text-lg sm:text-xl font-bold text-green-600">
                     +{formatAmount(totalReceive)}원
                   </p>
                 </div>
 
-                <div className="text-center bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-400/60 rounded-xl p-4 shadow-md">
-                  <p className="text-red-700 font-bold mb-2">총 지출</p>
-                  <p className="text-xl font-bold text-red-600">-{formatAmount(totalSend)}원</p>
+                <div className="text-center bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-400/60 rounded-xl p-3 sm:p-4 shadow-md">
+                  <p className="text-red-700 font-bold mb-2 text-sm sm:text-base">총 지출</p>
+                  <p className="text-lg sm:text-xl font-bold text-red-600">
+                    -{formatAmount(totalSend)}원
+                  </p>
                 </div>
 
-                <div className="text-center bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-400/60 rounded-xl p-4 shadow-md">
-                  <p className="text-blue-700 font-bold mb-2">순 금액</p>
-                  <p className="text-xl font-bold text-blue-600">{formatAmount(net)}원</p>
+                <div className="text-center bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-400/60 rounded-xl p-3 sm:p-4 shadow-md">
+                  <p className="text-blue-700 font-bold mb-2 text-sm sm:text-base">순 금액</p>
+                  <p className="text-lg sm:text-xl font-bold text-blue-600">
+                    {formatAmount(net)}원
+                  </p>
                 </div>
               </div>
             </div>

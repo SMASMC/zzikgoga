@@ -359,7 +359,7 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
       <div className="absolute inset-0 bg-black/40" onClick={handleClose} />
 
       {/* Modal Content */}
-      <div className="relative w-full max-w-md sm:max-w-lg bg-gradient-to-br from-white via-background-500 to-background-600 rounded-3xl shadow-xl p-6 sm:p-8 font-bmjua max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div className="relative w-full max-w-md sm:max-w-lg bg-white rounded-3xl shadow-xl p-6 sm:p-8 font-bmjua max-h-[90vh] overflow-y-auto custom-scrollbar">
         {/* Header */}
         <div className="flex justify-between items-center mb-6 pt-6">
           <h2 className="text-xl font-bold text-text-500 font-bmjua">
@@ -370,7 +370,7 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
               <button
                 onClick={handleCancelEdit}
                 disabled={isSubmitting}
-                className="inline-flex items-center justify-center whitespace-nowrap font-bmjua px-6 py-2.5 text-base rounded-2xl bg-gray-200 text-gray-700 hover:bg-gray-300 shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
+                className="inline-flex items-center justify-center whitespace-nowrap font-bmjua px-6 py-2.5 text-base rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
               >
                 취소
               </button>
@@ -383,7 +383,7 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
               <button
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="inline-flex items-center justify-center whitespace-nowrap font-bmjua px-6 py-2.5 text-base rounded-2xl bg-red-500 text-white hover:bg-red-600 shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
+                className="inline-flex items-center justify-center whitespace-nowrap font-bmjua px-6 py-2.5 text-base rounded-full bg-red-500 text-white hover:bg-red-600 shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
               >
                 {isDeleting ? '삭제 중...' : '삭제'}
               </button>

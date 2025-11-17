@@ -75,7 +75,11 @@ const FriendInviteModal = ({ isOpen, onClose, tripId }: FriendInviteModalProps) 
   const handleKakaoShare = () => {
     if (!inviteUrl) return
 
-    KakaoShareService.shareInvite(inviteUrl, tripTitle)
+    KakaoShareService.shareInvite(inviteUrl, tripTitle, (errorMessage) => {
+      // Toast notification for errors - you can integrate with your toast system here
+      console.error(errorMessage)
+      // If you have a global toast system, call it here with errorMessage
+    })
     setIsCopied(true)
     setTimeout(() => setIsCopied(false), 2000)
   }
