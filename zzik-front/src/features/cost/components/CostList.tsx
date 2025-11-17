@@ -163,9 +163,11 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-text-500 font-bmjua">정산 내역</h2>
-          <SolidButton onClick={handleViewFinal} size="sm" className="flex-shrink-0">
-            정산 결과 확인하기
-          </SolidButton>
+          {costs.length > 0 && (
+            <SolidButton onClick={handleViewFinal} size="sm" className="flex-shrink-0">
+              정산 결과 확인하기
+            </SolidButton>
+          )}
         </div>
         <div className="flex gap-4 text-sm">
           <div className="bg-blue-50 px-4 py-2 rounded-lg">
