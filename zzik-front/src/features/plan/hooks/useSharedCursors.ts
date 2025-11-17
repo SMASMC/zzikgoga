@@ -5,6 +5,7 @@ import { acquireProvider, releaseProvider } from '../stores/yjsStore'
 
 const CURSOR_TTL = 2000
 const MESSAGE_TTL = 5000
+const CURSOR_COLOR_STORAGE_KEY = 'plan-cursor-color-map'
 
 // 구분하기 쉬운 20개 고정 색상 팔레트
 // 모든 참여자는 이 팔레트에서 순서대로 색상을 할당받습니다
@@ -113,6 +114,43 @@ const saveGuestIdentity = (identity: StoredGuestIdentity) => {
   }
   try {
     window.localStorage.setItem(GUEST_ID_STORAGE_KEY, JSON.stringify(identity))
+  } catch {
+    // ignore write errors (e.g. storage quota)
+  }
+}
+
+const loadCursorColorMap = (): Record<string, string> => {
+  if (typeof window === 'undefined') {
+    return {}
+  }
+
+  try {
+    const raw = window.localStorage.getItem(CURSOR_COLOR_STORAGE_KEY)
+    if (!raw) {
+      return {}
+    }
+    const parsed = JSON.parse(raw)
+    return typeof parsed === 'object' && parsed !== null ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+const loadStoredCursorColor = (userId: string): string | null => {
+  const map = loadCursorColorMap()
+  const stored = map[userId]
+  return typeof stored === 'string' ? stored : null
+}
+
+const saveStoredCursorColor = (userId: string, color: string) => {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  const current = loadCursorColorMap()
+  current[userId] = color
+  try {
+    window.localStorage.setItem(CURSOR_COLOR_STORAGE_KEY, JSON.stringify(current))
   } catch {
     // ignore write errors (e.g. storage quota)
   }
@@ -243,15 +281,35 @@ const collectAwarenessSnapshot = (
   })
 
   // 2단계: 각 사용자별 색상 계산을 위한 맵 생성
-  const userColorMap = new Map<string, string>()
 
-  // 모든 사용자의 색상을 한 번에 계산
-  allUserIds.forEach((userId) => {
-    const usedColors = new Set(userColorMap.values())
-    const color = assignDynamicColor(userId, allUserIds, usedColors)
-    userColorMap.set(userId, color)
+  // 2권: 컬러 할당을 안정화하기 위한 준비
+  const declaredColors = new Map<string, string>()
+  const usedColors = new Set<string>()
+
+  awareness.getStates().forEach((state) => {
+    const typed = state as AwarenessState
+    const userId = typed?.user?.id
+    const userColor = typed?.user?.color
+    if (userId && userColor) {
+      declaredColors.set(userId, userColor)
+      usedColors.add(userColor)
+    }
   })
 
+  const uniqueUserIds = Array.from(new Set(allUserIds)).sort()
+  const userColorMap = new Map<string, string>(declaredColors)
+
+  const resolveColor = (userId: string) => {
+    if (userColorMap.has(userId)) {
+      return userColorMap.get(userId)!
+    }
+    const color = assignDynamicColor(userId, uniqueUserIds, usedColors)
+    userColorMap.set(userId, color)
+    usedColors.add(color)
+    return color
+  }
+
+  uniqueUserIds.forEach((userId) => resolveColor(userId))
   awareness.getStates().forEach((state, clientId) => {
     const typed = state as AwarenessState
     const { cursor, user, message: rawMessage } = typed
@@ -279,7 +337,7 @@ const collectAwarenessSnapshot = (
         : null
 
     // 동적 색상 할당 (미리 계산된 색상 사용)
-    const color = userColorMap.get(user.id) || assignDynamicColor(user.id, allUserIds, new Set())
+    const color = resolveColor(user.id)
     const name = user.name ?? 'Unknown'
     const picture = user.picture ?? null
     const isSelf = clientId === selfClientId
@@ -494,8 +552,18 @@ export const useSharedCursors = (roomId: string): SharedCursorSession => {
       }
     })
 
-    const finalColor = assignDynamicColor(self.id, allUserIds, usedColors)
+    const storedCursorColor = loadStoredCursorColor(self.id)
+    const hasStoredColor =
+      typeof storedCursorColor === 'string' &&
+      COLOR_PALETTE.includes(storedCursorColor) &&
+      !usedColors.has(storedCursorColor)
+
+    const finalColor = hasStoredColor
+      ? storedCursorColor
+      : assignDynamicColor(self.id, allUserIds, usedColors)
+
     usedColors.add(finalColor)
+    saveStoredCursorColor(self.id, finalColor)
     setAssignedColor(finalColor)
 
     const updateFromAwareness = () => {
