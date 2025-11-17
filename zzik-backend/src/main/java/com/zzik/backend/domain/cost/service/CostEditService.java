@@ -98,6 +98,7 @@ public class CostEditService {
 
 		// 7) 합계 재계산
 		cost.recalcTotal();
+		costRepository.save(cost);
 
 		// 8) invalidate approvals in case AOP didn't trigger
 		tripMemberService.invalidateAllByTrip(tripId);
