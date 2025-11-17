@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { CostSettleService } from '@/features/cost/services/costService'
 import { SettleFinalResponse } from '@/features/cost/types/settle'
-import GradientBackground from '@/components/blocks/GradientBackground'
 
 const CostFinalPage = () => {
   const { tripId } = useParams<{ tripId: string }>()
@@ -39,7 +38,7 @@ const CostFinalPage = () => {
     : [settleFinal.combinedSettlement]
 
   return (
-    <GradientBackground>
+    <div>
       <main className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-20 mt-6 sm:mt-10 pb-10 sm:pb-20">
         <h1 className="text-2xl sm:text-3xl font-bold text-text-500 mb-6 sm:mb-10 font-bmjua">
           정산 결과
@@ -205,7 +204,7 @@ const CostFinalPage = () => {
           )
         })}
       </main>
-    </GradientBackground>
+    </div>
   )
 }
 

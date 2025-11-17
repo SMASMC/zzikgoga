@@ -43,6 +43,7 @@ interface ChatPanelProps {
   onKeyDown?: (event: KeyboardEvent<HTMLInputElement>) => void
   onFocus?: () => void
   chatMessages?: CursorChatMessage[]
+  selfColor?: string
 }
 
 const ChatPanel = ({
@@ -55,6 +56,7 @@ const ChatPanel = ({
   onKeyDown,
   onFocus,
   chatMessages = [],
+  selfColor = '#3b82f6',
 }: ChatPanelProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -143,7 +145,6 @@ const ChatPanel = ({
         )}
       </div>
 
-      <div className="px-6 py-2 text-xs text-slate-500">메시지는 페이지를 떠나면 사라집니다</div>
       <div className="border-t-2 border-slate-100 px-6 py-4">
         <form className="flex items-center gap-3" onSubmit={handleSubmit}>
           <input
@@ -154,12 +155,28 @@ const ChatPanel = ({
             onFocus={onFocus}
             placeholder="메시지를 입력하고 Enter를 눌러보세요"
             maxLength={200}
-            className="flex-1 rounded-full border-2 border-slate-200 bg-white px-5 py-3 text-base text-slate-700 placeholder:text-slate-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            className="flex-1 rounded-full border-2 border-slate-200 bg-white px-5 py-3 text-base text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-all"
+            style={{
+              borderColor: chatValue ? selfColor : undefined,
+              boxShadow: chatValue
+                ? `0 0 0 3px ${getColorWithOpacity(selfColor, 0.15)}`
+                : undefined,
+            }}
             autoComplete="off"
           />
           <button
             type="submit"
-            className="rounded-full bg-blue-500 px-5 py-3 text-sm font-bold text-white shadow-md transition hover:bg-blue-600 hover:shadow-lg"
+            className="rounded-full px-5 py-3 text-sm font-bold text-white shadow-md transition hover:shadow-lg"
+            style={{
+              backgroundColor: selfColor,
+              filter: 'brightness(1)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.filter = 'brightness(0.9)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.filter = 'brightness(1)'
+            }}
           >
             보내기
           </button>

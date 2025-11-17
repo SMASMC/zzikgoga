@@ -79,12 +79,15 @@ const RemoteCursors = ({ cursors }: RemoteCursorsProps) => {
           <div className="relative -translate-x-2 -translate-y-2">
             {message?.text ? (
               <div
-                className="absolute bottom-full left-0 mb-1 max-w-[min(70vw,420px)] rounded-xl border border-white/40 px-3.5 py-2 text-xl font-semibold text-white shadow-lg backdrop-blur"
+                className="absolute bottom-full left-0 mb-1 max-w-[20em] rounded-xl border-2 px-3.5 py-2 text-xl font-semibold text-white shadow-lg backdrop-blur"
                 style={{
-                  background: `linear-gradient(135deg, ${color}e6, ${color}f2)`,
+                  background: `linear-gradient(135deg, ${color}, ${color})`,
+                  borderColor: `${color}`,
                 }}
               >
-                <p className="whitespace-pre-wrap break-words leading-snug">{message.text}</p>
+                <p className="whitespace-pre-wrap break-words leading-snug pl-4 indent-[-1rem]">
+                  {message.text}
+                </p>
               </div>
             ) : null}
             <MousePointer2
