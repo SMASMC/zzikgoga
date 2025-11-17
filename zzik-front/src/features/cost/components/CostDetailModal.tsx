@@ -429,20 +429,24 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
               </SolidButton>
             </div>
           ) : (
-            <div className="flex gap-2">
-              <button
-                onClick={handleDelete}
-                disabled={!canEdit}
-                className="inline-flex items-center justify-center whitespace-nowrap font-bmjua px-6 py-2.5 text-base rounded-full bg-red-500 text-white hover:bg-red-600 shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
-              >
-                {isDeleting ? '삭제 중...' : '삭제'}
-              </button>
-              <SolidButton onClick={handleEditClick} disabled={!canEdit}>
-                수정하기
-              </SolidButton>
+            <div className="flex flex-col items-end gap-2">
+              <div className="flex gap-2">
+                <button
+                  onClick={handleDelete}
+                  disabled={!canEdit}
+                  className="inline-flex items-center justify-center whitespace-nowrap font-bmjua px-6 py-2.5 text-base rounded-full bg-red-500 text-white hover:bg-red-600 shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
+                >
+                  {isDeleting ? '삭제 중...' : '삭제'}
+                </button>
+                <SolidButton onClick={handleEditClick} disabled={!canEdit}>
+                  수정하기
+                </SolidButton>
+              </div>
+              {!canEdit && (
+                <p className="text-xs text-red-500 font-bmjua">다른 사용자가 수정 중입니다.</p>
+              )}
             </div>
           )}
-          {/* {!canEdit && <p className="text-red-500">다른 사용자가 수정 중입니다.</p>} */}
           <CloseButton onClick={handleClose} className="absolute top-3 right-4" />
         </div>
 
