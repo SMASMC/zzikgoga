@@ -17,8 +17,8 @@ const generateHSLColor = (userId: string, index: number, totalParticipants: numb
   const hue = (baseHue + userHash) % 360
 
   // 채도와 밝기에도 약간의 변화를 주어 더 다양한 색상 생성
-  const saturationBase = 70 + (hashToIndex(userId + 'sat', 20))
-  const lightnessBase = 45 + (hashToIndex(userId + 'light', 15))
+  const saturationBase = 70 + hashToIndex(userId + 'sat', 20)
+  const lightnessBase = 45 + hashToIndex(userId + 'light', 15)
 
   const saturation = Math.min(90, Math.max(60, saturationBase))
   const lightness = Math.min(60, Math.max(40, lightnessBase))

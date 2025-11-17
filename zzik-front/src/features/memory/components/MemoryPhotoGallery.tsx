@@ -86,56 +86,25 @@ const MemoryPhotoGallery = ({ tripId }: Props) => {
     <div className="h-full p-4 flex flex-col min-h-0">
       {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
 
-      {/* 페이지네이션 컨트롤 */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-4 shrink-0">
-        {/* 페이지 크기 선택 */}
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <span className="text-sm font-bold text-text-500 whitespace-nowrap">페이지 크기</span>
-          <div className="w-28">
-            <DropdownSelect
-              options={pageSizeOptions}
-              value={String(pageSize)}
-              onChange={(value) => {
-                const size = Number(value)
-                setPageSize(size)
-                setPage(0)
-              }}
-              placeholder="선택"
-              className="w-full"
-            />
-          </div>
-        </div>
-
-        {/* 페이지 네비게이션 */}
-        <div className="flex items-center gap-2 justify-center sm:justify-end">
-          <button
-            className="inline-flex items-center justify-center whitespace-nowrap font-bmjua px-4 py-2 text-sm rounded-full bg-gradient-to-br from-gray-100 to-gray-200 text-text-500 hover:from-gray-200 hover:to-gray-300 shadow-md transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 disabled:hover:scale-100"
-            disabled={page === 0}
-            onClick={goPrev}
-          >
-            ← 이전
-          </button>
-
-          <div className="flex items-center gap-1 bg-gradient-to-br from-blue-50 to-blue-100 rounded-full px-4 py-2 shadow-sm min-w-[80px] justify-center">
-            <span className="text-sm font-bold text-text-600">{page + 1}</span>
-            <span className="text-sm text-text-600">/</span>
-            <span className="text-sm font-bold text-text-700">
-              {totalPages}
-              {nextCursor ? '+' : ''}
-            </span>
-          </div>
-
-          <button
-            className="inline-flex items-center justify-center whitespace-nowrap font-bmjua px-4 py-2 text-sm rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-white hover:from-blue-500 hover:to-blue-700 shadow-md transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 disabled:hover:scale-100"
-            onClick={goNext}
-            disabled={loading || (!nextCursor && end >= photos.length)}
-          >
-            다음 →
-          </button>
+      {/* 페이지 크기 선택 */}
+      <div className="flex items-center gap-2 w-full mb-4 shrink-0">
+        <span className="text-sm font-bold text-text-500 whitespace-nowrap">페이지 크기</span>
+        <div className="w-28">
+          <DropdownSelect
+            options={pageSizeOptions}
+            value={String(pageSize)}
+            onChange={(value) => {
+              const size = Number(value)
+              setPageSize(size)
+              setPage(0)
+            }}
+            placeholder="선택"
+            className="w-full"
+          />
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
+      <div className="flex-1 overflow-y-auto custom-scrollbar mb-4">
         <div className="grid grid-cols-2 gap-3">
           {pagePhotos.map((p) => (
             <div
@@ -153,6 +122,34 @@ const MemoryPhotoGallery = ({ tripId }: Props) => {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* 페이지 네비게이션 */}
+      <div className="flex items-center gap-2 justify-center shrink-0">
+        <button
+          className="inline-flex items-center justify-center whitespace-nowrap font-bmjua px-3 py-1.5 text-xs rounded-full bg-gradient-to-br from-gray-100 to-gray-200 text-text-500 hover:from-gray-200 hover:to-gray-300 shadow-md transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 disabled:hover:scale-100"
+          disabled={page === 0}
+          onClick={goPrev}
+        >
+          ← 이전
+        </button>
+
+        <div className="flex items-center gap-1 bg-gradient-to-br from-blue-50 to-blue-100 rounded-full px-3 py-1.5 shadow-sm min-w-[70px] justify-center">
+          <span className="text-xs font-bold text-text-600">{page + 1}</span>
+          <span className="text-xs text-text-600">/</span>
+          <span className="text-xs font-bold text-text-700">
+            {totalPages}
+            {nextCursor ? '+' : ''}
+          </span>
+        </div>
+
+        <button
+          className="inline-flex items-center justify-center whitespace-nowrap font-bmjua px-3 py-1.5 text-xs rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-white hover:from-blue-500 hover:to-blue-700 shadow-md transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 disabled:hover:scale-100"
+          onClick={goNext}
+          disabled={loading || (!nextCursor && end >= photos.length)}
+        >
+          다음 →
+        </button>
       </div>
     </div>
   )
