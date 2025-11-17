@@ -42,7 +42,6 @@ const PlaceBoard = ({ cursorSession, onOpenPlaceDrawer }: PlaceBoardProps) => {
     awareness,
     addSchedule,
     updateScheduleTime,
-    reorderSchedule,
     removeSchedule,
     isSynced,
   } = useYTripDoc(roomId)
@@ -303,7 +302,6 @@ const PlaceBoard = ({ cursorSession, onOpenPlaceDrawer }: PlaceBoardProps) => {
       autoHideTimerRef.current = null
     }, CHAT_AUTO_HIDE_MS)
   }, [clearAutoHideTimer])
-
 
   // 삭제
   const handleRemoveSchedule = useCallback(
@@ -672,7 +670,9 @@ const PlaceBoard = ({ cursorSession, onOpenPlaceDrawer }: PlaceBoardProps) => {
                 <span className="rounded-lg bg-slate-900/90 px-3 py-1 text-lg font-bold text-white shadow-md">
                   /
                 </span>
-                <span className="text-lg text-slate-500 group-hover:text-blue-600">눌러서 열기</span>
+                <span className="text-lg text-slate-500 group-hover:text-blue-600">
+                  눌러서 열기
+                </span>
               </button>
 
               {/* Chat 패널 */}
