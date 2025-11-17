@@ -7,13 +7,21 @@ const CURSOR_TTL = 2000
 const MESSAGE_TTL = 5000
 
 // HSL 기반 동적 색상 생성
-// 참여자 수에 맞춰 색상환을 균등 분할하여 중복 없는 색상 생성
-const generateHSLColor = (index: number, totalParticipants: number): string => {
-  // 색상환(0-360도)을 참여자 수만큼 균등 분할
-  const hue = (index * 360) / Math.max(totalParticipants, 1)
-  // 채도 70-90%, 밝기 45-65%로 설정하여 가독성 확보
-  const saturation = 75 + (index % 3) * 5 // 75%, 80%, 85% 순환
-  const lightness = 50 + (index % 2) * 5 // 50%, 55% 순환
+// userId를 시드로 사용하여 일관되지만 랜덤한 색상 생성
+const generateHSLColor = (userId: string, index: number, totalParticipants: number): string => {
+  // userId 해시를 기반으로 색상 다양성 추가
+  const userHash = hashToIndex(userId, 360)
+
+  // 색상환(0-360도)을 참여자 수만큼 균등 분할하고 userId 해시로 오프셋 추가
+  const baseHue = (index * 360) / Math.max(totalParticipants, 1)
+  const hue = (baseHue + userHash) % 360
+
+  // 채도와 밝기에도 약간의 변화를 주어 더 다양한 색상 생성
+  const saturationBase = 70 + (hashToIndex(userId + 'sat', 20))
+  const lightnessBase = 45 + (hashToIndex(userId + 'light', 15))
+
+  const saturation = Math.min(90, Math.max(60, saturationBase))
+  const lightness = Math.min(60, Math.max(40, lightnessBase))
 
   return `hsl(${Math.round(hue)}, ${saturation}%, ${lightness}%)`
 }
@@ -63,8 +71,8 @@ const assignDynamicColor = (userId: string, allUserIds: string[]): string => {
     return pickColor(userId)
   }
 
-  // 참여자 수에 맞춰 HSL 색상 생성
-  return generateHSLColor(index, sortedUserIds.length)
+  // 참여자 수에 맞춰 HSL 색상 생성 (userId를 시드로 사용)
+  return generateHSLColor(userId, index, sortedUserIds.length)
 }
 
 const GUEST_ID_STORAGE_KEY = 'plan-cursor-guest-identity'

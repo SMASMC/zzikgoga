@@ -21,6 +21,27 @@ const getInitial = (name: string) => {
   return name.trim().charAt(0).toUpperCase()
 }
 
+// 텍스트를 20자 단위로 줄바꿈 (한글 기준)
+const wrapText = (text: string, maxChars: number = 20): string => {
+  if (text.length <= maxChars) {
+    return text
+  }
+
+  const lines: string[] = []
+  let currentLine = ''
+
+  for (let i = 0; i < text.length; i++) {
+    currentLine += text[i]
+
+    if (currentLine.length === maxChars || i === text.length - 1) {
+      lines.push(currentLine)
+      currentLine = ''
+    }
+  }
+
+  return lines.join('\n')
+}
+
 const RemoteCursors = ({ cursors }: RemoteCursorsProps) => {
   const previousPositionsRef = useRef<Map<string, RemoteCursor['cursor']>>(new Map())
 
@@ -85,8 +106,8 @@ const RemoteCursors = ({ cursors }: RemoteCursorsProps) => {
                   borderColor: `${color}`,
                 }}
               >
-                <p className="whitespace-pre-wrap break-words leading-snug pl-4 indent-[-1rem]">
-                  {message.text}
+                <p className="whitespace-pre-wrap break-words leading-snug">
+                  {wrapText(message.text, 20)}
                 </p>
               </div>
             ) : null}

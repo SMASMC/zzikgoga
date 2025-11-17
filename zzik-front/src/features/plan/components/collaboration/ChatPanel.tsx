@@ -33,6 +33,29 @@ const getColorWithOpacity = (color: string, opacity: number = 0.1): string => {
   return color
 }
 
+/**
+ * 텍스트를 20자 단위로 줄바꿈 (한글 기준)
+ */
+const wrapText = (text: string, maxChars: number = 20): string => {
+  if (text.length <= maxChars) {
+    return text
+  }
+
+  const lines: string[] = []
+  let currentLine = ''
+
+  for (let i = 0; i < text.length; i++) {
+    currentLine += text[i]
+
+    if (currentLine.length === maxChars || i === text.length - 1) {
+      lines.push(currentLine)
+      currentLine = ''
+    }
+  }
+
+  return lines.join('\n')
+}
+
 interface ChatPanelProps {
   isOpen: boolean
   chatValue: string
@@ -136,7 +159,9 @@ const ChatPanel = ({
                       })}
                     </span>
                   </div>
-                  <p className="mt-0.5 break-words text-sm text-slate-700">{msg.text}</p>
+                  <p className="mt-0.5 break-words text-sm text-slate-700 whitespace-pre-wrap">
+                    {wrapText(msg.text, 20)}
+                  </p>
                 </div>
               </div>
             ))}

@@ -95,7 +95,7 @@ const CostFinalPage = () => {
                         <div className="flex items-center gap-1 sm:gap-2">
                           <ArrowRight className="w-4 h-4 text-green-500" strokeWidth={2.5} />
                           <span className="text-green-600 font-bold text-sm sm:text-base">
-                            +{formatAmount(item.amount)}원
+                            {item.amount === 0 ? '0원' : `+${formatAmount(item.amount)}원`}
                           </span>
                         </div>
                       </div>
@@ -105,7 +105,7 @@ const CostFinalPage = () => {
                   )}
 
                   <p className="text-green-700 font-bold mt-3 text-sm sm:text-base">
-                    총 수입: +{formatAmount(totalReceive)}원
+                    총 수입: {totalReceive === 0 ? '0원' : `+${formatAmount(totalReceive)}원`}
                   </p>
                 </div>
 
@@ -209,7 +209,7 @@ const CostFinalPage = () => {
                         <div className="flex items-center gap-1 sm:gap-2">
                           <ArrowRight className="w-4 h-4 text-red-500" strokeWidth={2.5} />
                           <span className="text-red-600 font-bold text-sm sm:text-base">
-                            -{formatAmount(item.amount)}원
+                            {item.amount === 0 ? '0원' : `-${formatAmount(item.amount)}원`}
                           </span>
                         </div>
                       </div>
@@ -219,7 +219,7 @@ const CostFinalPage = () => {
                   )}
 
                   <p className="text-red-700 font-bold mt-3 text-sm sm:text-base">
-                    총 지출: -{formatAmount(totalSend)}원
+                    총 지출: {totalSend === 0 ? '0원' : `-${formatAmount(totalSend)}원`}
                   </p>
                 </div>
               </div>
@@ -232,7 +232,7 @@ const CostFinalPage = () => {
                     <p className="text-green-700 font-bold text-sm sm:text-base">총 수입</p>
                   </div>
                   <p className="text-lg sm:text-xl font-bold text-green-600">
-                    +{formatAmount(totalReceive)}원
+                    {totalReceive === 0 ? '0원' : `+${formatAmount(totalReceive)}원`}
                   </p>
                 </div>
 
@@ -242,7 +242,7 @@ const CostFinalPage = () => {
                     <p className="text-red-700 font-bold text-sm sm:text-base">총 지출</p>
                   </div>
                   <p className="text-lg sm:text-xl font-bold text-red-600">
-                    -{formatAmount(totalSend)}원
+                    {totalSend === 0 ? '0원' : `-${formatAmount(totalSend)}원`}
                   </p>
                 </div>
 
@@ -252,7 +252,7 @@ const CostFinalPage = () => {
                     <p className="text-blue-700 font-bold text-sm sm:text-base">순 금액</p>
                   </div>
                   <p className="text-lg sm:text-xl font-bold text-blue-600">
-                    {formatAmount(net)}원
+                    {net === 0 ? '0원' : net > 0 ? `+${formatAmount(net)}원` : `${formatAmount(net)}원`}
                   </p>
                 </div>
               </div>
