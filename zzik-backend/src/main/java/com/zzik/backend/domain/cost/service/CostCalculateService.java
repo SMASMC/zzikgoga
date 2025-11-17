@@ -155,7 +155,7 @@ public class CostCalculateService {
 			Long payerId = cost.getPayer().getId();
 
 			for (CostMenu m : Optional.ofNullable(cost.getCostMenus()).orElse(List.of())) {
-				long menuTotal = nz(m.getAmount()) * m.getCount();
+				long menuTotal = nz(m.getAmount());
 				List<Long> bens = resolveBeneficiaries(m.getMustPayerIds(), memberIds);
 				if (bens.isEmpty())
 					throw BusinessException.from(ExceptionCode.SHARE_MISSING);
