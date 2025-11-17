@@ -39,7 +39,7 @@ export class KakaoShareService {
     if (this.isInitialized) return
 
     if (window.Kakao && !window.Kakao.isInitialized()) {
-      const appKey = import.meta.env.VITE_KAKAO_REST_API_KEY
+      const appKey = import.meta.env.VITE_KAKAO_JS_KEY
       window.Kakao.init(appKey)
       this.isInitialized = true
       console.log('Kakao SDK initialized:', window.Kakao.isInitialized())
