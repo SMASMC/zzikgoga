@@ -293,9 +293,7 @@ const PlaceModal = ({ onClose, place }: PlaceModalProps) => {
         </div>
 
         <div className="mb-4 sm:mb-6">
-          <h3 className="text-base sm:text-lg mb-2 sm:mb-3 text-slate-700 font-semibold">
-            시간
-          </h3>
+          <h3 className="text-base sm:text-lg mb-2 sm:mb-3 text-slate-700 font-semibold">시간</h3>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1">
               <label className="text-xs font-semibold text-slate-600">시작 시간</label>

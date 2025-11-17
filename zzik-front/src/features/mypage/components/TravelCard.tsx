@@ -1,7 +1,7 @@
 ﻿// TravelCard.tsx
 // 여행 생성 카드와 기존 여행 카드를 위한 컴포넌트
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TravelAddCardProps, TravelCardProps } from '../types/mypage'
 import SolidButton from '@/components/atoms/SolidButton'
@@ -20,6 +20,11 @@ const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCard
     variant: 'success' | 'warning' | 'error' | 'hint'
     message: string
   }>({ open: false, variant: 'success', message: '' })
+
+  // img prop 변경 시 imageSrc 업데이트
+  useEffect(() => {
+    setImageSrc(img || '/pwa-512x512.png')
+  }, [img])
 
   const handleCardClick = () => {
     const travelMeta = { travelTitle: title, startDate, endDate }
@@ -54,6 +59,12 @@ const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCard
       )
       await MediaService.uploadMedia(String(tripId), files)
       e.target.value = ''
+
+      // 업로드 성공 메시지 표시
+      setToast({ open: true, variant: 'success', message: '사진이 업로드되었습니다.' })
+
+      // MyPage에 새로고침 이벤트 발생
+      window.dispatchEvent(new CustomEvent('travel-updated', { detail: { tripId } }))
     } catch (err) {
       console.error(err)
       setToast({ open: true, variant: 'error', message: '사진 업로드에 실패했습니다.' })

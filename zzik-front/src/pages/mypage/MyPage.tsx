@@ -266,12 +266,27 @@ const MyPage = () => {
       }
     }
 
+    // 여행 업데이트 이벤트 리스너 (사진 업로드 후)
+    const handleTravelUpdated = () => {
+      if (isMobile) {
+        setTravels([])
+        setCursor(null)
+        setHasMore(true)
+        loadMobileInitial()
+      } else {
+        const page = parseInt(searchParams.get('page') || '1', 10)
+        loadDesktopPage(page)
+      }
+    }
+
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('focus', handleFocus)
+    window.addEventListener('travel-updated', handleTravelUpdated as EventListener)
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', handleFocus)
+      window.removeEventListener('travel-updated', handleTravelUpdated as EventListener)
     }
   }, [isMobile, searchParams, loadMobileInitial, loadDesktopPage])
 
