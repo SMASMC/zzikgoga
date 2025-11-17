@@ -490,6 +490,7 @@ export const useSharedCursors = (roomId: string): SharedCursorSession => {
     })
 
     const finalColor = assignDynamicColor(self.id, allUserIds, usedColors)
+    usedColors.add(finalColor)
     setAssignedColor(finalColor)
 
     const updateFromAwareness = () => {
@@ -515,7 +516,7 @@ export const useSharedCursors = (roomId: string): SharedCursorSession => {
         user: {
           id: self.id,
           name: self.name,
-          color: self.color,
+          color: assignedColor,
           picture: self.picture ?? null,
         },
         cursor: null,
@@ -571,7 +572,7 @@ export const useSharedCursors = (roomId: string): SharedCursorSession => {
       messageSeenRef.current.clear()
       releaseProvider(roomId)
     }
-  }, [ingestMessagePayloads, roomId, self.color, self.id, self.name, self.picture])
+  }, [ingestMessagePayloads, roomId, self.id, self.name, self.picture])
 
   useEffect(() => {
     const awareness = awarenessRef.current

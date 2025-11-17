@@ -59,7 +59,6 @@ const PlaceBoard = ({ cursorSession, onOpenPlaceDrawer }: PlaceBoardProps) => {
   const boardRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const autoHideTimerRef = useRef<number | null>(null)
-  const dragItemRef = useRef<{ dateKey: string; index: number } | null>(null)
 
   // 제목 Y.Text - state로 관리하여 업데이트 가능하게
   const [titleYText, setTitleYText] = useState<Y.Text | null>(null)
@@ -305,58 +304,6 @@ const PlaceBoard = ({ cursorSession, onOpenPlaceDrawer }: PlaceBoardProps) => {
     }, CHAT_AUTO_HIDE_MS)
   }, [clearAutoHideTimer])
 
-  // DnD
-  const handleDragStart = useCallback((dateKey: string, index: number) => {
-    dragItemRef.current = { dateKey, index }
-  }, [])
-  const handleDragEnd = useCallback(() => {
-    dragItemRef.current = null
-  }, [])
-  const handleDropWithinDate = useCallback(
-    (dateKey: string, targetIndex: number) => {
-      if (!dragItemRef.current) return
-      const { dateKey: sourceDate, index: sourceIndex } = dragItemRef.current
-      dragItemRef.current = null
-      if (sourceDate !== dateKey) {
-        setToast({
-          variant: 'hint',
-          title: '알림',
-          message: '현재는 같은 날짜 안에서만 순서를 조정할 수 있어요.',
-        })
-        return
-      }
-      reorderSchedule(dateKey, sourceIndex, targetIndex)
-      setToast({
-        variant: 'success',
-        title: '일정 순서 변경',
-        message: '일정 순서가 변경되었고, 시간이 자동으로 조정되었습니다.',
-      })
-    },
-    [reorderSchedule]
-  )
-  const handleDropToEnd = useCallback(
-    (dateKey: string) => {
-      if (!dragItemRef.current) return
-      const { dateKey: sourceDate, index: sourceIndex } = dragItemRef.current
-      dragItemRef.current = null
-      if (sourceDate !== dateKey) {
-        setToast({
-          variant: 'hint',
-          title: '알림',
-          message: '현재는 같은 날짜 안에서만 순서를 조정할 수 있어요.',
-        })
-        return
-      }
-      const nextIndex = schedulesByDate[dateKey]?.length ?? 0
-      reorderSchedule(dateKey, sourceIndex, nextIndex)
-      setToast({
-        variant: 'success',
-        title: '일정 순서 변경',
-        message: '일정 순서가 변경되었고, 시간이 자동으로 조정되었습니다.',
-      })
-    },
-    [reorderSchedule, schedulesByDate]
-  )
 
   // 삭제
   const handleRemoveSchedule = useCallback(
@@ -765,14 +712,9 @@ const PlaceBoard = ({ cursorSession, onOpenPlaceDrawer }: PlaceBoardProps) => {
               selectedDateKey={selectedDateKey}
               doc={doc}
               awareness={awareness}
-              dragItemRef={dragItemRef}
               editingKey={editingKey}
               editStart={editStart}
               editOffset={editOffset}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              onDropWithinDate={handleDropWithinDate}
-              onDropToEnd={handleDropToEnd}
               onRemoveSchedule={handleRemoveSchedule}
               onUpdateScheduleTime={updateScheduleTime}
               onSetEditingKey={setEditingKey}

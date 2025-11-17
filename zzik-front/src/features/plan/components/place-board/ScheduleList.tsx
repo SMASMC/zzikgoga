@@ -1,6 +1,5 @@
 // src/features/plan/components/place-board/ScheduleList.tsx
 import React, { useState } from 'react'
-import type { RefObject } from 'react'
 import * as Y from 'yjs'
 import type { Awareness } from 'y-protocols/awareness'
 import ScheduleItem from './ScheduleItem'
@@ -39,14 +38,9 @@ interface ScheduleListProps {
   selectedDateKey: string
   doc: Y.Doc | null
   awareness: Awareness | null
-  dragItemRef: RefObject<{ dateKey: string; index: number } | null>
   editingKey: string | null
   editStart: string
   editOffset: string
-  onDragStart: (dateKey: string, index: number) => void
-  onDragEnd: () => void
-  onDropWithinDate: (dateKey: string, index: number) => void
-  onDropToEnd: (dateKey: string) => void
   onRemoveSchedule: (rawKey: string, index: number) => void
   onUpdateScheduleTime: (
     rawKey: string,
@@ -76,14 +70,9 @@ const ScheduleList = ({
   selectedDateKey,
   doc,
   awareness,
-  dragItemRef,
   editingKey,
   editStart,
   editOffset,
-  onDragStart,
-  onDragEnd,
-  onDropWithinDate,
-  onDropToEnd,
   onRemoveSchedule,
   onUpdateScheduleTime,
   onSetEditingKey,
@@ -261,18 +250,7 @@ const ScheduleList = ({
       {schedules.length === 0 ? (
         <div className="text-3xl text-text-500/70 text-center">일정이 없습니다.</div>
       ) : (
-        <ul
-          className="space-y-3"
-          onDragOver={(event) => {
-            if (!dragItemRef.current) return
-            event.preventDefault()
-          }}
-          onDrop={(event) => {
-            event.preventDefault()
-            event.stopPropagation()
-            onDropToEnd(selectedDateKey)
-          }}
-        >
+        <ul className="space-y-3">
           {schedules
             .map((it, originalIndex) => ({ it, originalIndex }))
             .map(({ it, originalIndex }, sortedIndex, sortedArray) => {
@@ -329,12 +307,8 @@ const ScheduleList = ({
                     editOffset={editOffset}
                     doc={doc}
                     awareness={awareness}
-                    dragItemRef={dragItemRef}
                     nextSchedule={nextSchedule}
                     allSchedules={schedules}
-                    onDragStart={onDragStart}
-                    onDragEnd={onDragEnd}
-                    onDropWithinDate={onDropWithinDate}
                     onRemove={onRemoveSchedule}
                     onUpdateTime={onUpdateScheduleTime}
                     onSetEditingKey={onSetEditingKey}

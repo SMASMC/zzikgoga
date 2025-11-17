@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as Y from 'yjs'
 import type { Awareness } from 'y-protocols/awareness'
 import YTextEditor from '../YTextEditor'
@@ -153,12 +153,8 @@ interface ScheduleItemProps {
   editOffset: string
   doc: Y.Doc | null
   awareness: Awareness | null
-  dragItemRef: RefObject<{ dateKey: string; index: number } | null>
   nextSchedule?: YScheduleItem | null
   allSchedules?: YScheduleItem[]
-  onDragStart: (dateKey: string, index: number) => void
-  onDragEnd: () => void
-  onDropWithinDate: (dateKey: string, index: number) => void
   onRemove: (rawKey: string, index: number) => void
   onUpdateTime: (
     rawKey: string,
@@ -185,11 +181,7 @@ const ScheduleItem = ({
   editOffset,
   doc,
   awareness,
-  dragItemRef,
   allSchedules = [],
-  onDragStart,
-  onDragEnd,
-  onDropWithinDate,
   onRemove,
   onUpdateTime,
   onSetEditingKey,
@@ -197,7 +189,6 @@ const ScheduleItem = ({
   onSetEditOffset,
   onToast,
 }: ScheduleItemProps) => {
-  const [isDragging, setIsDragging] = useState(false)
   const [isResizing, setIsResizing] = useState(false)
   const [resizeStartY, setResizeStartY] = useState(0)
   const [resizeStartOffset, setResizeStartOffset] = useState(0)
@@ -419,29 +410,10 @@ const ScheduleItem = ({
   return (
     <li
       className={`group relative rounded-lg border-2 p-2 shadow-sm transition-all ${
-        isDragging
-          ? 'border-blue-300 bg-blue-50'
-          : isResizing
-            ? 'border-purple-300 bg-purple-50/50'
-            : 'border-slate-300 bg-slate-100'
+        isResizing
+          ? 'border-purple-300 bg-purple-50/50'
+          : 'border-slate-300 bg-slate-100'
       }`}
-      draggable={!isEditing && !isResizing}
-      onDragStart={() => {
-        setIsDragging(true)
-        onDragStart(selectedDateKey, realIndex)
-      }}
-      onDragEnd={() => {
-        setIsDragging(false)
-        onDragEnd()
-      }}
-      onDragOver={(e) => {
-        if (dragItemRef.current) e.preventDefault()
-      }}
-      onDrop={(e) => {
-        e.preventDefault()
-        e.stopPropagation()
-        onDropWithinDate(selectedDateKey, realIndex)
-      }}
     >
       {/* 헤더: 장소 + 삭제 버튼 한 줄 */}
       <div className="flex items-center justify-between gap-2">
