@@ -44,7 +44,7 @@ public record CostEditRequest(
 		@Min(1)
 		int count,
 
-		@Schema(description = "금액", example = "4500")
+		@Schema(description = "총 금액", example = "4500")
 		@Min(0)
 		long amount,
 

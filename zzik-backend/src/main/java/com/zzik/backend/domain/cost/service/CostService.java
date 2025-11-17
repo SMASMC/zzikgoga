@@ -275,6 +275,11 @@ public class CostService {
 		// 메뉴 저장
 		List<CostMenu> menus = new ArrayList<>();
 		for (SaveCostMenuItem dto : req.getItems()) {
+			// payerIds 빈 리스트 검증
+			if (dto.getMemberIds() != null && dto.getMemberIds().isEmpty()) {
+				throw BusinessException.from(ExceptionCode.COST_PAYER_IDS_EMPTY);
+			}
+
 			long amount = resolveAmount(dto);
 			Integer count = dto.getCount();
 			count = (count == null || count <= 0) ? 1 : count;
