@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import BudgetPanel from '@features/plan/components/BudgetPanel'
 import PlaceBoard from '@features/plan/components/PlaceBoard'
@@ -13,6 +13,7 @@ const getRoomId = (tripId: string | undefined) =>
 const PlanPage = () => {
   const { tripId } = useParams<{ tripId: string }>()
   const roomId = useMemo(() => getRoomId(tripId), [tripId])
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
   const cursorSession = useSharedCursors(roomId)
 
@@ -20,9 +21,12 @@ const PlanPage = () => {
     <div className="flex flex-col h-screen">
       <PlanCollaborationLayer cursorSession={cursorSession}>
         <Header showBackButton whiteBackground />
-        <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-y-auto lg:overflow-y-hidden">
-          <PlaceSearchPanel />
-          <PlaceBoard cursorSession={cursorSession} />
+        <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-y-auto lg:overflow-y-hidden relative">
+          <PlaceSearchPanel isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
+          <PlaceBoard
+            cursorSession={cursorSession}
+            onOpenPlaceDrawer={() => setIsDrawerOpen(true)}
+          />
           <BudgetPanel />
         </div>
       </PlanCollaborationLayer>

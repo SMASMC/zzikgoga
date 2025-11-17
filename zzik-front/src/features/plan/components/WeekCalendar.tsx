@@ -1,4 +1,5 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MapPin, Plus } from 'lucide-react'
+import { MdDirectionsCar } from 'react-icons/md'
 
 interface WeekCalendarProps {
   selectedDate: Date
@@ -7,6 +8,11 @@ interface WeekCalendarProps {
   onNextWeek: () => void
   minDate?: Date
   maxDate?: Date
+  onOpenPlaceDrawer?: () => void
+  onAddSchedule?: () => void
+  onCalculateTravelTime?: () => void
+  isCalculating?: boolean
+  showCalculateTravelTime?: boolean
 }
 
 export default function WeekCalendar({
@@ -16,6 +22,11 @@ export default function WeekCalendar({
   onNextWeek,
   minDate,
   maxDate,
+  onOpenPlaceDrawer,
+  onAddSchedule,
+  onCalculateTravelTime,
+  isCalculating = false,
+  showCalculateTravelTime = false,
 }: WeekCalendarProps) {
   // 선택한 날짜 기준으로 일주일 생성 (선택한 날짜를 중심으로)
   const getWeekDays = () => {
@@ -80,73 +91,116 @@ export default function WeekCalendar({
   })()
 
   return (
-    <div className="space-y-4">
-      {/* 달력 네비게이션 */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={onPrevWeek}
-          disabled={!canPrev}
-          className={`rounded-[8px] w-[36px] h-[32px] flex items-center justify-center hover:bg-slate-100 ${
-            !canPrev ? 'opacity-50 cursor-not-allowed hover:bg-transparent' : ''
-          }`}
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </button>
+    <div className="flex gap-6 items-start">
+      {/* 왼쪽: 달력 영역 */}
+      <div className="flex-1 space-y-4">
+        {/* 달력 네비게이션 */}
+        <div className="flex items-center justify-between">
+          <button
+            onClick={onPrevWeek}
+            disabled={!canPrev}
+            className={`rounded-[8px] w-[36px] h-[32px] flex items-center justify-center hover:bg-slate-100 ${
+              !canPrev ? 'opacity-50 cursor-not-allowed hover:bg-transparent' : ''
+            }`}
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
 
-        <div className="flex items-center gap-3">
-          <div className="bg-point-500 rounded-full h-[32px] px-[20px] flex items-center justify-center">
-            <p className="text-white text-[16px]">{selectedDate.getMonth() + 1}월</p>
+          <div className="flex items-center gap-3">
+            <div className="bg-point-500 rounded-full h-[48px] px-[28px] flex items-center justify-center">
+              <p className="text-white text-xl font-semibold">{selectedDate.getMonth() + 1}월</p>
+            </div>
+            <p className="text-lg text-[#717182]">{getWeekRange()}</p>
           </div>
-          <p className="text-[14px] text-[#717182]">{getWeekRange()}</p>
+
+          <button
+            onClick={onNextWeek}
+            disabled={!canNext}
+            className={`rounded-[8px] w-[36px] h-[32px] flex items-center justify-center hover:bg-slate-100 ${
+              !canNext ? 'opacity-50 cursor-not-allowed hover:bg-transparent' : ''
+            }`}
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
 
-        <button
-          onClick={onNextWeek}
-          disabled={!canNext}
-          className={`rounded-[8px] w-[36px] h-[32px] flex items-center justify-center hover:bg-slate-100 ${
-            !canNext ? 'opacity-50 cursor-not-allowed hover:bg-transparent' : ''
-          }`}
-        >
-          <ChevronRight className="w-4 h-4" />
-        </button>
+        {/* 일주일 달력 */}
+        <div className="flex justify-center">
+          <div className="flex gap-3">
+            {weekDays.map((day, index) => {
+              const isSelected = isSameDay(day, selectedDate)
+              const isToday = isSameDay(day, new Date())
+              const enabled = inRange(day)
+
+              return (
+                <button
+                  key={index}
+                  onClick={() => enabled && onDateSelect(day)}
+                  className={`
+                    flex flex-col items-center justify-center w-[70px] py-2 rounded-full transition-all
+                    ${
+                      isSelected
+                        ? 'bg-white text-point-500 border border-point-600 shadow-lg'
+                        : isToday
+                          ? 'bg-blue-50 text-neutral-950'
+                          : 'bg-white text-neutral-950 hover:bg-slate-50'
+                    }
+                    ${!enabled ? 'opacity-40 cursor-not-allowed hover:bg-transparent' : ''}
+                  `}
+                >
+                  <p
+                    className={`text-base mb-2 ${isSelected ? 'text-point-500' : 'text-[#717182]'}`}
+                  >
+                    {getDayName(day)}
+                  </p>
+                  <p className={`text-2xl font-semibold ${isSelected ? 'text-point-500' : 'text-neutral-950'}`}>
+                    {day.getDate()}
+                  </p>
+                </button>
+              )
+            })}
+          </div>
+        </div>
       </div>
 
-      {/* 일주일 달력 */}
-      <div className="flex justify-center">
-        <div className="flex gap-3">
-          {weekDays.map((day, index) => {
-            const isSelected = isSameDay(day, selectedDate)
-            const isToday = isSameDay(day, new Date())
-            const enabled = inRange(day)
+      {/* 오른쪽: 버튼 영역 */}
+      <div className="flex flex-col gap-3">
+        {/* 장소 추가 */}
+        {onOpenPlaceDrawer && (
+          <button
+            type="button"
+            onClick={onOpenPlaceDrawer}
+            className="flex items-center gap-2 rounded-full border border-emerald-300 bg-emerald-50 px-5 py-2.5 text-base font-semibold text-emerald-700 transition-all hover:bg-emerald-100 hover:border-emerald-400 shadow-sm whitespace-nowrap"
+          >
+            <MapPin className="w-5 h-5" strokeWidth={2.5} />
+            <span>장소 추가</span>
+          </button>
+        )}
 
-            return (
-              <button
-                key={index}
-                onClick={() => enabled && onDateSelect(day)}
-                className={`
-                  flex flex-col items-center justify-center w-[70px] py-2 rounded-full transition-all
-                  ${
-                    isSelected
-                      ? 'bg-white text-point-500 border border-point-600 shadow-lg'
-                      : isToday
-                        ? 'bg-blue-50 text-neutral-950'
-                        : 'bg-white text-neutral-950 hover:bg-slate-50'
-                  }
-                  ${!enabled ? 'opacity-40 cursor-not-allowed hover:bg-transparent' : ''}
-                `}
-              >
-                <p
-                  className={`text-[12px] mb-2 ${isSelected ? 'text-point-500' : 'text-[#717182]'}`}
-                >
-                  {getDayName(day)}
-                </p>
-                <p className={`text-[18px] ${isSelected ? 'text-point-500' : 'text-neutral-950'}`}>
-                  {day.getDate()}
-                </p>
-              </button>
-            )
-          })}
-        </div>
+        {/* 새 일정 */}
+        {onAddSchedule && (
+          <button
+            type="button"
+            onClick={onAddSchedule}
+            className="flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2.5 text-base font-semibold text-slate-700 transition-all hover:bg-slate-50 hover:border-slate-400 shadow-sm whitespace-nowrap"
+          >
+            <Plus className="w-5 h-5" />
+            <span>새 일정</span>
+          </button>
+        )}
+
+        {/* 이동시간 계산 */}
+        {showCalculateTravelTime && onCalculateTravelTime && (
+          <button
+            type="button"
+            onClick={onCalculateTravelTime}
+            disabled={isCalculating}
+            className="flex items-center gap-2 rounded-full border border-blue-300 bg-blue-50 px-5 py-2.5 text-base font-semibold text-blue-700 transition-all hover:bg-blue-100 hover:border-blue-400 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm whitespace-nowrap"
+          >
+            <MdDirectionsCar className="w-6 h-6" />
+            <span>{isCalculating ? '계산 중...' : '이동시간 계산'}</span>
+          </button>
+        )}
       </div>
     </div>
   )

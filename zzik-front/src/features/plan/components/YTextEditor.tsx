@@ -14,7 +14,7 @@ interface YTextEditorProps {
   singleLine?: boolean
   variant?: 'input' | 'plain'
   numericOnly?: boolean
-  size?: 'xs' | 'sm' | 'md' | 'lg'
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl'
 }
 
 const normalizeSingleLine = (text: string, singleLine: boolean | undefined) =>
@@ -40,12 +40,16 @@ const YTextEditor = ({
       sm: 'text-sm',
       md: 'text-sm',
       lg: 'text-base',
+      xl: 'text-lg',
+      '2xl': 'text-xl',
     }
     const paddingClasses = {
       xs: 'px-2 py-0.5',
       sm: 'px-2.5 py-0.5',
       md: 'px-3 py-1',
       lg: 'px-4 py-1.5',
+      xl: 'px-5 py-2',
+      '2xl': 'px-6 py-2.5',
     }
     return {
       text: textSizes[size],

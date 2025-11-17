@@ -252,7 +252,11 @@ const CostFinalPage = () => {
                     <p className="text-blue-700 font-bold text-sm sm:text-base">순 금액</p>
                   </div>
                   <p className="text-lg sm:text-xl font-bold text-blue-600">
-                    {net === 0 ? '0원' : net > 0 ? `+${formatAmount(net)}원` : `${formatAmount(net)}원`}
+                    {net === 0
+                      ? '0원'
+                      : net > 0
+                        ? `+${formatAmount(net)}원`
+                        : `${formatAmount(net)}원`}
                   </p>
                 </div>
               </div>

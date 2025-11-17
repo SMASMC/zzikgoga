@@ -25,6 +25,7 @@ const TimePicker = ({
   const [isOpen, setIsOpen] = useState(false)
   const [tempHour, setTempHour] = useState('09')
   const [tempMinute, setTempMinute] = useState('00')
+  const [dropdownPosition, setDropdownPosition] = useState<'bottom' | 'top'>('bottom')
   const containerRef = useRef<HTMLDivElement>(null)
 
   // value가 변경되면 tempHour, tempMinute 업데이트
@@ -35,6 +36,23 @@ const TimePicker = ({
       setTempMinute(m)
     }
   }, [value])
+
+  // 드롭다운 위치 계산
+  useEffect(() => {
+    if (isOpen && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect()
+      const dropdownHeight = 400 // 예상 드롭다운 높이
+      const spaceBelow = window.innerHeight - rect.bottom
+      const spaceAbove = rect.top
+
+      // 아래 공간이 부족하고 위 공간이 더 넉넉하면 위로 열기
+      if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
+        setDropdownPosition('top')
+      } else {
+        setDropdownPosition('bottom')
+      }
+    }
+  }, [isOpen])
 
   // 외부 클릭 감지
   useEffect(() => {
@@ -102,9 +120,9 @@ const TimePicker = ({
       {/* 드롭다운 패널 */}
       {isOpen && (
         <div
-          className={`absolute top-full mt-2 w-full min-w-[280px] bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 overflow-hidden ${
-            align === 'right' ? 'right-0' : 'left-0'
-          }`}
+          className={`absolute w-full min-w-[280px] bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 overflow-hidden ${
+            dropdownPosition === 'top' ? 'bottom-full mb-2' : 'top-full mt-2'
+          } ${align === 'right' ? 'right-0' : 'left-0'}`}
         >
           {/* 빠른 선택 */}
           <div className="p-3 border-b border-slate-100">

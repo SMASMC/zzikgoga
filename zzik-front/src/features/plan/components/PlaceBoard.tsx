@@ -16,12 +16,14 @@ import { ScheduleList } from './place-board'
 import { ChatPanel, ParticipantRoster } from './collaboration'
 import YTextEditor from './YTextEditor'
 import { MAX_TITLE_LENGTH } from '../utils/ytext'
+import { calculateTravelTime, addMinutesToTime } from '../services/naverMapService'
 
 interface PlaceBoardProps {
   cursorSession: SharedCursorSession
+  onOpenPlaceDrawer?: () => void
 }
 
-const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
+const PlaceBoard = ({ cursorSession, onOpenPlaceDrawer }: PlaceBoardProps) => {
   const { tripId } = useParams<{ tripId: string }>()
   const roomId = useMemo(() => getRoomId(tripId), [tripId])
 
@@ -174,6 +176,8 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [editStart, setEditStart] = useState('')
   const [editOffset, setEditOffset] = useState('')
+  const [isAddingSchedule, setIsAddingSchedule] = useState(false)
+  const [isCalculating, setIsCalculating] = useState(false)
 
   const rosterEntries = useMemo(() => {
     if (!participants || participants.length === 0) {
@@ -363,6 +367,162 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
     [removeSchedule]
   )
 
+  // offset_time을 HH:MM 형식으로 정규화
+  const normalizeOffsetToHHMM = useCallback((raw?: string | null) => {
+    if (!raw) return '00:00'
+    const s = String(raw)
+    const m = s.match(/^(\d{1,3}):(\d{2})$/)
+    if (m) {
+      const hh = String(Math.max(0, Number(m[1]) || 0)).padStart(2, '0')
+      const mm = String(Math.min(59, Math.max(0, Number(m[2]) || 0))).padStart(2, '0')
+      return `${hh}:${mm}`
+    }
+    let h = 0,
+      min = 0,
+      sec = 0
+    const hr = s.match(/(\d+)\s*hour/)
+    if (hr) h = Number(hr[1]) || 0
+    const mn = s.match(/(\d+)\s*minute/)
+    if (mn) min = Number(mn[1]) || 0
+    const sc = s.match(/(\d+)\s*second/)
+    if (sc) sec = Number(sc[1]) || 0
+    const total = h * 60 + min + Math.floor(sec / 60)
+    return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+  }, [])
+
+  // 이동시간 계산
+  const handleCalculateAllTravelTimes = useCallback(async () => {
+    if (schedulesForSelected.length < 2) {
+      setToast({
+        variant: 'hint',
+        message: '이동시간 계산을 위해서는 최소 2개 이상의 일정이 필요합니다.',
+      })
+      return
+    }
+
+    setIsCalculating(true)
+    const sortedSchedules = schedulesForSelected
+
+    try {
+      for (let i = 0; i < sortedSchedules.length - 1; i++) {
+        const current = sortedSchedules[i]
+        const next = sortedSchedules[i + 1]
+
+        if (!current.location || !next.location) continue
+
+        const existingDistance = next.travel_distance
+        if (typeof existingDistance === 'number' && existingDistance >= 0) {
+          continue
+        }
+
+        const currentLat = current.location.latitude
+        const currentLng = current.location.longitude
+        const nextLat = next.location.latitude
+        const nextLng = next.location.longitude
+
+        if (!currentLat || !currentLng || !nextLat || !nextLng) continue
+
+        const travelResult = await calculateTravelTime(
+          { lat: currentLat, lng: currentLng },
+          { lat: nextLat, lng: nextLng }
+        )
+
+        if (travelResult === null) {
+          console.warn(
+            '[API 실패] 이동시간 계산 실패:',
+            current.location?.name,
+            '→',
+            next.location?.name
+          )
+          continue
+        }
+
+        const travelMinutes =
+          typeof travelResult === 'number' ? travelResult : travelResult.durationMinutes
+        const travelDistance = typeof travelResult === 'object' ? travelResult.distance : undefined
+
+        const offsetHHMM = normalizeOffsetToHHMM(current.offset_time)
+        const offsetMatch = offsetHHMM.match(/^(\d+):(\d+)$/)
+
+        if (!offsetMatch) {
+          console.warn('[⚠️ 건너뛰기] offset_time 형식 오류:', {
+            original: current.offset_time,
+            normalized: offsetHHMM,
+          })
+          continue
+        }
+
+        const hours = parseInt(offsetMatch[1], 10)
+        const minutes = parseInt(offsetMatch[2], 10)
+        const currentEndTime = addMinutesToTime(current.start_time, hours * 60 + minutes)
+
+        const newNextStartTime = addMinutesToTime(currentEndTime, travelMinutes)
+
+        if (!doc) {
+          console.error('[❌ 저장 실패] doc 없음')
+          continue
+        }
+
+        if (next.yArrayIndex === undefined) {
+          console.error('[❌ 저장 실패] yArrayIndex undefined')
+          continue
+        }
+
+        const schedulesMap = doc.getMap('schedules') as Y.Map<unknown>
+        const nextRawKey = next.rawKey ?? selectedDateKey
+        const yArr = schedulesMap.get(nextRawKey) as Y.Array<Y.Map<unknown>> | undefined
+
+        if (!yArr) {
+          console.error('[❌ 저장 실패] yArr 없음:', nextRawKey)
+          continue
+        }
+
+        const yNextItem = yArr.get(next.yArrayIndex) as Y.Map<unknown> | undefined
+
+        if (!yNextItem) {
+          console.error('[❌ 저장 실패] yNextItem 없음:', {
+            nextRawKey,
+            yArrayIndex: next.yArrayIndex,
+            yArrLength: yArr.length,
+          })
+          continue
+        }
+
+        doc.transact(() => {
+          yNextItem.set('start_time', newNextStartTime)
+          const startText = yNextItem.get('start_hhmm_text')
+          if (startText instanceof Y.Text) {
+            const newHHMM = newNextStartTime.slice(11, 16)
+            startText.delete(0, startText.length)
+            startText.insert(0, newHHMM)
+          }
+
+          if (typeof travelMinutes === 'number') {
+            yNextItem.set('travel_duration', travelMinutes)
+          }
+
+          if (typeof travelDistance === 'number') {
+            yNextItem.set('travel_distance', travelDistance)
+          }
+        }, 'save-travel-time')
+      }
+
+      setToast({
+        variant: 'success',
+        title: '이동시간 자동 계산 완료',
+        message: '자차 기준으로 모든 일정의 시간이 자동 조정되었습니다.',
+      })
+    } catch (error) {
+      console.error('이동시간 계산 오류:', error)
+      setToast({
+        variant: 'error',
+        message: '이동시간 계산 중 오류가 발생했습니다.',
+      })
+    } finally {
+      setIsCalculating(false)
+    }
+  }, [schedulesForSelected, selectedDateKey, doc, normalizeOffsetToHHMM])
+
   // 커서/보드 포커스
   const handlePointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
     const board = boardRef.current
@@ -499,8 +659,10 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
 
         <div className="flex min-h-0 flex-1 flex-col gap-5 p-6 pt-16 md:pt-8">
           {/* 헤더 / 제목 */}
-          <header className="flex flex-col gap-3 md:flex-row md:items-start md:gap-4 md:pr-56 lg:pr-[360px]">
-            <h2 className="text-4xl font-extrabold text-slate-900 flex-shrink-0">여행 일정</h2>
+          <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-center md:gap-4 md:pr-56 lg:pr-[360px]">
+            <h2 className="text-4xl font-extrabold text-slate-900 flex-shrink-0 leading-relaxed py-2">
+              여행 일정
+            </h2>
             <div className="min-w-0 flex-1 max-w-full md:max-w-[32rem]">
               {titleYText ? (
                 <YTextEditor
@@ -509,14 +671,14 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
                   maxLength={MAX_TITLE_LENGTH}
                   singleLine={true}
                   variant="input"
-                  size="lg"
+                  size="2xl"
                 />
               ) : (
                 <input
                   type="text"
                   placeholder={isSynced ? '여행 제목을 입력해주세요' : '동기화 중...'}
                   disabled
-                  className="w-full rounded-full border-2 border-slate-300 bg-white px-5 py-2.5 text-lg font-semibold text-slate-900 shadow-sm opacity-50 cursor-wait"
+                  className="w-full rounded-full border-2 border-slate-300 bg-white px-5 py-2.5 text-xl font-semibold text-slate-900 shadow-sm opacity-50 cursor-wait"
                 />
               )}
             </div>
@@ -529,6 +691,11 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
             onNextWeek={handleNextWeek}
             minDate={tripInfo?.start_date ? new Date(tripInfo.start_date) : undefined}
             maxDate={tripInfo?.end_date ? new Date(tripInfo.end_date) : undefined}
+            onOpenPlaceDrawer={onOpenPlaceDrawer}
+            onAddSchedule={() => setIsAddingSchedule(true)}
+            onCalculateTravelTime={handleCalculateAllTravelTimes}
+            isCalculating={isCalculating}
+            showCalculateTravelTime={schedulesForSelected.length >= 2}
           />
 
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto rounded-xl border-2 border-slate-200 p-4 bg-white/80">
@@ -553,6 +720,8 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
               onSetEditOffset={setEditOffset}
               onAddSchedule={addSchedule}
               onToast={setToast}
+              isAddingSchedule={isAddingSchedule}
+              onSetIsAddingSchedule={setIsAddingSchedule}
             />
           </div>
         </div>
@@ -562,13 +731,13 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
           <button
             type="button"
             onClick={openChatInput}
-            className="group pointer-events-auto flex items-center gap-3 rounded-full border-2 border-blue-200 bg-white/95 px-5 py-2.5 text-base font-bold text-slate-700 shadow-xl backdrop-blur transition hover:border-blue-400 hover:text-blue-600 hover:shadow-2xl"
+            className="group pointer-events-auto flex items-center gap-3 rounded-full border-2 border-blue-200 bg-white/95 px-5 py-2.5 text-xl font-bold text-slate-700 shadow-xl backdrop-blur transition hover:border-blue-400 hover:text-blue-600 hover:shadow-2xl"
           >
-            <span className="text-sm uppercase tracking-wide text-slate-500">Chat</span>
-            <span className="rounded-lg bg-slate-900/90 px-3 py-1 text-sm font-bold text-white shadow-md">
+            <span className="text-lg uppercase tracking-wide text-slate-500">Chat</span>
+            <span className="rounded-lg bg-slate-900/90 px-3 py-1 text-lg font-bold text-white shadow-md">
               /
             </span>
-            <span className="text-sm text-slate-500 group-hover:text-blue-600">눌러서 열기</span>
+            <span className="text-lg text-slate-500 group-hover:text-blue-600">눌러서 열기</span>
           </button>
 
           <button
@@ -577,16 +746,16 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
             aria-expanded={isRosterOpen}
             aria-controls="plan-participant-panel"
             className={cn(
-              'pointer-events-auto flex items-center gap-2 rounded-full border-2 border-blue-200 bg-white/95 px-5 py-2.5 text-base font-semibold text-slate-700 shadow-xl backdrop-blur transition',
+              'pointer-events-auto flex items-center gap-2 rounded-full border-2 border-blue-200 bg-white/95 px-5 py-2.5 text-xl font-semibold text-slate-700 shadow-xl backdrop-blur transition',
               'hover:border-blue-400 hover:text-blue-600 hover:shadow-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-300'
             )}
           >
             <span
-              className="inline-flex h-3.5 w-3.5 rounded-full"
+              className="inline-flex h-5 w-5 rounded-full"
               style={{ backgroundColor: self.color }}
             />
             <span className="font-bold">{self.name}</span>
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500">
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-base font-semibold text-slate-500">
               {participantCount}명
             </span>
           </button>

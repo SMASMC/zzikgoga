@@ -242,11 +242,11 @@ const BudgetPanel = () => {
       />
       <header>
         <h2 className="text-3xl font-bold text-slate-800">예산</h2>
-        <p className="mt-0.5 text-xs text-slate-400">예산을 입력할 수 있습니다.</p>
+        <p className="mt-0.5 text-base text-slate-400">예산을 입력할 수 있습니다.</p>
       </header>
 
       <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-2.5 shadow-sm">
-        <div className="text-[10px] text-slate-500 font-semibold px-0.5">
+        <div className="text-sm text-slate-500 font-semibold px-0.5">
           선택 날짜: <span className="text-slate-700">{selectedDateKey}</span>
         </div>
 
@@ -257,7 +257,7 @@ const BudgetPanel = () => {
             value={category}
             onChange={(value) => setCategory(value as CostCategory)}
             placeholder="카테고리"
-            className="w-full sm:w-28 text-[11px] [&>button]:py-1 [&>button]:px-2.5 [&>button]:text-[11px]"
+            className="w-full sm:w-32 text-sm [&>button]:py-1.5 [&>button]:px-3 [&>button]:text-sm"
           />
 
           {/* 금액 입력 */}
@@ -276,7 +276,7 @@ const BudgetPanel = () => {
                 size="md"
               />
             </div>
-            <span className="text-xs font-semibold text-slate-500">원</span>
+            <span className="text-sm font-semibold text-slate-500">원</span>
           </div>
         </div>
 
@@ -292,17 +292,17 @@ const BudgetPanel = () => {
         <SolidButton
           onClick={handleAdd}
           disabled={!category || !amount}
-          className="text-white rounded-full text-xs py-1"
+          className="text-white rounded-full text-sm py-1.5"
         >
           + 예산 추가
         </SolidButton>
       </div>
 
       <div className="flex flex-1 min-h-0 flex-col gap-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-2.5">
-        <h3 className="text-xs font-bold text-slate-600 mb-0.5">예산 목록</h3>
+        <h3 className="text-base font-bold text-slate-600 mb-0.5">예산 목록</h3>
         {!budgetsByDate[selectedDateKey] || budgetsByDate[selectedDateKey].length === 0 ? (
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-center text-xs text-slate-400">예산을 추가해주세요</p>
+            <p className="text-center text-base text-slate-400">예산을 추가해주세요</p>
           </div>
         ) : (
           <ul className="space-y-1.5">
@@ -322,7 +322,7 @@ const BudgetPanel = () => {
               return (
                 <li
                   key={`${selectedDateKey}-${it.id ?? 'n'}-${idx}`}
-                  className="rounded-lg border border-slate-200 bg-white p-2 shadow-sm hover:shadow-md transition-shadow"
+                  className="rounded-lg border-2 border-slate-300 bg-slate-100 p-2 shadow-sm hover:shadow-md transition-shadow"
                 >
                   {/* 카테고리 왼쪽, 가격 + 삭제 버튼 오른쪽 */}
                   <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -341,10 +341,10 @@ const BudgetPanel = () => {
                               yItemRef!.set('category', next)
                             }, 'update-budget-category')
                           }}
-                          className="text-[11px] max-w-[120px] [&>button]:py-1 [&>button]:px-2.5 [&>button]:text-[11px]"
+                          className="text-sm max-w-[140px] [&>button]:py-1.5 [&>button]:px-3 [&>button]:text-sm"
                         />
                       ) : (
-                        <span className="text-[11px] font-semibold text-slate-700">
+                        <span className="text-sm font-semibold text-slate-700">
                           {COST_CATEGORY_LABELS[it.category as CostCategory] || it.category}
                         </span>
                       )}
@@ -371,19 +371,18 @@ const BudgetPanel = () => {
                   </div>
                   <div className="mt-1.5 pt-1.5 border-t border-slate-200">
                     <div className="flex items-center gap-1 mb-1">
-                      <span className="text-[10px] font-semibold text-slate-500">설명</span>
+                      <span className="text-sm font-semibold text-slate-500">설명</span>
                     </div>
                     {yDesc ? (
                       <YTextEditor
                         ytext={yDesc}
                         variant="plain"
-                        size="xs"
-                        className="rounded-full px-2 py-1.5 border border-slate-200"
-                        singleLine
+                        size="lg"
+                        className="rounded-lg px-2 py-1.5 border border-slate-200 break-words whitespace-normal"
                         placeholder="설명 입력..."
                       />
                     ) : (
-                      <div className="rounded-full px-2 py-1.5 border border-slate-200">
+                      <div className="rounded-lg px-2 py-1.5 border border-slate-200 break-words whitespace-normal text-base text-slate-600">
                         {it.description || '설명 입력...'}
                       </div>
                     )}

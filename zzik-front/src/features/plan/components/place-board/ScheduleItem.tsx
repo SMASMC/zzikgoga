@@ -12,7 +12,7 @@ import DeleteButton from '@/components/atoms/DeleteButton'
  *  공통 스타일 상수(중복 제거)
  *  ========================= */
 
-const clsMicro = 'text-[10px] text-slate-500'
+const clsMicro = 'text-sm text-slate-500'
 
 /** =========================
  *  포맷 유틸
@@ -418,12 +418,12 @@ const ScheduleItem = ({
 
   return (
     <li
-      className={`group relative rounded-lg border p-2 shadow-sm transition-all ${
+      className={`group relative rounded-lg border-2 p-2 shadow-sm transition-all ${
         isDragging
           ? 'border-blue-300 bg-blue-50'
           : isResizing
             ? 'border-purple-300 bg-purple-50/50'
-            : 'border-slate-200 bg-white'
+            : 'border-slate-300 bg-slate-100'
       }`}
       draggable={!isEditing && !isResizing}
       onDragStart={() => {
@@ -446,38 +446,26 @@ const ScheduleItem = ({
       {/* 헤더: 장소 + 삭제 버튼 한 줄 */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 flex-1 min-w-0">
-          <HiLocationMarker className="w-4 h-4 text-blue-500 shrink-0" />
-          {yLocationNameRef.current ? (
-            <div className="flex-1 min-w-0">
-              <YTextEditor
-                ytext={yLocationNameRef.current}
-                variant="plain"
-                className="text-sm font-semibold text-slate-800 bg-transparent"
-                singleLine
-                placeholder="장소"
-              />
-            </div>
-          ) : (
-            <span className="text-sm font-semibold text-slate-800">
-              {schedule.location?.name || '일정'}
-            </span>
-          )}
+          <HiLocationMarker className="w-7 h-7 text-blue-500 shrink-0" />
+          <span className="text-2xl font-bold text-slate-800 truncate">
+            {schedule.location?.name || '일정'}
+          </span>
         </div>
         <DeleteButton onClick={() => onRemove(rawKey, realIndex)} />
       </div>
 
-      {/* 위치정보 + 시간설정 (항상 2컬럼) */}
-      <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+      {/* 위치정보 + 시간설정 + 메모 (3컬럼) */}
+      <div className="mt-1.5 grid grid-cols-3 gap-1.5">
         {/* 위치 정보 */}
         <div className="rounded-lg border border-slate-200 bg-white/70 px-2.5 py-2">
           <div className="flex items-center gap-1.5 mb-1">
-            <HiMap className="w-3.5 h-3.5 text-green-500" />
-            <span className="text-[11px] font-bold text-slate-700">위치</span>
+            <HiMap className="w-5 h-5 text-green-500" />
+            <span className="text-base font-bold text-slate-700">위치</span>
           </div>
           <div className="space-y-0.5">
             {location?.full_address && (
-              <div className="text-[11px] text-slate-700 line-clamp-1 flex items-start gap-1">
-                <HiLocationMarker className="w-3 h-3 text-slate-500 mt-0.5 flex-shrink-0" />
+              <div className="text-base text-slate-700 line-clamp-1 flex items-start gap-1">
+                <HiLocationMarker className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
                 <span className="flex-1">{location.full_address}</span>
               </div>
             )}
@@ -487,7 +475,7 @@ const ScheduleItem = ({
             {/* 상세 주소 입력 필드 (location이 있을 때만) */}
             {location && (
               <div className="mt-1.5 pt-1.5 border-t border-slate-200">
-                <div className="text-[10px] font-semibold text-slate-500 mb-1">상세 주소</div>
+                <div className="text-sm font-semibold text-slate-500 mb-1">상세 주소</div>
                 {yLocationDetailRef.current ? (
                   <YTextEditor
                     ytext={yLocationDetailRef.current}
@@ -514,9 +502,7 @@ const ScheduleItem = ({
           <div className="grid grid-cols-2 gap-3">
             {/* 시작 */}
             <div>
-              <label className="block text-[10px] font-semibold text-slate-600 mb-1">
-                시작 시간
-              </label>
+              <label className="block text-sm font-semibold text-slate-600 mb-1">시작 시간</label>
               {doc && yStartTextRef.current ? (
                 <CollaborativeTimeInput
                   yText={yStartTextRef.current}
@@ -584,9 +570,7 @@ const ScheduleItem = ({
 
             {/* 종료 */}
             <div>
-              <label className="block text-[10px] font-semibold text-slate-600 mb-1">
-                종료 시간
-              </label>
+              <label className="block text-sm font-semibold text-slate-600 mb-1">종료 시간</label>
               {doc && yStartTextRef.current && yOffsetTextRef.current ? (
                 <TimePicker
                   value={endTimeLabel}
@@ -646,11 +630,11 @@ const ScheduleItem = ({
 
           {/* 소요시간 및 시간 표시 */}
           <div className="mt-3 pt-2 border-t border-slate-200">
-            <div className="flex items-center justify-between text-[11px]">
+            <div className="flex items-center justify-between text-base">
               <span className="text-slate-500 font-medium">소요시간</span>
               <span className="font-bold text-slate-700">{offsetLabel || '00:00'}</span>
             </div>
-            <div className="mt-1.5 flex items-center gap-2 text-[11px]">
+            <div className="mt-1.5 flex items-center gap-2 text-base">
               <div className="flex items-center gap-1">
                 <span className="text-slate-500">시작</span>
                 <span className="font-semibold text-blue-700">{startLabel}</span>
@@ -663,6 +647,28 @@ const ScheduleItem = ({
             </div>
           </div>
         </div>
+
+        {/* 메모 */}
+        <div className="rounded-lg border border-slate-200 bg-white/70 px-2.5 py-2">
+          <div className="flex items-center gap-1.5 mb-1">
+            <HiDocumentText className="w-5 h-5 text-amber-500" />
+            <span className="text-base font-bold text-slate-700">메모</span>
+          </div>
+          {doc ? (
+            <ScheduleMemoEditor
+              doc={doc}
+              awareness={awareness}
+              dateKey={rawKey}
+              index={realIndex}
+              fieldKey={`memo-${schedule.uid}`}
+              initialText={schedule.memo}
+            />
+          ) : (
+            <div className="rounded border border-slate-200 bg-slate-50 px-2 py-1.5 text-base text-slate-500">
+              {schedule.memo?.trim() ? schedule.memo : '메모를 추가해보세요.'}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 고급 편집(간결) */}
@@ -673,19 +679,19 @@ const ScheduleItem = ({
             value={editStart}
             onChange={(e) => onSetEditStart(e.target.value)}
             placeholder="YYYY-MM-DD-HH-MM"
-            className="w-44 rounded border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-700 focus:border-blue-400 focus:outline-none"
+            className="w-44 rounded border border-slate-200 bg-white px-2 py-1 text-base text-slate-700 focus:border-blue-400 focus:outline-none"
           />
           <label className={clsMicro}>offset_time</label>
           <input
             value={editOffset}
             onChange={(e) => onSetEditOffset(e.target.value)}
             placeholder="HH:MM"
-            className="w-24 rounded border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-700 focus:border-blue-400 focus:outline-none"
+            className="w-24 rounded border border-slate-200 bg-white px-2 py-1 text-base text-slate-700 focus:border-blue-400 focus:outline-none"
           />
           <div className="ml-auto flex items-center gap-2">
             <button
               type="button"
-              className="rounded bg-blue-500 px-3 py-1 text-[11px] font-semibold text-white hover:bg-blue-600"
+              className="rounded bg-blue-500 px-3 py-1 text-base font-semibold text-white hover:bg-blue-600"
               onClick={() => {
                 const m = editStart.trim().match(/^(\d{4})-(\d{2})-(\d{2})-(\d{2})-(\d{2})$/)
                 const iso = m ? `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}` : null
@@ -717,7 +723,7 @@ const ScheduleItem = ({
             </button>
             <button
               type="button"
-              className="rounded border border-slate-200 px-3 py-1 text-[11px] text-slate-600 hover:bg-slate-50"
+              className="rounded border border-slate-200 px-3 py-1 text-base text-slate-600 hover:bg-slate-50"
               onClick={() => onSetEditingKey(null)}
             >
               취소
@@ -725,28 +731,6 @@ const ScheduleItem = ({
           </div>
         </div>
       ) : null}
-
-      {/* 메모: 가장 아래로 이동 */}
-      <div className="mt-2 rounded-lg border border-slate-200 bg-white/70 px-2.5 py-2">
-        <div className="flex items-center gap-1.5 mb-1">
-          <HiDocumentText className="w-3.5 h-3.5 text-amber-500" />
-          <span className="text-[11px] font-bold text-slate-700">메모</span>
-        </div>
-        {doc ? (
-          <ScheduleMemoEditor
-            doc={doc}
-            awareness={awareness}
-            dateKey={rawKey}
-            index={realIndex}
-            fieldKey={`memo-${schedule.uid}`}
-            initialText={schedule.memo}
-          />
-        ) : (
-          <div className="rounded border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] text-slate-500">
-            {schedule.memo?.trim() ? schedule.memo : '메모를 추가해보세요.'}
-          </div>
-        )}
-      </div>
 
       {/* 리사이즈 핸들 */}
       {!isEditing && (
