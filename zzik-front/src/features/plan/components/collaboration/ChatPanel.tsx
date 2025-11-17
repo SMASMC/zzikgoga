@@ -103,7 +103,7 @@ const ChatPanel = ({
   return (
     <div
       className={cn(
-        'absolute right-8 top-20 z-40 w-96 max-w-[90vw] rounded-2xl border-2 border-white/70 bg-white/95 shadow-2xl backdrop-blur transition-all duration-300',
+        'absolute right-0 top-full mt-2 z-40 w-96 max-w-[90vw] rounded-2xl border-2 border-white/70 bg-white/95 shadow-2xl backdrop-blur transition-all duration-300',
         isOpen
           ? 'pointer-events-auto translate-y-0 opacity-100'
           : 'pointer-events-none -translate-y-2 opacity-0'
@@ -179,7 +179,7 @@ const ChatPanel = ({
             onKeyDown={onKeyDown}
             onFocus={onFocus}
             placeholder="메시지를 입력하고 Enter를 눌러보세요"
-            maxLength={200}
+            maxLength={40}
             className="flex-1 rounded-full border-2 border-slate-200 bg-white px-5 py-3 text-base text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-all"
             style={{
               borderColor: chatValue ? selfColor : undefined,

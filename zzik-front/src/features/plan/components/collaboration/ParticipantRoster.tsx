@@ -37,7 +37,7 @@ const ParticipantRoster = ({
     <div
       id="plan-participant-panel"
       className={cn(
-        'absolute right-8 top-20 z-30 w-80 max-w-[90vw] rounded-2xl border-2 border-white/70 bg-white/95 shadow-2xl backdrop-blur transition-all duration-300',
+        'absolute right-0 top-full mt-2 z-30 w-80 max-w-[90vw] rounded-2xl border-2 border-white/70 bg-white/95 shadow-2xl backdrop-blur transition-all duration-300',
         isOpen
           ? 'pointer-events-auto translate-y-0 opacity-100'
           : 'pointer-events-none -translate-y-2 opacity-0'

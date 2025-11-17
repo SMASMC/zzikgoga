@@ -86,7 +86,7 @@ const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCard
         <img
           src={imageSrc}
           alt={title}
-          className="rounded-2xl h-[18vh] min-h-[140px] object-cover mb-3"
+          className="rounded-2xl h-[18vh] min-h-[140px] object-contain mb-3"
           onError={handleImageError}
         />
         <div className="mb-2 flex items-start justify-between gap-2">

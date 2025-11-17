@@ -6,44 +6,29 @@ import { acquireProvider, releaseProvider } from '../stores/yjsStore'
 const CURSOR_TTL = 2000
 const MESSAGE_TTL = 5000
 
-// HSL 기반 동적 색상 생성
-// userId를 시드로 사용하여 일관되지만 랜덤한 색상 생성
-const generateHSLColor = (userId: string, index: number, totalParticipants: number): string => {
-  // userId 해시를 기반으로 색상 다양성 추가
-  const userHash = hashToIndex(userId, 360)
-
-  // 색상환(0-360도)을 참여자 수만큼 균등 분할하고 userId 해시로 오프셋 추가
-  const baseHue = (index * 360) / Math.max(totalParticipants, 1)
-  const hue = (baseHue + userHash) % 360
-
-  // 채도와 밝기에도 약간의 변화를 주어 더 다양한 색상 생성
-  const saturationBase = 70 + hashToIndex(userId + 'sat', 20)
-  const lightnessBase = 45 + hashToIndex(userId + 'light', 15)
-
-  const saturation = Math.min(90, Math.max(60, saturationBase))
-  const lightness = Math.min(60, Math.max(40, lightnessBase))
-
-  return `hsl(${Math.round(hue)}, ${saturation}%, ${lightness}%)`
-}
-
-// 폴백용 고정 색상 팔레트 (awareness 초기화 전 등)
+// 구분하기 쉬운 20개 고정 색상 팔레트
+// 모든 참여자는 이 팔레트에서 순서대로 색상을 할당받습니다
 const COLOR_PALETTE = [
-  '#ef4444', // red
-  '#22c55e', // green
-  '#3b82f6', // blue
-  '#f97316', // orange
-  '#a855f7', // purple
-  '#14b8a6', // teal
-  '#facc15', // yellow
-  '#ec4899', // pink
-  '#06b6d4', // cyan
-  '#8b5cf6', // violet
-  '#f43f5e', // rose
-  '#10b981', // emerald
-  '#6366f1', // indigo
-  '#f59e0b', // amber
-  '#84cc16', // lime
-  '#d946ef', // fuchsia
+  '#F3C300', // vivid yellow
+  '#875692', // strong purple
+  '#F38400', // vivid orange
+  '#A1CAF1', // very light blue
+  '#BE0032', // vivid red
+  '#C2B280', // grayish yellow
+  '#848482', // medium gray
+  '#008856', // vivid green
+  '#E68FAC', // strong purplish pink
+  '#0067A5', // strong blue
+  '#F99379', // strong yellowish pink
+  '#604E97', // strong violet
+  '#F6A600', // vivid orange yellow
+  '#B3446C', // strong purplish red
+  '#DCD300', // vivid greenish yellow
+  '#882D17', // strong reddish brown
+  '#8DB600', // vivid yellowish green
+  '#654522', // deep brown
+  '#E25822', // vivid reddish orange
+  '#2B3D26', // dark olive green
 ]
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
@@ -60,19 +45,35 @@ const hashToIndex = (value: string, length: number) => {
 const pickColor = (seed: string) =>
   COLOR_PALETTE[hashToIndex(seed || 'default', COLOR_PALETTE.length)]
 
-// 동적 색상 할당 - 참여자 목록을 기반으로 고유 색상 생성
-const assignDynamicColor = (userId: string, allUserIds: string[]): string => {
-  // userId를 정렬하여 일관된 순서 보장
+// 고정 팔레트 기반 색상 할당 - 참여자 목록을 기반으로 고유 색상 할당
+// 이미 사용 중인 색상을 피하여 겹치지 않도록 함
+const assignDynamicColor = (userId: string, allUserIds: string[], usedColors: Set<string>): string => {
+  // 사용되지 않은 색상 찾기
+  const availableColors = COLOR_PALETTE.filter(color => !usedColors.has(color))
+
+  if (availableColors.length > 0) {
+    // 사용되지 않은 색상이 있으면, userId를 기반으로 일관되게 선택
+    const sortedUserIds = [...allUserIds].sort()
+    const index = sortedUserIds.indexOf(userId)
+
+    if (index === -1) {
+      // 폴백: userId를 찾을 수 없는 경우 첫 번째 사용 가능한 색상 반환
+      return availableColors[0]
+    }
+
+    // 사용 가능한 색상 중에서 순환하여 선택
+    return availableColors[index % availableColors.length]
+  }
+
+  // 모든 색상이 사용 중인 경우 (20명 이상), 기존 방식대로 순환
   const sortedUserIds = [...allUserIds].sort()
   const index = sortedUserIds.indexOf(userId)
 
   if (index === -1) {
-    // 폴백: userId를 찾을 수 없는 경우
     return pickColor(userId)
   }
 
-  // 참여자 수에 맞춰 HSL 색상 생성 (userId를 시드로 사용)
-  return generateHSLColor(userId, index, sortedUserIds.length)
+  return COLOR_PALETTE[index % COLOR_PALETTE.length]
 }
 
 const GUEST_ID_STORAGE_KEY = 'plan-cursor-guest-identity'
@@ -237,6 +238,15 @@ const collectAwarenessSnapshot = (
     }
   })
 
+  // 2단계: 이미 할당된 색상 수집
+  const usedColors = new Set<string>()
+  awareness.getStates().forEach((state) => {
+    const typed = state as AwarenessState
+    if (typed?.user?.color) {
+      usedColors.add(typed.user.color)
+    }
+  })
+
   awareness.getStates().forEach((state, clientId) => {
     const typed = state as AwarenessState
     const { cursor, user, message: rawMessage } = typed
@@ -247,24 +257,24 @@ const collectAwarenessSnapshot = (
 
     const normalizedMessage =
       rawMessage &&
-      typeof rawMessage === 'object' &&
-      typeof rawMessage.text === 'string' &&
-      rawMessage.text.trim().length > 0
+        typeof rawMessage === 'object' &&
+        typeof rawMessage.text === 'string' &&
+        rawMessage.text.trim().length > 0
         ? (() => {
-            const messageTimestamp =
-              typeof rawMessage.timestamp === 'number' ? rawMessage.timestamp : now
-            if (now - messageTimestamp <= MESSAGE_TTL) {
-              return {
-                text: rawMessage.text,
-                timestamp: messageTimestamp,
-              }
+          const messageTimestamp =
+            typeof rawMessage.timestamp === 'number' ? rawMessage.timestamp : now
+          if (now - messageTimestamp <= MESSAGE_TTL) {
+            return {
+              text: rawMessage.text,
+              timestamp: messageTimestamp,
             }
-            return null
-          })()
+          }
+          return null
+        })()
         : null
 
-    // 동적 색상 할당
-    const color = user.color ?? assignDynamicColor(user.id, allUserIds)
+    // 동적 색상 할당 (이미 사용 중인 색상을 피함)
+    const color = user.color ?? assignDynamicColor(user.id, allUserIds, usedColors)
     const name = user.name ?? 'Unknown'
     const picture = user.picture ?? null
     const isSelf = clientId === selfClientId
@@ -281,16 +291,16 @@ const collectAwarenessSnapshot = (
     const normalizedCursor =
       cursor && typeof cursor.x === 'number' && typeof cursor.y === 'number'
         ? (() => {
-            const timestamp = typeof cursor.timestamp === 'number' ? cursor.timestamp : now
-            if (now - timestamp > CURSOR_TTL) {
-              return null
-            }
-            return {
-              x: clamp(cursor.x, 0, 100),
-              y: clamp(cursor.y, 0, 100),
-              timestamp,
-            }
-          })()
+          const timestamp = typeof cursor.timestamp === 'number' ? cursor.timestamp : now
+          if (now - timestamp > CURSOR_TTL) {
+            return null
+          }
+          return {
+            x: clamp(cursor.x, 0, 100),
+            y: clamp(cursor.y, 0, 100),
+            timestamp,
+          }
+        })()
         : null
 
     const lastActiveCandidate = Math.max(
@@ -470,7 +480,16 @@ export const useSharedCursors = (roomId: string): SharedCursorSession => {
       allUserIds.push(self.id)
     }
 
-    const finalColor = assignDynamicColor(self.id, allUserIds)
+    // 이미 할당된 색상 수집
+    const usedColors = new Set<string>()
+    awareness.getStates().forEach((state) => {
+      const typed = state as AwarenessState
+      if (typed?.user?.color) {
+        usedColors.add(typed.user.color)
+      }
+    })
+
+    const finalColor = assignDynamicColor(self.id, allUserIds, usedColors)
     setAssignedColor(finalColor)
 
     const updateFromAwareness = () => {

@@ -659,7 +659,7 @@ const PlaceBoard = ({ cursorSession, onOpenPlaceDrawer }: PlaceBoardProps) => {
 
         <div className="flex min-h-0 flex-1 flex-col gap-5 p-6 pt-16 md:pt-8">
           {/* 헤더 / 제목 */}
-          <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-center md:gap-4 md:pr-56 lg:pr-[360px]">
+          <header className="flex flex-wrap items-center justify-center gap-3 md:gap-4">
             <h2 className="text-4xl font-extrabold text-slate-900 flex-shrink-0 leading-relaxed py-2">
               여행 일정
             </h2>
@@ -681,6 +681,66 @@ const PlaceBoard = ({ cursorSession, onOpenPlaceDrawer }: PlaceBoardProps) => {
                   className="w-full rounded-full border-2 border-slate-300 bg-white px-5 py-2.5 text-xl font-semibold text-slate-900 shadow-sm opacity-50 cursor-wait"
                 />
               )}
+            </div>
+
+            {/* 접속중인 사용자 */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsRosterOpen((open) => !open)}
+                aria-expanded={isRosterOpen}
+                aria-controls="plan-participant-panel"
+                className={cn(
+                  'flex items-center gap-2 rounded-full border-2 border-blue-200 bg-white/95 px-5 py-2.5 text-xl font-semibold text-slate-700 shadow-xl backdrop-blur transition',
+                  'hover:border-blue-400 hover:text-blue-600 hover:shadow-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-300'
+                )}
+              >
+                <span
+                  className="inline-flex h-5 w-5 rounded-full"
+                  style={{ backgroundColor: self.color }}
+                />
+                <span className="font-bold">{self.name}</span>
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-base font-semibold text-slate-500">
+                  {participantCount}명
+                </span>
+              </button>
+
+              {/* 참여자 패널 */}
+              <ParticipantRoster
+                isOpen={isRosterOpen}
+                onClose={() => setIsRosterOpen(false)}
+                participants={rosterEntries}
+                participantCount={participantCount}
+              />
+            </div>
+
+            {/* Chat 버튼 */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={openChatInput}
+                className="group flex items-center gap-3 rounded-full border-2 border-blue-200 bg-white/95 px-5 py-2.5 text-xl font-bold text-slate-700 shadow-xl backdrop-blur transition hover:border-blue-400 hover:text-blue-600 hover:shadow-2xl"
+              >
+                <span className="text-lg uppercase tracking-wide text-slate-500">Chat</span>
+                <span className="rounded-lg bg-slate-900/90 px-3 py-1 text-lg font-bold text-white shadow-md">
+                  /
+                </span>
+                <span className="text-lg text-slate-500 group-hover:text-blue-600">눌러서 열기</span>
+              </button>
+
+              {/* Chat 패널 */}
+              <ChatPanel
+                isOpen={isChatOpen}
+                chatValue={chatValue}
+                onClose={() => setIsChatOpen(false)}
+                onSubmit={handleChatSubmit}
+                onValueChange={handleChatInputChange}
+                inputRef={inputRef}
+                onKeyDown={handleChatKeyDown}
+                onFocus={resetAutoHideTimer}
+                chatMessages={cursorSession.chatMessages}
+                selfColor={self.color}
+              />
             </div>
           </header>
 
@@ -724,67 +784,6 @@ const PlaceBoard = ({ cursorSession, onOpenPlaceDrawer }: PlaceBoardProps) => {
               onSetIsAddingSchedule={setIsAddingSchedule}
             />
           </div>
-        </div>
-
-        {/* 오른쪽 상단 UI */}
-        <div className="pointer-events-none absolute right-6 top-6 z-20 hidden lg:flex flex-row-reverse flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={openChatInput}
-            className="group pointer-events-auto flex items-center gap-3 rounded-full border-2 border-blue-200 bg-white/95 px-5 py-2.5 text-xl font-bold text-slate-700 shadow-xl backdrop-blur transition hover:border-blue-400 hover:text-blue-600 hover:shadow-2xl"
-          >
-            <span className="text-lg uppercase tracking-wide text-slate-500">Chat</span>
-            <span className="rounded-lg bg-slate-900/90 px-3 py-1 text-lg font-bold text-white shadow-md">
-              /
-            </span>
-            <span className="text-lg text-slate-500 group-hover:text-blue-600">눌러서 열기</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsRosterOpen((open) => !open)}
-            aria-expanded={isRosterOpen}
-            aria-controls="plan-participant-panel"
-            className={cn(
-              'pointer-events-auto flex items-center gap-2 rounded-full border-2 border-blue-200 bg-white/95 px-5 py-2.5 text-xl font-semibold text-slate-700 shadow-xl backdrop-blur transition',
-              'hover:border-blue-400 hover:text-blue-600 hover:shadow-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-300'
-            )}
-          >
-            <span
-              className="inline-flex h-5 w-5 rounded-full"
-              style={{ backgroundColor: self.color }}
-            />
-            <span className="font-bold">{self.name}</span>
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-base font-semibold text-slate-500">
-              {participantCount}명
-            </span>
-          </button>
-        </div>
-
-        {/* 참여자 패널 */}
-        <div className="hidden lg:block">
-          <ParticipantRoster
-            isOpen={isRosterOpen}
-            onClose={() => setIsRosterOpen(false)}
-            participants={rosterEntries}
-            participantCount={participantCount}
-          />
-        </div>
-
-        {/* Chat 패널 */}
-        <div className="hidden lg:block">
-          <ChatPanel
-            isOpen={isChatOpen}
-            chatValue={chatValue}
-            onClose={() => setIsChatOpen(false)}
-            onSubmit={handleChatSubmit}
-            onValueChange={handleChatInputChange}
-            inputRef={inputRef}
-            onKeyDown={handleChatKeyDown}
-            onFocus={resetAutoHideTimer}
-            chatMessages={cursorSession.chatMessages}
-            selfColor={self.color}
-          />
         </div>
       </div>
 
