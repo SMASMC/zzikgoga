@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import BudgetPanel from '@features/plan/components/BudgetPanel'
 import PlaceBoard from '@features/plan/components/PlaceBoard'
@@ -14,11 +14,6 @@ const PlanPage = () => {
   const { tripId } = useParams<{ tripId: string }>()
   const roomId = useMemo(() => getRoomId(tripId), [tripId])
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-
-  // plan 페이지 접속 시 게스트 ID 초기화하여 새로운 커서 색상 할당
-  useEffect(() => {
-    localStorage.removeItem('plan-cursor-guest-identity')
-  }, [])
 
   const cursorSession = useSharedCursors(roomId)
 
