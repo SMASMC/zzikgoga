@@ -1,5 +1,5 @@
 // src/features/plan/components/place-board/ScheduleList.tsx
-import { useState } from 'react'
+import React, { useState } from 'react'
 import type { RefObject } from 'react'
 import * as Y from 'yjs'
 import type { Awareness } from 'y-protocols/awareness'
@@ -482,7 +482,7 @@ const ScheduleList = ({
               }
 
               return (
-                <li key={listKey}>
+                <React.Fragment key={listKey}>
                   <ScheduleItem
                     schedule={it}
                     selectedDateKey={selectedDateKey}
@@ -571,7 +571,7 @@ const ScheduleList = ({
                         </div>
                       )
                     })()}
-                </li>
+                </React.Fragment>
               )
             })}
         </ul>

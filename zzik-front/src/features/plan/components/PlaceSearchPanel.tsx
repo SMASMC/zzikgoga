@@ -168,7 +168,7 @@ const PlaceSearchPanel = () => {
   }
 
   return (
-    <aside className="flex w-full min-h-0 flex-col gap-6 border-r border-slate-200 bg-white p-4 md:w-1/3 lg:w-1/4">
+    <aside className="flex w-full h-[85vh] lg:h-auto lg:min-h-0 flex-col gap-6 border-r border-slate-200 bg-white p-4 md:w-1/3 lg:w-1/4">
       <ToastDock
         open={Boolean(toastMessage)}
         variant="hint"

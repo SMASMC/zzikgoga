@@ -468,7 +468,7 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
   )
 
   return (
-    <section className="relative flex flex-1 min-h-0 flex-col overflow-hidden border-x border-slate-200 bg-white">
+    <section className="relative flex flex-1 min-h-[90vh] lg:min-h-0 flex-col overflow-hidden border-x border-slate-200 bg-white">
       <ToastDock
         open={Boolean(toast)}
         variant={toast?.variant ?? 'hint'}
@@ -558,7 +558,7 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
         </div>
 
         {/* 오른쪽 상단 UI */}
-        <div className="pointer-events-none absolute right-6 top-6 z-20 flex flex-row-reverse flex-wrap items-center gap-3">
+        <div className="pointer-events-none absolute right-6 top-6 z-20 hidden lg:flex flex-row-reverse flex-wrap items-center gap-3">
           <button
             type="button"
             onClick={openChatInput}
@@ -593,24 +593,28 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
         </div>
 
         {/* 참여자 패널 */}
-        <ParticipantRoster
-          isOpen={isRosterOpen}
-          onClose={() => setIsRosterOpen(false)}
-          participants={rosterEntries}
-          participantCount={participantCount}
-        />
+        <div className="hidden lg:block">
+          <ParticipantRoster
+            isOpen={isRosterOpen}
+            onClose={() => setIsRosterOpen(false)}
+            participants={rosterEntries}
+            participantCount={participantCount}
+          />
+        </div>
 
         {/* Chat 패널 */}
-        <ChatPanel
-          isOpen={isChatOpen}
-          chatValue={chatValue}
-          onClose={() => setIsChatOpen(false)}
-          onSubmit={handleChatSubmit}
-          onValueChange={handleChatInputChange}
-          inputRef={inputRef}
-          onKeyDown={handleChatKeyDown}
-          onFocus={resetAutoHideTimer}
-        />
+        <div className="hidden lg:block">
+          <ChatPanel
+            isOpen={isChatOpen}
+            chatValue={chatValue}
+            onClose={() => setIsChatOpen(false)}
+            onSubmit={handleChatSubmit}
+            onValueChange={handleChatInputChange}
+            inputRef={inputRef}
+            onKeyDown={handleChatKeyDown}
+            onFocus={resetAutoHideTimer}
+          />
+        </div>
       </div>
 
       {/* 친구 초대 모달 */}

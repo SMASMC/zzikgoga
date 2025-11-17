@@ -230,7 +230,7 @@ const BudgetPanel = () => {
   }, [budgetsByDate, selectedDateKey])
 
   return (
-    <aside className="flex w-full min-h-0 flex-col gap-3 border-l border-slate-200 bg-white p-3 md:w-1/4">
+    <aside className="flex w-full h-[80vh] lg:h-auto lg:min-h-0 flex-col gap-3 border-l border-slate-200 bg-white p-3 md:w-1/4">
       <ToastDock
         open={Boolean(toastMessage)}
         variant="warning"
@@ -366,7 +366,6 @@ const BudgetPanel = () => {
                       {/* 삭제 버튼 */}
                       <DeleteButton
                         onClick={() => removeBudget(selectedDateKey, it.id ?? it.uid!)}
-                        variant="text"
                       />
                     </div>
                   </div>

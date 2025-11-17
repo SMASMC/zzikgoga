@@ -463,7 +463,7 @@ const ScheduleItem = ({
             </span>
           )}
         </div>
-        <DeleteButton onClick={() => onRemove(rawKey, realIndex)} variant="icon" />
+        <DeleteButton onClick={() => onRemove(rawKey, realIndex)} />
       </div>
 
       {/* 위치정보 + 시간설정 (항상 2컬럼) */}
