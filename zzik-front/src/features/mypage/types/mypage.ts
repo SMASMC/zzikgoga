@@ -58,3 +58,11 @@ export interface TravelListResponse {
   totalPages: number
   totalCount: number
 }
+
+// 커서 기반 여행 목록 응답 (무한 스크롤용)
+export interface TravelCursorResponse {
+  trips: Travel[]
+  nextCursor: number | null // 다음 커서 (마지막 trip ID)
+  hasMore: boolean // 더 불러올 데이터가 있는지
+  totalCount: number // 전체 여행 수
+}
