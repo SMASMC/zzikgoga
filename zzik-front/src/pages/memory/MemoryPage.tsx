@@ -176,8 +176,6 @@ const MemoryPage = () => {
   return (
     <div>
       <main className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-12 mt-6 sm:mt-8 md:mt-10 pb-10">
-        <h1 className="text-3xl font-bold text-text-500 mb-8 font-bmjua">여행 기록</h1>
-
         {/* 반응형 레이아웃: 모바일에서는 세로, 데스크톱에서는 가로 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* 사진 갤러리 - 1/3 너비 (모바일에서는 전체 너비) */}
@@ -377,7 +375,7 @@ const MemoryPage = () => {
             <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setShowHelpModal(false)}
-                className="px-6 py-3 bg-gradient-to-br from-point-500 to-main-700 text-white rounded-full hover:scale-105 transition-transform font-semibold shadow-lg"
+                className="px-6 py-3 bg-gradient-to-br from-hover-600 to-point-600 text-white rounded-full hover:scale-105 transition-transform font-semibold shadow-lg"
               >
                 확인
               </button>

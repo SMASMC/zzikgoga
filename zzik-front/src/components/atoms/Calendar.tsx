@@ -220,7 +220,7 @@ const Calendar = ({
                 ${!disabled && inRange ? 'bg-background-500' : ''}
                 ${
                   !disabled && (isStart || isEnd)
-                    ? 'bg-gradient-to-br from-point-500 to-main-700 text-white shadow-md'
+                    ? 'bg-gradient-to-br from-hover-600 to-point-600 text-white shadow-md'
                     : ''
                 }
                 ${

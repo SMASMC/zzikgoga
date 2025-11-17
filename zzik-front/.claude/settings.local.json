@@ -5,7 +5,12 @@
       "Bash(npx tsc:*)",
       "Bash(npm run build:*)",
       "Bash(npm run typecheck:*)",
-      "Bash(npm run lint:fix:*)"
+      "Bash(npm run lint:fix:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill /F /PID 23852)",
+      "Bash(taskkill //F //PID 23852)",
+      "Bash(./gradlew compileJava:*)"
     ],
     "deny": [],
     "ask": []

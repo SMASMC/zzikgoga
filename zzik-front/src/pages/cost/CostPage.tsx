@@ -24,8 +24,6 @@ const CostPage = () => {
   return (
     <div>
       <main className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-12 mt-6 sm:mt-8 md:mt-10 pb-10">
-        <h1 className="text-3xl font-bold text-text-500 mb-8 font-bmjua">여행 정산</h1>
-
         {/* 1:2 비율 레이아웃 (CostAdd : CostList) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* CostAdd - 1/3 너비 */}

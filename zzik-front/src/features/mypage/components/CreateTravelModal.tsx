@@ -149,7 +149,7 @@ const CreateTravelModal = ({ onClose }: { onClose: () => void }) => {
                     onClick={() => handleCompanionToggle(label)}
                     className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm transition-all hover:scale-105 ${
                       companion.includes(label)
-                        ? 'bg-gradient-to-br from-point-500 to-main-700 text-white shadow-md'
+                        ? 'bg-gradient-to-br from-hover-600 to-point-600 text-white shadow-md'
                         : 'bg-gray-50 text-text-500 border border-background-700'
                     }`}
                   >
@@ -165,7 +165,7 @@ const CreateTravelModal = ({ onClose }: { onClose: () => void }) => {
                     onClick={() => handleCompanionToggle(label)}
                     className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm transition-all hover:scale-105 ${
                       companion.includes(label)
-                        ? 'bg-gradient-to-br from-point-500 to-main-700 text-white shadow-md'
+                        ? 'bg-gradient-to-br from-hover-600 to-point-600 text-white shadow-md'
                         : 'bg-gray-50 text-text-500 border border-background-700'
                     }`}
                   >
@@ -195,7 +195,7 @@ const CreateTravelModal = ({ onClose }: { onClose: () => void }) => {
                     className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full transition-transform ${
                       count === 0
                         ? 'bg-gray-300 text-gray-500'
-                        : 'bg-gradient-to-br from-point-500 to-main-700 text-white hover:scale-110'
+                        : 'bg-gradient-to-br from-hover-600 to-point-600 text-white hover:scale-110'
                     }`}
                   >
                     -
@@ -205,7 +205,7 @@ const CreateTravelModal = ({ onClose }: { onClose: () => void }) => {
                   </span>
                   <button
                     onClick={() => setter(count + 1)}
-                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-point-500 to-main-700 text-white hover:scale-110 transition-transform"
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-hover-600 to-point-600 text-white hover:scale-110 transition-transform"
                   >
                     +
                   </button>
@@ -261,7 +261,7 @@ const CreateTravelModal = ({ onClose }: { onClose: () => void }) => {
                   onClick={() => handleThemeToggle(tag)}
                   className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm transition-all hover:scale-105 ${
                     theme.includes(tag)
-                      ? 'bg-gradient-to-br from-point-500 to-main-700 text-white shadow-md'
+                      ? 'bg-gradient-to-br from-hover-600 to-point-600 text-white shadow-md'
                       : 'bg-gray-50 text-text-500 border border-background-700'
                   }`}
                 >

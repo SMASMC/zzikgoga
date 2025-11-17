@@ -298,7 +298,7 @@ const MyPage = () => {
             <p className="text-red-500 text-lg mb-4">{error}</p>
             <button
               onClick={() => (isMobile ? loadMobileInitial() : loadDesktopPage(1))}
-              className="px-6 py-2 bg-gradient-to-br from-point-500 to-main-700 text-white rounded-full hover:scale-105 transition-transform"
+              className="px-6 py-2 bg-gradient-to-br from-hover-600 to-point-600 text-white rounded-full hover:scale-105 transition-transform"
             >
               다시 시도
             </button>
@@ -397,7 +397,7 @@ const MyPage = () => {
                     <button
                       onClick={() => handleGoToPage(currentPage - 1)}
                       disabled={currentPage === 1}
-                      className="px-4 py-2 bg-gradient-to-br from-point-500 to-main-700 text-white rounded-full hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                      className="px-4 py-2 bg-gradient-to-br from-hover-700 to-point-700 text-white rounded-full hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                     >
                       이전
                     </button>
@@ -407,7 +407,7 @@ const MyPage = () => {
                         onClick={() => handleGoToPage(page)}
                         className={`min-w-[40px] px-3 py-2 rounded-full font-semibold transition-all ${
                           page === currentPage
-                            ? 'bg-gradient-to-br from-point-500 to-main-700 text-white scale-110'
+                            ? 'bg-gradient-to-br from-hover-700 to-point-700 text-white scale-110'
                             : 'bg-slate-200 text-slate-700 hover:bg-slate-300 hover:scale-105'
                         }`}
                       >
@@ -417,7 +417,7 @@ const MyPage = () => {
                     <button
                       onClick={() => handleGoToPage(currentPage + 1)}
                       disabled={currentPage === totalPages}
-                      className="px-4 py-2 bg-gradient-to-br from-point-500 to-main-700 text-white rounded-full hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                      className="px-4 py-2 bg-gradient-to-br from-hover-700 to-point-700 text-white rounded-full hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                     >
                       다음
                     </button>
