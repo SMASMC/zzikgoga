@@ -21,16 +21,9 @@ const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCard
     message: string
   }>({ open: false, variant: 'success', message: '' })
 
-  // img prop 변경 시 imageSrc 업데이트 (캐시 방지를 위한 타임스탬프 추가)
+  // img prop 변경 시 imageSrc 업데이트
   useEffect(() => {
-    if (!img) {
-      setImageSrc('/pwa-512x512.png')
-    } else {
-      // 캐시 방지를 위해 타임스탬프를 쿼리 파라미터로 추가
-      const timestamp = new Date().getTime()
-      const separator = img.includes('?') ? '&' : '?'
-      setImageSrc(`${img}${separator}t=${timestamp}`)
-    }
+    setImageSrc(img || '/pwa-512x512.png')
   }, [img])
 
   const handleCardClick = () => {

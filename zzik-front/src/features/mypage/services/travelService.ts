@@ -24,7 +24,6 @@ export class TravelService {
       page: String(page),
       size: String(size),
     }
-    console.log('🌐 API Call - page:', page, 'size:', size, 'params:', JSON.stringify(params))
 
     const response = await apiClient.get<TravelListApiResponse>('/plan', params)
     return {
@@ -51,8 +50,6 @@ export class TravelService {
     if (cursor !== null) {
       params.cursor = String(cursor)
     }
-
-    console.log('🔄 Cursor API Call - cursor:', cursor, 'size:', size, 'params:', params)
 
     const response = await apiClient.get<TravelCursorResponse>('/plan/cursor', params)
     return response
