@@ -125,9 +125,8 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
     const newItems = [...formData.items]
     newItems[index] = { ...newItems[index], [field]: value }
 
-    if (field === 'memberIds' && Array.isArray(value)) {
-      newItems[index].count = value.length
-    }
+    // 수량은 참여자 수와 독립적으로 관리 (자동 변경 제거)
+    // count는 실제 구매한 상품의 개수를 의미하며, 참여자 수와는 별개
 
     setFormData({ ...formData, items: newItems })
 
@@ -365,19 +364,6 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
           />
           {errors.place && <p className="mt-1 text-sm text-red-500 font-bmjua">{errors.place}</p>}
         </div>
-
-        {/* 카테고리 (DB가 바뀌면 추가하기로 하기)*/}
-        {/* <div className="mb-4 sm:mb-6">
-          <label className="block text-base sm:text-lg mb-2 sm:mb-3 text-text-600 font-bmjua">
-            카테고리
-          </label>
-          <DropdownSelect
-            options={CATEGORY_OPTIONS}
-            value={formData.category}
-            onChange={(value) => setFormData({ ...formData, category: value as CostCategory })}
-            className="w-full"
-          />
-        </div> */}
 
         {/* 총 금액 */}
         <div className="mb-4 sm:mb-6">

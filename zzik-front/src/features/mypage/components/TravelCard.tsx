@@ -1,11 +1,9 @@
 ﻿// TravelCard.tsx
-// 여행 생성 카드와 기존 여행 카드를 위한 컴포넌트
 
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TravelAddCardProps, TravelCardProps } from '../types/mypage'
 import SolidButton from '@/components/atoms/SolidButton'
-import { Camera } from 'lucide-react'
 import { MediaService } from '@/features/memory/services/memoryService'
 import { ToastDock } from '@/components/blocks/ToastDock'
 
@@ -40,11 +38,6 @@ const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCard
   const handlePhotoClick = (e: React.MouseEvent) => {
     e.stopPropagation()
     navigate(`/memory/${tripId}`)
-  }
-
-  const handleCameraButtonClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    fileInputRef.current?.click()
   }
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -102,19 +95,6 @@ const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCard
             <p className="text-gray-500 text-sm truncate">{date}</p>
           </div>
           <div className="shrink-0">
-            <button
-              type="button"
-              onClick={handleCameraButtonClick}
-              onMouseDown={(e) => e.stopPropagation()}
-              onKeyDown={(e) => e.stopPropagation()}
-              onMouseEnter={() => setIsButtonHovered(true)}
-              onMouseLeave={() => setIsButtonHovered(false)}
-              className="p-2 rounded-full border bg-white hover:bg-slate-50 text-slate-700 shadow-sm disabled:opacity-50"
-              disabled={uploading}
-              aria-label="사진 업로드"
-            >
-              <Camera size={16} />
-            </button>
             <input
               ref={fileInputRef}
               type="file"

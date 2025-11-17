@@ -117,11 +117,9 @@ const MemoryPhotoGallery = ({ tripId }: Props) => {
           </button>
 
           <div className="flex items-center gap-1 bg-gradient-to-br from-blue-50 to-blue-100 rounded-full px-4 py-2 shadow-sm min-w-[80px] justify-center">
-            <span className="text-sm font-bold text-blue-600">
-              {page + 1}
-            </span>
+            <span className="text-sm font-bold text-text-600">{page + 1}</span>
             <span className="text-sm text-text-600">/</span>
-            <span className="text-sm font-bold text-text-500">
+            <span className="text-sm font-bold text-text-700">
               {totalPages}
               {nextCursor ? '+' : ''}
             </span>

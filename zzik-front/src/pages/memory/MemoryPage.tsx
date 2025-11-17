@@ -1,13 +1,14 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { HelpCircle } from 'lucide-react'
+import { HelpCircle, Upload } from 'lucide-react'
 import Input from '@/components/atoms/Input'
 import SolidButton from '@/components/atoms/SolidButton'
 import CloseButton from '@/components/atoms/CloseButton'
 import MarkdownEditor from '@/features/memory/components/MarkdownEditor'
 import MemoryPhotoGallery from '@/features/memory/components/MemoryPhotoGallery'
 import { CreateMemoryRequest, MemoryBlock } from '@/features/memory/types/memory'
-import { MemoryService } from '@/features/memory/services/memoryService'
+import { MemoryService, MediaService } from '@/features/memory/services/memoryService'
+import { ToastDock } from '@/components/blocks/ToastDock'
 
 const MemoryPage = () => {
   const { tripId } = useParams<{ tripId: string }>()
@@ -20,6 +21,14 @@ const MemoryPage = () => {
   const [error, setError] = useState<string | null>(null)
   const [savedId, setSavedId] = useState<number | null>(null)
   const [showHelpModal, setShowHelpModal] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [photoRefreshKey, setPhotoRefreshKey] = useState(0)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [toast, setToast] = useState<{
+    open: boolean
+    variant: 'success' | 'warning' | 'error' | 'hint'
+    message: string
+  }>({ open: false, variant: 'success', message: '' })
 
   const canSave = title.trim().length > 0 && markdown.trim().length > 0 && !!safeTripId
 
@@ -185,6 +194,30 @@ const MemoryPage = () => {
     }
   }
 
+  const handleUploadButtonClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? [])
+    if (files.length === 0) return
+    try {
+      setUploading(true)
+      await MediaService.uploadMedia(safeTripId, files)
+      e.target.value = ''
+      setToast({ open: true, variant: 'success', message: '사진이 업로드되었습니다.' })
+      // 사진 갤러리 새로고침
+      setTimeout(() => {
+        setPhotoRefreshKey((prev) => prev + 1)
+      }, 500)
+    } catch (err) {
+      console.error(err)
+      setToast({ open: true, variant: 'error', message: '사진 업로드에 실패했습니다.' })
+    } finally {
+      setUploading(false)
+    }
+  }
+
   return (
     <div>
       <main className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-12 mt-6 sm:mt-8 md:mt-10 pb-10">
@@ -193,10 +226,26 @@ const MemoryPage = () => {
           {/* 사진 갤러리 - 1/3 너비 (모바일에서는 전체 너비) */}
           <aside className="lg:col-span-1">
             <div className="bg-white rounded-3xl shadow-lg overflow-hidden flex flex-col h-full min-h-[400px] lg:min-h-[calc(100vh-200px)]">
-              <h2 className="text-xl font-bold text-text-500 mb-6 font-bmjua mt-6 mx-6">
-                사진 목록
-              </h2>
-              {safeTripId && <MemoryPhotoGallery tripId={safeTripId} />}
+              <div className="flex items-center justify-between mt-6 mx-6 mb-6">
+                <h2 className="text-xl font-bold text-text-500 font-bmjua">사진 목록</h2>
+                <SolidButton
+                  onClick={handleUploadButtonClick}
+                  disabled={uploading}
+                  className="flex items-center gap-2 px-4 py-2 text-sm bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                >
+                  <Upload size={16} />
+                  {uploading ? '업로드 중...' : '사진 업로드'}
+                </SolidButton>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+              </div>
+              {safeTripId && <MemoryPhotoGallery key={photoRefreshKey} tripId={safeTripId} />}
             </div>
           </aside>
 
@@ -376,6 +425,14 @@ const MemoryPage = () => {
           </div>
         </div>
       )}
+
+      {/* Toast */}
+      <ToastDock
+        open={toast.open}
+        variant={toast.variant}
+        message={toast.message}
+        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+      />
     </div>
   )
 }

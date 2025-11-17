@@ -5,7 +5,38 @@ import { acquireProvider, releaseProvider } from '../stores/yjsStore'
 
 const CURSOR_TTL = 2000
 const MESSAGE_TTL = 5000
-const COLOR_PALETTE = ['#ef4444', '#22c55e', '#3b82f6', '#f97316', '#a855f7', '#14b8a6', '#facc15']
+
+// HSL 기반 동적 색상 생성
+// 참여자 수에 맞춰 색상환을 균등 분할하여 중복 없는 색상 생성
+const generateHSLColor = (index: number, totalParticipants: number): string => {
+  // 색상환(0-360도)을 참여자 수만큼 균등 분할
+  const hue = (index * 360) / Math.max(totalParticipants, 1)
+  // 채도 70-90%, 밝기 45-65%로 설정하여 가독성 확보
+  const saturation = 75 + (index % 3) * 5 // 75%, 80%, 85% 순환
+  const lightness = 50 + (index % 2) * 5 // 50%, 55% 순환
+
+  return `hsl(${Math.round(hue)}, ${saturation}%, ${lightness}%)`
+}
+
+// 폴백용 고정 색상 팔레트 (awareness 초기화 전 등)
+const COLOR_PALETTE = [
+  '#ef4444', // red
+  '#22c55e', // green
+  '#3b82f6', // blue
+  '#f97316', // orange
+  '#a855f7', // purple
+  '#14b8a6', // teal
+  '#facc15', // yellow
+  '#ec4899', // pink
+  '#06b6d4', // cyan
+  '#8b5cf6', // violet
+  '#f43f5e', // rose
+  '#10b981', // emerald
+  '#6366f1', // indigo
+  '#f59e0b', // amber
+  '#84cc16', // lime
+  '#d946ef', // fuchsia
+]
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 
@@ -20,6 +51,21 @@ const hashToIndex = (value: string, length: number) => {
 
 const pickColor = (seed: string) =>
   COLOR_PALETTE[hashToIndex(seed || 'default', COLOR_PALETTE.length)]
+
+// 동적 색상 할당 - 참여자 목록을 기반으로 고유 색상 생성
+const assignDynamicColor = (userId: string, allUserIds: string[]): string => {
+  // userId를 정렬하여 일관된 순서 보장
+  const sortedUserIds = [...allUserIds].sort()
+  const index = sortedUserIds.indexOf(userId)
+
+  if (index === -1) {
+    // 폴백: userId를 찾을 수 없는 경우
+    return pickColor(userId)
+  }
+
+  // 참여자 수에 맞춰 HSL 색상 생성
+  return generateHSLColor(index, sortedUserIds.length)
+}
 
 const GUEST_ID_STORAGE_KEY = 'plan-cursor-guest-identity'
 
@@ -88,6 +134,7 @@ export interface CursorChatMessage {
   userId: string
   name: string
   color: string
+  picture?: string | null
   text: string
   timestamp: number
   isSelf: boolean
@@ -173,6 +220,15 @@ const collectAwarenessSnapshot = (
   const messagePayloads: AwarenessMessagePayload[] = []
   const participantsMap = new Map<string, CursorParticipant>()
 
+  // 1단계: 모든 참여자의 userId 수집
+  const allUserIds: string[] = []
+  awareness.getStates().forEach((state) => {
+    const typed = state as AwarenessState
+    if (typed?.user?.id) {
+      allUserIds.push(typed.user.id)
+    }
+  })
+
   awareness.getStates().forEach((state, clientId) => {
     const typed = state as AwarenessState
     const { cursor, user, message: rawMessage } = typed
@@ -199,7 +255,8 @@ const collectAwarenessSnapshot = (
           })()
         : null
 
-    const color = user.color ?? pickColor(user.id)
+    // 동적 색상 할당
+    const color = user.color ?? assignDynamicColor(user.id, allUserIds)
     const name = user.name ?? 'Unknown'
     const picture = user.picture ?? null
     const isSelf = clientId === selfClientId
@@ -311,16 +368,24 @@ export const useSharedCursors = (roomId: string): SharedCursorSession => {
   const baseName = authUser?.name ?? guestIdentity.name
   const basePicture = authUser?.picture ?? null
 
+  // 초기 색상은 기본 해시 기반으로 선택 (충돌 방지는 awareness 업데이트 시 적용)
   const color = useMemo(() => pickColor(baseId), [baseId])
+
+  // State는 useMemo보다 먼저 선언되어야 함
+  const [assignedColor, setAssignedColor] = useState<string>(color)
+  const [remoteCursors, setRemoteCursors] = useState<RemoteCursor[]>([])
+  const [selfMessage, setSelfMessage] = useState<CursorMessage | null>(null)
+  const [chatMessages, setChatMessages] = useState<CursorChatMessage[]>([])
+  const [participants, setParticipants] = useState<CursorParticipant[]>([])
 
   const self = useMemo(
     () => ({
       id: baseId,
       name: baseName,
       picture: basePicture,
-      color,
+      color: assignedColor,
     }),
-    [baseId, baseName, basePicture, color]
+    [baseId, baseName, basePicture, assignedColor]
   )
 
   const awarenessRef = useRef<Awareness>()
@@ -329,11 +394,6 @@ export const useSharedCursors = (roomId: string): SharedCursorSession => {
   const messageTimeoutRef = useRef<number | null>(null)
   const refreshIntervalRef = useRef<number | null>(null)
   const messageSeenRef = useRef<Map<number, number>>(new Map())
-
-  const [remoteCursors, setRemoteCursors] = useState<RemoteCursor[]>([])
-  const [selfMessage, setSelfMessage] = useState<CursorMessage | null>(null)
-  const [chatMessages, setChatMessages] = useState<CursorChatMessage[]>([])
-  const [participants, setParticipants] = useState<CursorParticipant[]>([])
 
   const ingestMessagePayloads = useCallback(
     (payloads: AwarenessMessagePayload[], selfClientId: number) => {
@@ -359,6 +419,7 @@ export const useSharedCursors = (roomId: string): SharedCursorSession => {
             userId: payload.userId,
             name: payload.name,
             color: payload.color,
+            picture: payload.picture,
             text: message.text,
             timestamp: message.timestamp,
             isSelf: payload.clientId === selfClientId,
@@ -387,6 +448,23 @@ export const useSharedCursors = (roomId: string): SharedCursorSession => {
     setSelfMessage(null)
     setParticipants([])
 
+    // 동적 색상 할당: 모든 참여자의 userId 수집
+    const allUserIds: string[] = []
+    awareness.getStates().forEach((state) => {
+      const typed = state as AwarenessState
+      if (typed?.user?.id) {
+        allUserIds.push(typed.user.id)
+      }
+    })
+
+    // 자신의 userId가 목록에 없으면 추가 (초기 연결 시)
+    if (!allUserIds.includes(self.id)) {
+      allUserIds.push(self.id)
+    }
+
+    const finalColor = assignDynamicColor(self.id, allUserIds)
+    setAssignedColor(finalColor)
+
     const updateFromAwareness = () => {
       const snapshot = collectAwarenessSnapshot(awareness, awareness.clientID)
       setRemoteCursors(deduplicateRemoteCursors(snapshot.remoteCursors))
@@ -398,7 +476,7 @@ export const useSharedCursors = (roomId: string): SharedCursorSession => {
       user: {
         id: self.id,
         name: self.name,
-        color: self.color,
+        color: finalColor,
         picture: self.picture ?? null,
       },
       cursor: null,
@@ -476,16 +554,17 @@ export const useSharedCursors = (roomId: string): SharedCursorSession => {
 
     const currentState = awareness.getLocalState() ?? {}
 
+    // 사용자 정보가 변경되면 awareness 업데이트
     awareness.setLocalState({
       ...currentState,
       user: {
         id: self.id,
         name: self.name,
-        color: self.color,
+        color: assignedColor,
         picture: self.picture ?? null,
       },
     })
-  }, [self.color, self.id, self.name, self.picture])
+  }, [assignedColor, self.id, self.name, self.picture])
 
   useEffect(
     () => () => {

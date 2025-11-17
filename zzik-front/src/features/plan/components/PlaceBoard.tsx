@@ -613,6 +613,7 @@ const PlaceBoard = ({ cursorSession }: PlaceBoardProps) => {
             inputRef={inputRef}
             onKeyDown={handleChatKeyDown}
             onFocus={resetAutoHideTimer}
+            chatMessages={cursorSession.chatMessages}
           />
         </div>
       </div>
