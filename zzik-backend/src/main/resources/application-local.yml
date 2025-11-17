@@ -4,7 +4,7 @@ spring:
     username: postgres
     password: postgres
   data.redis:
-    host: host.docker.internal
+    host: localhost
     port: 6379
     password: zzik
   jpa:
@@ -30,6 +30,9 @@ swagger:
 
 kakao:
   redirect-uri: "http://localhost:5173/auth/callback"
+logging:
+  level:
+    com.zzik.backend.domain.cost.service.CostSettlementService: DEBUG
 
 app:
   security:
