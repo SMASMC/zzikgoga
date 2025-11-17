@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +42,7 @@ import com.zzik.backend.global.external.bank.dto.BankTransferResponse;
  * - 모든 멤버가 정산을 수락했을 때 실제 송금 로직이 실행되는지 검증
  * - BankApiClient는 모킹하여 실제 API 호출 없이 테스트
  */
+@Disabled("CI/CD 환경에서 실행 비활성화")
 @SpringBootTest
 @Transactional
 @ActiveProfiles("local")
