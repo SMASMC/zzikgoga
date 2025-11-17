@@ -242,13 +242,14 @@ const collectAwarenessSnapshot = (
     }
   })
 
-  // 2단계: 이미 할당된 색상 수집
-  const usedColors = new Set<string>()
-  awareness.getStates().forEach((state) => {
-    const typed = state as AwarenessState
-    if (typed?.user?.color) {
-      usedColors.add(typed.user.color)
-    }
+  // 2단계: 각 사용자별 색상 계산을 위한 맵 생성
+  const userColorMap = new Map<string, string>()
+
+  // 모든 사용자의 색상을 한 번에 계산
+  allUserIds.forEach((userId) => {
+    const usedColors = new Set(userColorMap.values())
+    const color = assignDynamicColor(userId, allUserIds, usedColors)
+    userColorMap.set(userId, color)
   })
 
   awareness.getStates().forEach((state, clientId) => {
@@ -277,8 +278,8 @@ const collectAwarenessSnapshot = (
           })()
         : null
 
-    // 동적 색상 할당 (이미 사용 중인 색상을 피함)
-    const color = user.color ?? assignDynamicColor(user.id, allUserIds, usedColors)
+    // 동적 색상 할당 (미리 계산된 색상 사용)
+    const color = userColorMap.get(user.id) || assignDynamicColor(user.id, allUserIds, new Set())
     const name = user.name ?? 'Unknown'
     const picture = user.picture ?? null
     const isSelf = clientId === selfClientId
