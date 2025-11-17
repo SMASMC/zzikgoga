@@ -58,13 +58,6 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
       }
     }
 
-    if (costDetail) {
-      const menusTotal = formData.menus.reduce((sum, menu) => sum + (menu.amount || 0), 0)
-      if (menusTotal !== costDetail.totalAmount) {
-        return `품목별 금액 합계(${menusTotal.toLocaleString()}원)가 총 금액(${costDetail.totalAmount.toLocaleString('ko-KR')}원)과 일치하지 않습니다.`
-      }
-    }
-
     return null
   }
 
