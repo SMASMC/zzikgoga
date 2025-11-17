@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { MemoryPhotoService } from '@/features/memory/services/memoryService'
 import { TripPhoto } from '@/features/memory/types/memory'
 import { ImageWithFallback } from '@/components/atoms/ImageWithFallback'
+import { DropdownSelect } from '@/components/blocks/DropdownSelect'
 
 type Props = {
   tripId: string
@@ -74,6 +75,13 @@ const MemoryPhotoGallery = ({ tripId }: Props) => {
     setPage((p) => ((p + 1) * pageSize <= photos.length || nextCursor ? p + 1 : p))
   }
 
+  // 페이지 크기 옵션
+  const pageSizeOptions = [
+    { label: '8개', value: '8' },
+    { label: '12개', value: '12' },
+    { label: '16개', value: '16' },
+  ]
+
   return (
     <div className="h-full p-4 flex flex-col min-h-0">
       {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
@@ -81,21 +89,21 @@ const MemoryPhotoGallery = ({ tripId }: Props) => {
       {/* 페이지네이션 컨트롤 */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-4 shrink-0">
         {/* 페이지 크기 선택 */}
-        <div className="flex items-center gap-2 bg-gradient-to-br from-blue-50 to-blue-100 rounded-full px-4 py-2 shadow-sm">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
           <span className="text-sm font-bold text-text-500 whitespace-nowrap">페이지 크기</span>
-          <select
-            className="bg-white border-2 border-blue-300 rounded-full px-3 py-1 text-sm font-semibold text-text-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all cursor-pointer"
-            value={pageSize}
-            onChange={(e) => {
-              const size = Number(e.target.value)
-              setPageSize(size)
-              setPage(0)
-            }}
-          >
-            <option value={8}>8개</option>
-            <option value={12}>12개</option>
-            <option value={16}>16개</option>
-          </select>
+          <div className="w-28">
+            <DropdownSelect
+              options={pageSizeOptions}
+              value={String(pageSize)}
+              onChange={(value) => {
+                const size = Number(value)
+                setPageSize(size)
+                setPage(0)
+              }}
+              placeholder="선택"
+              className="w-full"
+            />
+          </div>
         </div>
 
         {/* 페이지 네비게이션 */}

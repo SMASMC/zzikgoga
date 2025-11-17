@@ -21,9 +21,16 @@ const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCard
     message: string
   }>({ open: false, variant: 'success', message: '' })
 
-  // img prop 변경 시 imageSrc 업데이트
+  // img prop 변경 시 imageSrc 업데이트 (캐시 방지를 위한 타임스탬프 추가)
   useEffect(() => {
-    setImageSrc(img || '/pwa-512x512.png')
+    if (!img) {
+      setImageSrc('/pwa-512x512.png')
+    } else {
+      // 캐시 방지를 위해 타임스탬프를 쿼리 파라미터로 추가
+      const timestamp = new Date().getTime()
+      const separator = img.includes('?') ? '&' : '?'
+      setImageSrc(`${img}${separator}t=${timestamp}`)
+    }
   }, [img])
 
   const handleCardClick = () => {
@@ -63,8 +70,10 @@ const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCard
       // 업로드 성공 메시지 표시
       setToast({ open: true, variant: 'success', message: '사진이 업로드되었습니다.' })
 
-      // MyPage에 새로고침 이벤트 발생
-      window.dispatchEvent(new CustomEvent('travel-updated', { detail: { tripId } }))
+      // 백엔드가 썸네일을 처리할 시간을 주기 위해 약간의 딜레이 후 새로고침
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('travel-updated', { detail: { tripId } }))
+      }, 500)
     } catch (err) {
       console.error(err)
       setToast({ open: true, variant: 'error', message: '사진 업로드에 실패했습니다.' })
