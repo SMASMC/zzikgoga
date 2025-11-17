@@ -164,14 +164,15 @@ public class MemoryService {
 	private String convertBlocksToHtml(Memory memory) {
 		StringBuilder html = new StringBuilder();
 		html.append("<html><head><style>");
-		// 폰트 이름은 'NanumGothic' (아래 폰트 등록 이름과 일치)
-		html.append("body { font-family: 'NanumGothic', sans-serif; margin: 40px; }");
+		// 폰트 이름은 'SeoulAlrimTTF-Bold' (아래 폰트 등록 이름과 일치)
+		html.append("body { font-family: 'SeoulAlrimTTF-Bold', sans-serif; margin: 40px; }");
 		html.append("h1 { font-size: 2.0em; font-weight: bold; }");
 		html.append("h2 { font-size: 1.5em; font-weight: bold; }");
 		html.append("h3 { font-size: 1.2em; font-weight: bold; }");
 		html.append("p { font-size: 1.0em; line-height: 1.6; min-height: 1.2em; }"); // 👈 빈 <p>태그 높이
 		html.append("img { max-width: 75%; height: auto; margin-top: 10px; }");
 		html.append("hr { border: 0; border-top: 1px solid #eee; margin: 20px 0; }");
+		html.append("ul, ol { margin: 10px 0 10px 30px; }");
 		html.append("</style></head><body>");
 
 		// 1. 제목
@@ -203,7 +204,10 @@ public class MemoryService {
 						String text = (String)data.get("text");
 						html.append("<p>");
 						if (text != null && !text.isEmpty()) {
-							html.append(escapeHtml(text));
+							String escaped = escapeHtml(text);
+							String parsed = parseInlineMarkdown(escaped);
+							parsed = parsed.replace("\n", "<br/>");
+							html.append(parsed);
 						} else {
 							html.append("&#160;"); // 비어있는 p태그도 높이
 						}
@@ -230,7 +234,29 @@ public class MemoryService {
 						}
 						html.append("</div>");
 						break;
-					// TODO: "list", "quote" 등 타입 추가
+					case "list":
+						String style = (String)data.get("style");
+						List<String> items = (List<String>)data.get("items");
+
+						if (items != null && !items.isEmpty()) {
+							if ("ordered".equals(style)) {
+								html.append("<ol>");
+								for (String item : items) {
+									String parsed = parseInlineMarkdown(escapeHtml(item));
+									html.append("<li>").append(parsed).append("</li>");
+								}
+								html.append("</ol>");
+							} else { // unordered
+								html.append("<ul>");
+								for (String item : items) {
+									String parsed = parseInlineMarkdown(escapeHtml(item));
+									html.append("<li>").append(parsed).append("</li>");
+								}
+								html.append("</ul>");
+							}
+						}
+						break;
+					// TODO: "quote" 등 타입 추가
 				}
 			}
 		}
@@ -245,17 +271,17 @@ public class MemoryService {
 		try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
 			PdfRendererBuilder builder = new PdfRendererBuilder();
 
-			// src/main/resources/fonts/NanumGothic.ttf
+			// src/main/resources/fonts/SeoulAlrimTTF-Bold.ttf
 			// ClassPathResource를 사용하여 리소스 경로에서 폰트 로드
 			builder.useFont(
 				() -> {
 					try {
-						return new ClassPathResource("fonts/NanumGothic.ttf").getInputStream();
+						return new ClassPathResource("fonts/SeoulAlrimTTF-Bold.ttf").getInputStream();
 					} catch (IOException e) {
 						throw new RuntimeException(e);
 					}
 				},
-				"NanumGothic" // 👈 CSS에서 사용할 폰트 이름
+				"SeoulAlrimTTF-Bold" // 👈 CSS에서 사용할 폰트 이름
 			);
 
 			builder.withHtmlContent(html, null);
@@ -310,5 +336,21 @@ public class MemoryService {
 		// 3. Base64로 인코딩하여 Data-URI 스킴으로 반환
 		String base64Image = Base64.getEncoder().encodeToString(processedImageBytes);
 		return "data:image/jpeg;base64," + base64Image;
+	}
+
+	private String parseInlineMarkdown(String text) {
+		if (text == null || text.isEmpty())
+			return "";
+
+		// 1) Bold: **text**
+		text = text.replaceAll("\\*\\*(.+?)\\*\\*", "<strong>$1</strong>");
+
+		// 2) Italic: *text*
+		text = text.replaceAll("\\*(.+?)\\*", "<em>$1</em>");
+
+		// 3) Link: [text](url)
+		text = text.replaceAll("\\[(.+?)\\]\\((https?://[^\\s]+)\\)", "<a href=\"$2\">$1</a>");
+
+		return text;
 	}
 }
