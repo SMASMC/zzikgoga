@@ -37,6 +37,7 @@ export interface SettleDetail {
   memberId: number
   memberName: string
   memberCount: number
+  thumbnailUrl?: string
   toSend: SendMember[]
   toReceive: ReceiveMember[]
   netAmount: number
@@ -44,10 +45,12 @@ export interface SettleDetail {
 export interface SendMember {
   targetMemberId: number
   targetMemberName: string
+  targetThumbnailUrl?: string
   amount: number
 }
 export interface ReceiveMember {
   fromMemberId: number
   fromMemberName: string
+  fromThumbnailUrl?: string
   amount: number
 }
