@@ -725,7 +725,9 @@ const PlaceBoard = ({ cursorSession, onOpenPlaceDrawer }: PlaceBoardProps) => {
                 <span className="rounded-lg bg-slate-900/90 px-3 py-1 text-lg font-bold text-white shadow-md">
                   /
                 </span>
-                <span className="text-lg text-slate-500 group-hover:text-blue-600">눌러서 열기</span>
+                <span className="text-lg text-slate-500 group-hover:text-blue-600">
+                  눌러서 열기
+                </span>
               </button>
 
               {/* Chat 패널 */}

@@ -47,9 +47,13 @@ const pickColor = (seed: string) =>
 
 // 고정 팔레트 기반 색상 할당 - 참여자 목록을 기반으로 고유 색상 할당
 // 이미 사용 중인 색상을 피하여 겹치지 않도록 함
-const assignDynamicColor = (userId: string, allUserIds: string[], usedColors: Set<string>): string => {
+const assignDynamicColor = (
+  userId: string,
+  allUserIds: string[],
+  usedColors: Set<string>
+): string => {
   // 사용되지 않은 색상 찾기
-  const availableColors = COLOR_PALETTE.filter(color => !usedColors.has(color))
+  const availableColors = COLOR_PALETTE.filter((color) => !usedColors.has(color))
 
   if (availableColors.length > 0) {
     // 사용되지 않은 색상이 있으면, userId를 기반으로 일관되게 선택
@@ -257,20 +261,20 @@ const collectAwarenessSnapshot = (
 
     const normalizedMessage =
       rawMessage &&
-        typeof rawMessage === 'object' &&
-        typeof rawMessage.text === 'string' &&
-        rawMessage.text.trim().length > 0
+      typeof rawMessage === 'object' &&
+      typeof rawMessage.text === 'string' &&
+      rawMessage.text.trim().length > 0
         ? (() => {
-          const messageTimestamp =
-            typeof rawMessage.timestamp === 'number' ? rawMessage.timestamp : now
-          if (now - messageTimestamp <= MESSAGE_TTL) {
-            return {
-              text: rawMessage.text,
-              timestamp: messageTimestamp,
+            const messageTimestamp =
+              typeof rawMessage.timestamp === 'number' ? rawMessage.timestamp : now
+            if (now - messageTimestamp <= MESSAGE_TTL) {
+              return {
+                text: rawMessage.text,
+                timestamp: messageTimestamp,
+              }
             }
-          }
-          return null
-        })()
+            return null
+          })()
         : null
 
     // 동적 색상 할당 (이미 사용 중인 색상을 피함)
@@ -291,16 +295,16 @@ const collectAwarenessSnapshot = (
     const normalizedCursor =
       cursor && typeof cursor.x === 'number' && typeof cursor.y === 'number'
         ? (() => {
-          const timestamp = typeof cursor.timestamp === 'number' ? cursor.timestamp : now
-          if (now - timestamp > CURSOR_TTL) {
-            return null
-          }
-          return {
-            x: clamp(cursor.x, 0, 100),
-            y: clamp(cursor.y, 0, 100),
-            timestamp,
-          }
-        })()
+            const timestamp = typeof cursor.timestamp === 'number' ? cursor.timestamp : now
+            if (now - timestamp > CURSOR_TTL) {
+              return null
+            }
+            return {
+              x: clamp(cursor.x, 0, 100),
+              y: clamp(cursor.y, 0, 100),
+              timestamp,
+            }
+          })()
         : null
 
     const lastActiveCandidate = Math.max(

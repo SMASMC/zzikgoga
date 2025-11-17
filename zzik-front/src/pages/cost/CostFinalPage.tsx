@@ -108,7 +108,7 @@ const CostFinalPage = () => {
                     총 수입: {totalReceive === 0 ? '0원' : `+${formatAmount(totalReceive)}원`}
                   </p>
                 </div>
-                  
+
                 {/* 중앙 원형 - 나 */}
                 <div className="flex flex-col items-center text-center relative z-10 my-4 lg:my-0">
                   <div className="rounded-full h-24 w-24 sm:h-28 sm:w-28 lg:h-32 lg:w-32 border-4 border-blue-500 shadow-2xl flex flex-col items-center justify-center text-white font-bold text-lg sm:text-xl relative overflow-hidden">
@@ -119,7 +119,6 @@ const CostFinalPage = () => {
                           alt={s.memberName}
                           className="absolute inset-0 w-full h-full"
                         />
-
                       </>
                     ) : (
                       <>
@@ -196,7 +195,7 @@ const CostFinalPage = () => {
                         {/* 하이라이트 효과 */}
                         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-transparent via-white/40 to-transparent rounded-full blur-sm"></div>
                       </div>
-                      
+
                       {/* 삼각형 촉 부분 - 입체감 있는 화살표 */}
                       <div className="relative -ml-1.5">
                         {/* 그림자 레이어
@@ -223,7 +222,6 @@ const CostFinalPage = () => {
                             filter: 'drop-shadow(0 4px 12px rgba(239, 68, 68, 0.4))',
                           }}
                         ></div>
-
                       </div>
                     </div>
                   )}

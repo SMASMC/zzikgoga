@@ -153,7 +153,9 @@ export default function WeekCalendar({
                   >
                     {getDayName(day)}
                   </p>
-                  <p className={`text-2xl font-semibold ${isSelected ? 'text-point-500' : 'text-neutral-950'}`}>
+                  <p
+                    className={`text-2xl font-semibold ${isSelected ? 'text-point-500' : 'text-neutral-950'}`}
+                  >
                     {day.getDate()}
                   </p>
                 </button>
