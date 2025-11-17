@@ -28,6 +28,45 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
   const [isEditing, setIsEditing] = useState(false) // 수정 모드 여부
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false) // 삭제 중 상태
+  const [editFormError, setEditFormError] = useState<string | null>(null)
+  const validateEditForm = (): string | null => {
+    if (!isEditing) return null
+
+    if (!formData.payerId) {
+      return '결제자를 선택해주세요.'
+    }
+    if (!formData.paidAt || !formData.paidAt.trim()) {
+      return '결제 일시를 입력해주세요.'
+    }
+    if (!formData.place || formData.place.trim() === '') {
+      return '결제 장소를 입력해주세요.'
+    }
+    if (!formData.menus || formData.menus.length === 0) {
+      return '최소 1개 이상의 품목을 추가해주세요.'
+    }
+
+    for (let i = 0; i < formData.menus.length; i += 1) {
+      const menu = formData.menus[i]
+      if (!menu.menuName || menu.menuName.trim() === '') {
+        return `품목 ${i + 1}: 품목명을 입력해주세요.`
+      }
+      if (menu.amount === undefined || menu.amount === null || menu.amount <= 0) {
+        return `품목 ${i + 1}: 금액은 1원 이상이어야 합니다.`
+      }
+      if (!menu.payerIds || menu.payerIds.length === 0) {
+        return `품목 ${i + 1}: 결제 참여자를 최소 1명 이상 선택해주세요.`
+      }
+    }
+
+    if (costDetail) {
+      const menusTotal = formData.menus.reduce((sum, menu) => sum + (menu.amount || 0), 0)
+      if (menusTotal !== costDetail.totalAmount) {
+        return `품목별 금액 합계(${menusTotal.toLocaleString()}원)가 총 금액(${costDetail.totalAmount.toLocaleString('ko-KR')}원)과 일치하지 않습니다.`
+      }
+    }
+
+    return null
+  }
 
   // 수정 폼 데이터
   const [formData, setFormData] = useState<CostModifyRequest>({
@@ -159,6 +198,7 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
       // 수정 모드로 전환
       setIsEditing(true)
       setError(null)
+      setEditFormError(null)
 
       // 기존 데이터를 폼 데이터로 변환
       if (costDetail) {
@@ -203,9 +243,17 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
     }
     setIsEditing(false)
     setError(null)
+    setEditFormError(null)
   }
 
   const handleSaveEdit = async () => {
+    const validationMessage = validateEditForm()
+    if (validationMessage) {
+      setEditFormError(validationMessage)
+      return
+    }
+
+    setEditFormError(null)
     setIsSubmitting(true)
     setError(null)
 
@@ -228,6 +276,7 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
       setIsEditing(false)
       const response = await CostDetailService.getCostDetail(Number(tripId), costId)
       setCostDetail(response)
+      setEditFormError(null)
 
       // 목록 및 정산 내역 새로고침 (비동기 처리)
       if (onRefresh) {
@@ -296,6 +345,7 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
       }
       setIsEditing(false)
     }
+    setEditFormError(null)
     onClose()
   }
 
@@ -379,17 +429,22 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
               </SolidButton>
             </div>
           ) : (
-            <div className="flex gap-2">
-              <button
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="inline-flex items-center justify-center whitespace-nowrap font-bmjua px-6 py-2.5 text-base rounded-full bg-red-500 text-white hover:bg-red-600 shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
-              >
-                {isDeleting ? '삭제 중...' : '삭제'}
-              </button>
-              <SolidButton onClick={handleEditClick} disabled={!canEdit}>
-                수정하기
-              </SolidButton>
+            <div className="flex flex-col items-end gap-2">
+              <div className="flex gap-2">
+                <button
+                  onClick={handleDelete}
+                  disabled={!canEdit}
+                  className="inline-flex items-center justify-center whitespace-nowrap font-bmjua px-6 py-2.5 text-base rounded-full bg-red-500 text-white hover:bg-red-600 shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
+                >
+                  {isDeleting ? '삭제 중...' : '삭제'}
+                </button>
+                <SolidButton onClick={handleEditClick} disabled={!canEdit}>
+                  수정하기
+                </SolidButton>
+              </div>
+              {!canEdit && (
+                <p className="text-xs text-red-500 font-bmjua">다른 사용자가 수정 중입니다.</p>
+              )}
             </div>
           )}
           <CloseButton onClick={handleClose} className="absolute top-3 right-4" />
@@ -406,6 +461,11 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
               {isEditing ? (
                 // 수정 모드
                 <>
+                  {editFormError && (
+                    <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg p-3">
+                      {editFormError}
+                    </div>
+                  )}
                   {/* 기본 정보 카드 */}
                   <div className="bg-gray-50 rounded-xl p-4 space-y-3">
                     <h3 className="text-lg font-bold text-text-500">기본 정보</h3>

@@ -215,11 +215,8 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
       if (itemErrors.length > 0) {
         newErrors.items = itemErrors.join(' ')
       } else {
-        // 품목별 금액 합계 계산
-        const itemsTotal = formData.items.reduce(
-          (sum, item) => sum + (item.amount || 0) * (item.count || 0),
-          0
-        )
+        // 품목별 금액 합계 계산 (수량 고려하지 않고 개별 금액만 합산)
+        const itemsTotal = formData.items.reduce((sum, item) => sum + (item.amount || 0), 0)
 
         // 품목별 금액 합계가 총 금액과 일치하는지 검증
         if (itemsTotal !== formData.totalAmount) {
