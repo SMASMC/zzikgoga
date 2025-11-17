@@ -1,12 +1,10 @@
 package com.zzik.backend.global.config.data;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
-import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.zzik.backend.domain.auth.entity.Member;
@@ -36,7 +34,7 @@ import lombok.extern.slf4j.Slf4j;
  * - 정산 계산 결과: a→b 4000원, c→a 2000원, c→b 5000원
  */
 @Slf4j
-@Component
+//@Component
 @Profile("local")
 @RequiredArgsConstructor
 public class TestDataLoader implements CommandLineRunner {
