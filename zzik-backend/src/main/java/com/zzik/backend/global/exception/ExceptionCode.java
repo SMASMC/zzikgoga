@@ -61,7 +61,7 @@ public enum ExceptionCode {
 	TRIP_COST_ALREADY_COMPLETED(HttpStatus.CONFLICT, 40312, "해당 여행의 정산이 완료되어 수정할 수 없습니다.",
 		"cost - trip.isCostCompleted = true"),
 	COST_MENU_NOT_FOUND(HttpStatus.NOT_FOUND, 40313, "존재하지 않는 결제 메뉴 항목입니다.", "cost - cost_menu not found"),
-
+	COST_NOT_FOUND(HttpStatus.NOT_FOUND, 40314, "존재하지 않는 결제 항목입니다.", "cost - cost not found"),
 	/* 4032x - cost - accept */
 	ALREADY_ACCEPTED_COST(HttpStatus.CONFLICT, 40320, "이미 정산에 수락 하셨습니다.", "cost - approval 이미 정산을 수락함"),
 
@@ -103,7 +103,11 @@ public enum ExceptionCode {
 	S3_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 49920, "이미지 서버 내부 오류로 인해 현재 파일을 업로드할 수 없습니다.",
 		"S3 SDK에서 익셉션 발생"),
 	S3_DELETE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 49921, "파일 삭제에 실패했습니다.", "S3 삭제 중 오류 발생"),
-	S3_URL_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 49922, "파일 URL 생성에 실패했습니다.", "Presigned URL 생성 중 오류 발생");
+	S3_URL_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 49922, "파일 URL 생성에 실패했습니다.", "Presigned URL 생성 중 오류 발생"),
+
+	/* NFT */
+	WALLET_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 50101, "지갑 생성에 실패했습니다.", "지갑 생성에 실패"),
+	WALLET_DECRYPTION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 50102, "지갑 해석에 실패했습니다.", "지갑 해석에 실패");
 
 	private final HttpStatus httpStatus;
 	private final int errorCode;

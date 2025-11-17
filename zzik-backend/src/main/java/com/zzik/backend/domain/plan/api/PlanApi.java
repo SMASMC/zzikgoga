@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import com.zzik.backend.domain.plan.dto.request.CreateTripRequest;
 import com.zzik.backend.domain.plan.dto.request.InviteAcceptRequest;
@@ -40,7 +41,10 @@ public interface PlanApi {
 		}
 	)
 	@GetMapping
-	ResponseEntity<ApiResponse<TripListResponse>> getTripList();
+	ResponseEntity<ApiResponse<TripListResponse>> getTripList(
+		@RequestParam(defaultValue = "1") int page,
+		@RequestParam(defaultValue = "7") int size
+	);
 
 	@Operation(summary = "여행 생성")
 	@ApiResponseExplanations(

@@ -14,6 +14,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class CostItemResponse {
+	private Long menuId;
 	private String menuName;
 	private Integer count;
 	private Long amount;

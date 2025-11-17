@@ -11,13 +11,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.zzik.backend.domain.auth.entity.Member;
+import com.zzik.backend.domain.media.entity.Photo;
+import com.zzik.backend.domain.media.repository.PhotoRepository;
 import com.zzik.backend.domain.plan.dto.request.CreateTripRequest;
 import com.zzik.backend.domain.plan.dto.response.ExitTripResponse;
 import com.zzik.backend.domain.plan.dto.response.InviteAcceptResponse;
@@ -35,8 +41,10 @@ import com.zzik.backend.domain.plan.repository.TripCompanionRepository;
 import com.zzik.backend.domain.plan.repository.TripMemberRepository;
 import com.zzik.backend.domain.plan.repository.TripRepository;
 import com.zzik.backend.domain.plan.repository.TripThemaRepository;
+import com.zzik.backend.global.cloud.s3.service.S3Util;
 import com.zzik.backend.global.exception.BusinessException;
 import com.zzik.backend.global.exception.ExceptionCode;
+import com.zzik.backend.global.pagination.TripPageInfo;
 import com.zzik.backend.global.security.jwt.invite.InviteTokenProvider;
 
 import jakarta.persistence.EntityManager;
@@ -55,6 +63,8 @@ public class PlanService {
 	private final EntityManager em;
 	private final InviteTokenProvider inviteTokenProvider;
 	private final StringRedisTemplate redisTemplate;
+	private final PhotoRepository photoRepository;
+	private final S3Util s3Util;
 
 	private String tokenKey(Long tripId) {
 		return "invite:trip:%d:token".formatted(tripId);
@@ -68,20 +78,46 @@ public class PlanService {
 	private String inviteBaseUrl;
 
 	@Transactional(readOnly = true)
-	public TripListResponse getTripList(Long memberId) {
-		List<Trip> trips = tripRepository.findDistinctByTripMembersMemberIdOrderByCreatedAtDesc(memberId);
+	public TripListResponse getTripList(Long memberId, int page, int size) {
+
+		// 페이지는 1부터 시작, 내부적으로는 0부터 시작
+		int pageIndex = Math.max(0, page - 1);
+
+		Pageable pageRequest = PageRequest.of(pageIndex, size, Sort.by(Sort.Direction.DESC, "id"));
+
+		List<Trip> trips = tripRepository.findByMemberId(memberId, pageRequest);
+
+		// 전체 개수 조회
+		long totalCount = tripRepository.countByMemberId(memberId);
+		int totalPages = (int) Math.ceil((double) totalCount / size);
 
 		List<TripSummaryResponse> items = new ArrayList<>();
+
 		for (Trip t : trips) {
+			List<Photo> photos = photoRepository.findByTripId(t.getId());
+
+			Photo photo = null;
+			if (!photos.isEmpty()) {
+				photo = photos.get(
+					ThreadLocalRandom.current().nextInt(photos.size())
+				);
+			}
+
 			items.add(TripSummaryResponse.builder()
 				.tripId(t.getId())
 				.title(t.getTitle())
 				.startDate(t.getStartDate())
 				.endDate(t.getEndDate())
-				.thumbnail(null)
+				.thumbnail(photo != null
+					? s3Util.generatePresignedUrl(photo.getS3Url())
+					: null)
 				.build());
 		}
-		return TripListResponse.builder().trip(items).build();
+
+		return TripListResponse.builder()
+			.trip(items)
+			.pageInfo(new TripPageInfo(page, totalPages, totalCount))
+			.build();
 	}
 
 	@Transactional

@@ -33,3 +33,11 @@ kakao:
 logging:
   level:
     com.zzik.backend.domain.cost.service.CostSettlementService: DEBUG
+
+app:
+  security:
+    encrypt:
+      # 256비트(32바이트) 이상의 강력한 비밀번호
+      password: "YOUR_VERY_STRONG_ENCRYPTION_PASSWORD_HERE"
+      # 16진수 16바이트(32자) 이상의 강력한 솔트
+      salt: "a1b2c3d4e5f67890a1b2c3d4e5f67890"

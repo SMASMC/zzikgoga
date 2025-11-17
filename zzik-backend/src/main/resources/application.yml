@@ -6,6 +6,7 @@ spring:
   servlet:
     multipart:
       max-file-size: 50MB
+      max-request-size: 500MB
   datasource:
     driver-class-name: org.postgresql.Driver
   jpa:
@@ -21,7 +22,7 @@ spring:
     default-schema: public
 jwt:
   expiration-time:
-    access-token: 10_800_000
+    access-token: 180_000_000
     refresh-token: 604_800_000
     invite-token: 86_400_000
 springdoc:
@@ -69,4 +70,9 @@ external:
       transfer:
         deposit: "여행 정산"
         withdrawal: "여행 정산"
-
+  arweave:
+    credentials:
+      # 256비트(32바이트) 이상의 강력한 비밀번호
+      password: ${ARWEAVE_CREDENTIALS_PASSWORD}
+      # 16진수 16바이트(32자) 이상의 강력한 솔트
+      salt: ${ARWEAVE_CREDENTIALS_SALT}

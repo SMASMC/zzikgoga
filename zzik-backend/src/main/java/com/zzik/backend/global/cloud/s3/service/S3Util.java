@@ -31,7 +31,7 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequ
  * @see S3Service
  */
 @Component
-class S3Util {
+public class S3Util {
 
 	private final S3Client s3Client;
 	private final S3Presigner s3Presigner;
@@ -122,7 +122,8 @@ class S3Util {
 	 * @param objectKey S3 object key
 	 * @return presigned URL
 	 */
+	// TODO: 검토 필요 (테스트를 위해 24시간으로 해둠)
 	public String generatePresignedUrl(String objectKey) {
-		return generatePresignedUrl(objectKey, Duration.ofHours(1));
+		return generatePresignedUrl(objectKey, Duration.ofHours(24));
 	}
 }

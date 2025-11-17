@@ -17,6 +17,7 @@ import com.zzik.backend.domain.cost.entity.CostMenu;
 import com.zzik.backend.domain.cost.repository.CostMenuRepository;
 import com.zzik.backend.domain.cost.repository.CostRepository;
 import com.zzik.backend.domain.plan.repository.TripMemberRepository;
+import com.zzik.backend.domain.plan.service.TripMemberService;
 import com.zzik.backend.global.exception.BusinessException;
 import com.zzik.backend.global.exception.ExceptionCode;
 import com.zzik.backend.global.security.utils.SecurityUtil;
@@ -32,6 +33,7 @@ public class CostEditService {
 	private final MemberRepository memberRepository;
 	private final TripMemberRepository tripMemberRepository;
 	private final CostEditLockService costEditLockService;
+	private final TripMemberService tripMemberService;
 
 	@Transactional
 	public CostEditResponse edit(Long tripId, Long costId, CostEditRequest req) {
@@ -64,7 +66,7 @@ public class CostEditService {
 
 		// 5) upsert (INSERT/UPDATE)
 		for (var m : safe(req.menus())) {
-			int cnt = (m.count() == null ? 1 : m.count());
+			int cnt = m.count();
 			List<Long> mustPayerIds = safe(m.payerIds()).stream().distinct().toList();
 
 			if (m.costMenuId() == null) {
@@ -92,7 +94,10 @@ public class CostEditService {
 		// 7) 합계 재계산
 		cost.recalcTotal();
 
-		// 8) 응답
+		// 8) invalidate approvals in case AOP didn't trigger
+		tripMemberService.invalidateAllByTrip(tripId);
+
+		// 9) 응답
 		return toResponse(cost);
 	}
 
@@ -107,8 +112,14 @@ public class CostEditService {
 	}
 
 	private CostEditResponse toResponse(Cost cost) {
-		Map<Long, String> nameMap = cost.getTrip().getTripMembers().stream()
-			.collect(Collectors.toMap(tm -> tm.getMember().getId(), tm -> tm.getMember().getName()));
+		Long tripId = cost.getTrip().getId();
+		var tripMembers = tripMemberRepository.findAllWithMemberByTripId(tripId);
+
+		Map<Long, String> nameMap = tripMembers.stream()
+			.collect(Collectors.toMap(
+				tm -> tm.getMember().getId(),
+				tm -> tm.getMember().getName()
+			));
 
 		return CostEditResponse.builder()
 			.costId(cost.getId())
@@ -126,7 +137,7 @@ public class CostEditService {
 					.amount(menu.getAmount())
 					.payers(safe(menu.getMustPayerIds()).stream()
 						.distinct()
-						.map(pid -> CostEditResponse.PayerDto.builder()
+						.map(pid -> CostEditResponse.MenuDto.PayerDto.builder()
 							.memberId(pid)
 							.memberName(nameMap.get(pid))
 							.build())

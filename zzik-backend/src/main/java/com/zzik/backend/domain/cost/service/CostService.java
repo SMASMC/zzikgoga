@@ -41,6 +41,7 @@ import com.zzik.backend.domain.cost.repository.CostRepository;
 import com.zzik.backend.domain.plan.entity.Trip;
 import com.zzik.backend.domain.plan.repository.TripRepository;
 import com.zzik.backend.domain.plan.service.TripMemberService;
+import com.zzik.backend.domain.user.service.UserService;
 import com.zzik.backend.global.cloud.s3.service.S3Directory;
 import com.zzik.backend.global.cloud.s3.service.S3Service;
 import com.zzik.backend.global.exception.BusinessException;
@@ -67,6 +68,7 @@ public class CostService {
 	private final MemberRepository memberRepository;
 	private final S3Service s3Service;
 	private final TripMemberService tripMemberService;
+	private final UserService userService;
 
 	// 사진 검증
 	public void validateReceiptImage(MultipartFile file) {
@@ -80,6 +82,7 @@ public class CostService {
 	}
 
 	// OCR + 저장
+	@Transactional
 	public ReceiptOcrResponse ocrAndCreate(Long tripId, MultipartFile file) {
 		validateReceiptImage(file);
 		try {
@@ -122,8 +125,8 @@ public class CostService {
 			// s3에 파일 실제 저장
 			String objectKeyOfFile = s3Service.uploadFile(file, S3Directory.RECEIPT);
 
-			Long costId = createCost(tripId, mapped, objectKeyOfFile);
-			log.info("[OCR->CREATE] created costId={}, items={}", costId, mapped.getItems().size());
+			createCost(tripId, mapped, objectKeyOfFile);
+			tripMemberService.invalidateAllByTrip(tripId);
 			return ocrResult;
 
 		} catch (BusinessException e) {
@@ -171,6 +174,10 @@ public class CostService {
 				}
 			}
 
+			if (items.isEmpty() && totalPrice != null && totalPrice > 0) {
+				items.add(new ReceiptItemDto("전체", "1", String.valueOf(totalPrice)));
+			}
+
 			String cardCompany = safeText(result, "paymentInfo", "cardInfo", "company", "text");
 			String cardNumber = safeText(result, "paymentInfo", "cardInfo", "number", "text");
 
@@ -213,14 +220,15 @@ public class CostService {
 
 		if (req == null)
 			throw BusinessException.from(ExceptionCode.RECEIPT_CONTEXT_INVALID);
-		if (req.getItems() == null || req.getItems().isEmpty())
+		if ((req.getItems() == null || req.getItems().isEmpty())
+			&& (req.getTotalAmount() == null || req.getTotalAmount() <= 0)) {
 			throw BusinessException.from(ExceptionCode.RECEIPT_CONTEXT_INVALID);
+		}
 		if (!StringUtils.hasText(req.getPlace()))
 			throw BusinessException.from(ExceptionCode.RECEIPT_CONTEXT_INVALID);
 		if (!StringUtils.hasText(req.getPaidAt()))
 			throw BusinessException.from(ExceptionCode.RECEIPT_CONTEXT_INVALID);
 
-		// TODO: SecurityContext에서 로그인 사용자 ID 추출
 		Long memberId = SecurityUtil.getCurrentMemberId();
 		Member createdBy = memberRepository.findById(memberId)
 			.orElseThrow(() -> BusinessException.from(ExceptionCode.NOT_FOUND_USER));
@@ -290,7 +298,7 @@ public class CostService {
 		}
 		costMenuRepository.saveAll(menus);
 
-		log.info("Created cost id={}, total={}, menus={}", cost.getId(), finalTotal, menus.size());
+		tripMemberService.invalidateAllByTrip(tripId);
 		return cost.getId();
 	}
 
@@ -382,6 +390,7 @@ public class CostService {
 		List<com.zzik.backend.domain.cost.dto.response.CostItemResponse> items = new ArrayList<>();
 		for (CostMenu m : menus) {
 			items.add(com.zzik.backend.domain.cost.dto.response.CostItemResponse.builder()
+				.menuId(m.getId())
 				.menuName(m.getMenuName())
 				.count(m.getCount())
 				.amount(m.getAmount())
@@ -440,5 +449,23 @@ public class CostService {
 			.totalCost(totalCosts)
 			.totalCostCount(costSummaries.size())
 			.build();
+	}
+
+	@Transactional
+	public Long deleteCost(Long tripId, Long costId) {
+		if (!tripRepository.existsById(tripId)) {
+			throw BusinessException.from(ExceptionCode.INVALID_TRIP);
+		}
+		Long curUserId = SecurityUtil.getCurrentMemberId();
+
+		tripMemberService.validateMembershipAndGet(curUserId, tripId);
+
+		Cost cost = costRepository.findByIdAndTripId(costId, tripId)
+			.orElseThrow(() -> BusinessException.from(ExceptionCode.COST_NOT_FOUND));
+
+		costRepository.delete(cost);
+		tripMemberService.invalidateAllByTrip(tripId);
+
+		return cost.getId();
 	}
 }

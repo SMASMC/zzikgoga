@@ -19,7 +19,12 @@ public enum S3Directory {
 	/**
 	 * 사진 저장 디렉토리
 	 */
-	PHOTO("photo");
+	PHOTO("photo"),
+
+	/**
+	 * PDF 저장 디렉토리
+	 */
+	MEMORY_PDF("memory-pdf");
 
 	private final String path;
 }

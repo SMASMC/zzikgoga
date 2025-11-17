@@ -5,8 +5,8 @@ package com.zzik.backend.domain.memory.enums;
  * PostgreSQL의 mint_status_type ENUM에 대응
  */
 public enum MintStatus {
-	NONE,     // 민팅 안함
-	PENDING,  // 민팅 대기 중
-	SUCCESS,  // 민팅 성공
-	FAILED    // 민팅 실패
+	none,     // 민팅 안함
+	pending,  // 민팅 대기 중
+	success,  // 민팅 성공
+	failed    // 민팅 실패
 }
