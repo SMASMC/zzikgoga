@@ -1,0 +1,429 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+    color: #333;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 30px 40px;
+    position: relative;
+}
+
+header h1 {
+    font-size: 28px;
+    font-weight: 700;
+}
+
+main {
+    padding: 40px;
+}
+
+section {
+    margin-bottom: 40px;
+}
+
+section h2 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: #667eea;
+}
+
+/* 메시지 */
+.message {
+    padding: 15px 20px;
+    margin: 20px 40px;
+    border-radius: 10px;
+    font-weight: 500;
+}
+
+.message-success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.message-error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* 업로드 섹션 */
+.upload-section .upload-buttons {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.upload-info {
+    font-size: 14px;
+    color: #666;
+    font-style: italic;
+}
+
+/* 날짜 선택 섹션 */
+.date-inputs {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.input-group {
+    flex: 1;
+    min-width: 250px;
+}
+
+.input-group label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: #555;
+}
+
+.input-field {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* 버튼 */
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+    background: #f0f0f0;
+    color: #333;
+}
+
+.btn-secondary:hover {
+    background: #e0e0e0;
+}
+
+.btn-back {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    position: absolute;
+    top: 30px;
+    right: 40px;
+}
+
+.btn-back:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* 사용자 목록 */
+.users-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.user-card {
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 15px;
+    padding: 20px;
+    transition: all 0.3s;
+}
+
+.user-card:hover {
+    border-color: #667eea;
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.user-card .user-info h3 {
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.user-card .user-info p {
+    font-size: 14px;
+    color: #666;
+    margin: 5px 0;
+}
+
+.user-card .btn {
+    margin-top: 15px;
+    width: 100%;
+}
+
+/* 상세 페이지 */
+.user-info-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 15px;
+    margin-bottom: 30px;
+}
+
+.user-info-section h2 {
+    color: white;
+    font-size: 24px;
+    margin-bottom: 5px;
+}
+
+.user-info-section p {
+    opacity: 0.9;
+    font-size: 14px;
+}
+
+.info-box {
+    background: #f8f9fa;
+    border-radius: 15px;
+    padding: 25px;
+}
+
+/* 잔액 표시 */
+.balance-display .balance-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: white;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.balance-display .balance-item .label {
+    font-size: 16px;
+    color: #666;
+}
+
+.balance-display .balance-item .amount {
+    font-size: 28px;
+    font-weight: 700;
+    color: #667eea;
+}
+
+.balance-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.detail-item {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+.detail-item .label {
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 5px;
+}
+
+.detail-item .value {
+    font-size: 16px;
+    color: #333;
+    font-weight: 600;
+}
+
+/* 거래 내역 */
+.transactions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.transaction-item {
+    background: white;
+    border-left: 4px solid #667eea;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.transaction-item.deposit {
+    background: #e3f2fd;
+    border-left-color: #2196f3;
+}
+
+.transaction-item.withdrawal {
+    background: #ffe6e6;
+    border-left-color: #dc3545;
+}
+
+.transaction-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.transaction-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.transaction-type {
+    font-weight: 700;
+    font-size: 16px;
+}
+
+.deposit .transaction-type {
+    color: #1976d2;
+}
+
+.withdrawal .transaction-type {
+    color: #dc3545;
+}
+
+.transaction-date {
+    font-size: 13px;
+    color: #666;
+}
+
+.transaction-amount {
+    font-size: 24px;
+    font-weight: 700;
+    text-align: right;
+}
+
+.transaction-amount.deposit {
+    color: #1976d2;
+}
+
+.transaction-amount.withdrawal {
+    color: #dc3545;
+}
+
+.transaction-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+}
+
+.detail-row .label {
+    font-size: 13px;
+    color: #999;
+}
+
+.detail-row .value {
+    font-size: 13px;
+    color: #333;
+    font-weight: 500;
+}
+
+/* 로딩 및 빈 메시지 */
+.loading,
+.empty-message {
+    text-align: center;
+    padding: 40px;
+    color: #999;
+    font-size: 16px;
+}
+
+.error {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid #f5c6cb;
+}
+
+.error p {
+    margin: 5px 0;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    main {
+        padding: 20px;
+    }
+
+    header {
+        padding: 20px;
+    }
+
+    header h1 {
+        font-size: 22px;
+    }
+
+    .btn-back {
+        position: static;
+        margin-top: 15px;
+        width: 100%;
+    }
+
+    .users-list {
+        grid-template-columns: 1fr;
+    }
+
+    .upload-section .upload-buttons {
+        flex-direction: column;
+    }
+
+    .balance-display .balance-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .balance-display .balance-item .amount {
+        font-size: 24px;
+    }
+}

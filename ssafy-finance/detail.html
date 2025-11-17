@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>계좌 상세 정보 - SSAFY 금융</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>계좌 상세 정보</h1>
+            <button id="backBtn" class="btn btn-back">← 뒤로가기</button>
+        </header>
+
+        <main>
+            <!-- 사용자 정보 -->
+            <section class="user-info-section">
+                <h2 id="userName">-</h2>
+                <p id="userAccount">계좌번호: -</p>
+            </section>
+
+            <!-- 잔액 정보 -->
+            <section class="balance-section">
+                <h2>계좌 잔액</h2>
+                <div id="balanceInfo" class="info-box">
+                    <div class="loading">로딩 중...</div>
+                </div>
+            </section>
+
+            <!-- 거래 내역 -->
+            <section class="transactions-section">
+                <h2>거래 내역</h2>
+                <div id="transactionsList" class="info-box">
+                    <div class="loading">로딩 중...</div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="users.js"></script>
+    <script src="detail.js"></script>
+</body>
+</html>

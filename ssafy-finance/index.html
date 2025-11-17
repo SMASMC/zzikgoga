@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSAFY 금융 조회 시스템</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>SSAFY 금융 조회 시스템</h1>
+        </header>
+
+        <main>
+            <!-- 날짜 범위 선택 섹션 -->
+            <section class="date-section">
+                <h2>조회 날짜 범위</h2>
+                <div class="date-inputs">
+                    <div class="input-group">
+                        <label for="startDateTime">시작 일시 이후</label>
+                        <input type="datetime-local" id="startDateTime" class="input-field">
+                    </div>
+                </div>
+            </section>
+
+            <!-- 사용자 선택 섹션 -->
+            <section class="users-section">
+                <h2>사용자 선택</h2>
+                <div id="usersList" class="users-list">
+                    <p class="empty-message">데이터를 로드해주세요.</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="users.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
