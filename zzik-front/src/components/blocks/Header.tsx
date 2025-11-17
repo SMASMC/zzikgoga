@@ -135,11 +135,11 @@ const Header = ({
             {greeting}
           </span>
           {user ? (
-            <SolidButton onClick={handleLogout} variant="point" size="md" rounded="full">
+            <SolidButton onClick={handleLogout} variant="main" size="md" rounded="full">
               로그아웃
             </SolidButton>
           ) : (
-            <SolidButton onClick={handleLoginForm} variant="point" size="md" rounded="full">
+            <SolidButton onClick={handleLoginForm} variant="main" size="md" rounded="full">
               로그인
             </SolidButton>
           )}

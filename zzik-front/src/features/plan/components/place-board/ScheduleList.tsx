@@ -366,26 +366,27 @@ const ScheduleList = ({
           </div>
 
           <div className="space-y-4">
-            {/* 시작 시간 */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                시작 시간 <span className="text-red-500">*</span>
-              </label>
-              <TimePicker
-                value={newScheduleStart}
-                onChange={setNewScheduleStart}
-                placeholder="시작 시간 선택"
-              />
-            </div>
+            {/* 시작 시간 & 종료 시간 */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  시작 시간 <span className="text-red-500">*</span>
+                </label>
+                <TimePicker
+                  value={newScheduleStart}
+                  onChange={setNewScheduleStart}
+                  placeholder="시작 시간 선택"
+                />
+              </div>
 
-            {/* 종료 시간 */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">종료 시간</label>
-              <TimePicker
-                value={newScheduleEnd}
-                onChange={setNewScheduleEnd}
-                placeholder="종료 시간 선택"
-              />
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">종료 시간</label>
+                <TimePicker
+                  value={newScheduleEnd}
+                  onChange={setNewScheduleEnd}
+                  placeholder="종료 시간 선택"
+                />
+              </div>
             </div>
 
             {/* 메모 */}

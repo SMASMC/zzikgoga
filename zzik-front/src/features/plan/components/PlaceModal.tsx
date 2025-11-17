@@ -294,26 +294,28 @@ const PlaceModal = ({ onClose, place }: PlaceModalProps) => {
 
         <div className="mb-4 sm:mb-6">
           <h3 className="text-base sm:text-lg mb-2 sm:mb-3 text-slate-700 font-semibold">
-            시작 시간
+            시간
           </h3>
-          <TimePicker
-            value={startDateTime}
-            onChange={setStartDateTime}
-            placeholder="시작 시간"
-            className="w-full"
-          />
-        </div>
-
-        <div className="mb-4 sm:mb-6">
-          <h3 className="text-base sm:text-lg mb-2 sm:mb-3 text-slate-700 font-semibold">
-            종료 시간
-          </h3>
-          <TimePicker
-            value={endDateTime}
-            onChange={setEndDateTime}
-            placeholder="종료 시간"
-            className="w-full"
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-slate-600">시작 시간</label>
+              <TimePicker
+                value={startDateTime}
+                onChange={setStartDateTime}
+                placeholder="시작 시간"
+                className="w-full"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-slate-600">종료 시간</label>
+              <TimePicker
+                value={endDateTime}
+                onChange={setEndDateTime}
+                placeholder="종료 시간"
+                className="w-full"
+              />
+            </div>
+          </div>
           <div className="mt-2 flex items-center justify-between text-xs">
             <span className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-600">
               선택 날짜: {selectedDateKey || '미선택'}

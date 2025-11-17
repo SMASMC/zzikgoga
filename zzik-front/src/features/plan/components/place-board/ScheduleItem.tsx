@@ -514,7 +514,9 @@ const ScheduleItem = ({
           <div className="grid grid-cols-2 gap-3">
             {/* 시작 */}
             <div>
-              <label className="block text-[10px] font-semibold text-slate-600 mb-1">시작</label>
+              <label className="block text-[10px] font-semibold text-slate-600 mb-1">
+                시작 시간
+              </label>
               {doc && yStartTextRef.current ? (
                 <CollaborativeTimeInput
                   yText={yStartTextRef.current}
@@ -582,7 +584,9 @@ const ScheduleItem = ({
 
             {/* 종료 */}
             <div>
-              <label className="block text-[10px] font-semibold text-slate-600 mb-1">종료</label>
+              <label className="block text-[10px] font-semibold text-slate-600 mb-1">
+                종료 시간
+              </label>
               {doc && yStartTextRef.current && yOffsetTextRef.current ? (
                 <TimePicker
                   value={endTimeLabel}
