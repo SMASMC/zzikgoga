@@ -115,7 +115,7 @@ const TimePicker = ({
                   key={hour}
                   type="button"
                   onClick={() => handleQuickSelect(hour)}
-                  className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition"
+                  className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full transition"
                 >
                   {String(hour).padStart(2, '0')}:00
                 </button>

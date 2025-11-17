@@ -215,7 +215,7 @@ const Calendar = ({
               onClick={() => handleDateClick(date)}
               disabled={disabled}
               className={`
-                aspect-square flex items-center justify-center rounded-lg text-sm transition-all sm:text-base
+                aspect-square flex items-center justify-center rounded-full text-sm transition-all sm:text-base
                 ${disabled ? 'text-gray-300' : 'hover:scale-105'}
                 ${!disabled && inRange ? 'bg-background-500' : ''}
                 ${

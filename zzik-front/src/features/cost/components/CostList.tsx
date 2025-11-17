@@ -229,7 +229,7 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
                       type="button"
                       onClick={(e) => handleDelete(e, cost.costId)}
                       disabled={deletingCostId === cost.costId}
-                      className="relative z-20 px-3 py-1.5 text-sm font-bmjua rounded-lg bg-red-500 text-white hover:bg-red-600 shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 touch-manipulation"
+                      className="relative z-20 px-3 py-1.5 text-sm font-bmjua rounded-full bg-red-500 text-white hover:bg-red-600 shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 touch-manipulation"
                       title="삭제"
                     >
                       {deletingCostId === cost.costId ? '삭제 중...' : '삭제'}

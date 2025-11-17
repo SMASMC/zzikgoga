@@ -317,7 +317,7 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
             </div>
             <button
               type="button"
-              className="px-3 py-1.5 text-sm bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors font-bold"
+              className="px-3 py-1.5 text-sm bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition-colors font-bold"
               onClick={() => setIsPayerModalOpen(true)}
             >
               변경
@@ -513,7 +513,7 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
                   setErrors({ ...errors, items: undefined })
                 }
               }}
-              className="px-3 py-1 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-bold"
+              className="px-3 py-1 text-xs bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors font-bold"
             >
               + 추가
             </button>

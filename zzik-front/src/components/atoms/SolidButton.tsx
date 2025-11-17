@@ -9,7 +9,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 const SolidButton = ({
   variant = 'main',
   size = 'md',
-  rounded = '2xl',
+  rounded = 'full',
   children,
   className = '',
   ...props
@@ -33,8 +33,8 @@ const SolidButton = ({
 
   const roundedStyles = {
     full: 'rounded-full',
-    '2xl': 'rounded-2xl',
-    lg: 'rounded-lg',
+    '2xl': 'rounded-full',
+    lg: 'rounded-full',
   }
 
   return (
