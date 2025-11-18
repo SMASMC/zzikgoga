@@ -49,6 +49,18 @@ export type MemoryPdfResponse = {
   storageType: string
 }
 
+export type MemoryNftInfoResponse = {
+  pdfUrl: string
+  metadataUrl: string
+  tripId: number
+}
+
+export type MemoryNftOwnershipResponse = {
+  tripId: number
+  walletAddress: string
+  verifyUrl: string
+}
+
 export type TripPhoto = {
   id: number
   memberId: number

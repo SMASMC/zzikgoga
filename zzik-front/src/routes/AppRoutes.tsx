@@ -12,6 +12,7 @@ import { PublicOnlyRoute } from '@/components/auth/PublicOnlyRoute'
 import CostPage from '@/pages/cost/CostPage'
 import { InviteCallbackPage } from '@/pages/plan/InviteCallbackPage'
 import MemoryPage from '@/pages/memory/MemoryPage'
+import MemoryNftPage from '@/pages/memory/MemoryNftPage'
 import CostFinalPage from '@/pages/cost/CostFinalPage'
 import NotFoundPage from '@/pages/error/NotFoundPage'
 
@@ -67,6 +68,14 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute>
               <MemoryPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/memory/:tripId/nft"
+          element={
+            <ProtectedRoute>
+              <MemoryNftPage />
             </ProtectedRoute>
           }
         />
