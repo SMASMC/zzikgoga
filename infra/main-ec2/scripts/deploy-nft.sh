@@ -268,52 +268,23 @@ if [ "$SUCCESS" = false ]; then
 fi
 
 echo "🔧 nginx 설정 업데이트 중..."
+if [ -f "$(pwd)/nginx/nft-${NEW_ENV}.conf" ]; then
+    echo "✅ nginx 설정 파일 존재: $(pwd)/nginx/nft-${NEW_ENV}.conf"
 
-# SSL 인증서 확인
-SSL_CERT="/etc/letsencrypt/live/nft.zzik.kr/fullchain.pem"
-USE_HTTPS=false
-
-if [ -f "$SSL_CERT" ]; then
-    echo "✅ SSL 인증서 발견 - HTTPS 설정 사용"
-    USE_HTTPS=true
-    NGINX_CONF_FILE="$(pwd)/nginx/nft-${NEW_ENV}.conf"
-else
-    echo "⚠️ SSL 인증서 없음 - HTTP 전용 설정 사용"
-    echo "   인증서 발급 후 HTTPS로 전환 가능합니다"
-    NGINX_CONF_FILE="$(pwd)/nginx/nft-http-only.conf"
-fi
-
-if [ -f "$NGINX_CONF_FILE" ]; then
-    echo "✅ nginx 설정 파일 존재: $NGINX_CONF_FILE"
-
-    # HTTP 전용 설정인 경우 포트 변경
-    if [ "$USE_HTTPS" = false ]; then
-        # 임시 파일 생성하여 포트 변경
-        TEMP_CONF="/tmp/nft-nginx-temp.conf"
-        sed "s/localhost:5001/localhost:${NEW_PORT}/g" "$NGINX_CONF_FILE" > "$TEMP_CONF"
-        sudo cp "$TEMP_CONF" "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}"
-        rm -f "$TEMP_CONF"
-    else
-        # HTTPS 설정 그대로 복사
-        sudo cp "$NGINX_CONF_FILE" "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}"
-    fi
-
+    # sudo 권한으로 nginx 설정 업데이트
+    sudo cp "$(pwd)/nginx/nft-${NEW_ENV}.conf" "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}"
     sudo ln -sf "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}" "${NGINX_SITES_ENABLED}/${NGINX_SITE_NAME}"
 
     if sudo nginx -t; then
         sudo systemctl reload nginx
         echo "✅ nginx 재로드 완료"
-        if [ "$USE_HTTPS" = false ]; then
-            echo "ℹ️ HTTP로 실행 중입니다. SSL 인증서 발급:"
-            echo "   sudo certbot certonly --nginx -d nft.zzik.kr"
-        fi
     else
         echo "❌ nginx 설정 테스트 실패"
         NEED_ROLLBACK=1
         rollback_deployment
     fi
 else
-    echo "⚠️ nginx 설정 파일이 없습니다: $NGINX_CONF_FILE"
+    echo "⚠️ nginx 설정 파일이 없습니다: $(pwd)/nginx/nft-${NEW_ENV}.conf"
     NEED_ROLLBACK=1
     rollback_deployment
 fi
