@@ -27,11 +27,11 @@ PREVIOUS_IMAGE="${IMAGE_NAME}:${IMAGE_TAG}-previous"
 echo ""
 echo "🔧 Nginx 설정 사전 점검 중..."
 
-# SSL 인증서 확인
+# SSL 인증서 확인 (sudo 권한으로 확인 - /etc/letsencrypt는 root만 접근 가능)
 SSL_CERT="/etc/letsencrypt/live/nft.zzik.kr/fullchain.pem"
 USE_HTTPS=false
 
-if [ -f "$SSL_CERT" ]; then
+if sudo test -f "$SSL_CERT"; then
     echo "✅ SSL 인증서 존재 - HTTPS 모드로 배포됩니다"
     USE_HTTPS=true
 else
@@ -123,9 +123,9 @@ rollback_deployment() {
     # Nginx 설정도 이전 버전으로 복구
     echo "  🔧 Nginx 설정 복구 중..."
 
-    # SSL 인증서 확인하여 적절한 설정 선택
+    # SSL 인증서 확인하여 적절한 설정 선택 (sudo로 확인)
     ROLLBACK_CONFIG=""
-    if [ -f "$SSL_CERT" ]; then
+    if sudo test -f "$SSL_CERT"; then
       ROLLBACK_CONFIG="$(pwd)/nginx/nft-${OLD_ENV}.conf"
       echo "  📝 HTTPS 설정으로 복구: $ROLLBACK_CONFIG"
     else
@@ -352,8 +352,8 @@ if [ "$USE_HTTPS" = false ]; then
 
     # certbot으로 SSL 인증서 발급
     if sudo certbot certonly --nginx -d nft.zzik.kr --non-interactive --agree-tos --email admin@zzik.kr 2>&1 | tee /tmp/certbot-output.log; then
-        # 인증서 발급 성공 확인
-        if [ -f "/etc/letsencrypt/live/nft.zzik.kr/fullchain.pem" ]; then
+        # 인증서 발급 성공 확인 (sudo로 확인)
+        if sudo test -f "/etc/letsencrypt/live/nft.zzik.kr/fullchain.pem"; then
             echo "✅ SSL 인증서 발급 성공!"
 
             # HTTPS nginx 설정으로 전환
