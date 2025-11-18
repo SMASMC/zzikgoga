@@ -19,11 +19,11 @@ COPY package*.json ./
 RUN npm ci --only=production --quiet && \
     npm cache clean --force
 
-# 빌드된 소스 코드 복사 (dist/)
-COPY dist/ ./dist/
+# 소스 코드 복사 (JavaScript 프로젝트이므로 src 디렉토리 복사)
+COPY src/ ./src/
 
 # 환경 설정 파일 복사 (선택적)
-COPY build-info.txt ./build-info.txt
+COPY build-info.txt ./build-info.txt 2>/dev/null || true
 
 # 로그 디렉토리 생성
 RUN mkdir -p logs
@@ -37,9 +37,9 @@ USER nodeapp
 # 포트 노출
 EXPOSE 3200
 
-# Health check (빌드된 JS 파일 실행)
+# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3200/health || exit 1
 
-# 빌드된 서버 실행
-CMD ["node", "dist/server.js"]
+# 서버 실행 (JavaScript 소스 직접 실행)
+CMD ["node", "src/server.js"]
