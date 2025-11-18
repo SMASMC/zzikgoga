@@ -173,7 +173,8 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
     newItems[index] = { ...newItems[index], [field]: value }
 
     // 금액이 변경되면 totalAmount 자동 계산
-    const newTotalAmount = field === 'amount' ? calculateTotalAmount(newItems) : formData.totalAmount
+    const newTotalAmount =
+      field === 'amount' ? calculateTotalAmount(newItems) : formData.totalAmount
 
     setFormData({ ...formData, totalAmount: newTotalAmount, items: newItems })
 
@@ -612,12 +613,14 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
               <input
                 type="number"
                 min="0"
+                max="100000000"
                 value={item.amount || ''}
                 onChange={(e) => {
                   const value = e.target.value === '' ? 0 : Number(e.target.value)
-                  // 음수값 방지
+                  // 음수값 방지 및 최대값 1억(100,000,000) 제한
                   if (value >= 0) {
-                    updateItem(index, 'amount', value)
+                    const limitedValue = value > 100000000 ? 100000000 : value
+                    updateItem(index, 'amount', limitedValue)
                     // 에러 제거
                     if (errors.items && errors.items.includes(`품목 ${index + 1}: 금액`)) {
                       setErrors({ ...errors, items: undefined })
@@ -630,12 +633,14 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
               <input
                 type="number"
                 min="0"
+                max="9999"
                 value={item.count || ''}
                 onChange={(e) => {
                   const value = e.target.value === '' ? 0 : Number(e.target.value)
-                  // 음수값 방지
+                  // 음수값 방지 및 최대값 9999 제한
                   if (value >= 0) {
-                    updateItem(index, 'count', value)
+                    const limitedValue = value > 9999 ? 9999 : value
+                    updateItem(index, 'count', limitedValue)
                     // 에러 제거
                     if (errors.items && errors.items.includes(`품목 ${index + 1}: 수량`)) {
                       setErrors({ ...errors, items: undefined })

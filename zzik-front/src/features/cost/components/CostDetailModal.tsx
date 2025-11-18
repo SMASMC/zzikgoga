@@ -592,10 +592,14 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
                               </label>
                               <input
                                 type="number"
+                                min="0"
+                                max="100000000"
                                 value={menu.amount || ''}
                                 onChange={(e) => {
                                   const newMenus = [...formData.menus]
-                                  newMenus[index].amount = Number(e.target.value)
+                                  const value = Number(e.target.value)
+                                  // 최대값 1억(100,000,000) 제한
+                                  newMenus[index].amount = value > 100000000 ? 100000000 : value
                                   setFormData({ ...formData, menus: newMenus })
                                 }}
                                 className="w-full px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-50 border border-blue-300 rounded-lg text-sm text-right outline-none focus:outline-none focus:ring-0 focus:border-blue-400"
@@ -607,10 +611,14 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
                               </label>
                               <input
                                 type="number"
+                                min="0"
+                                max="9999"
                                 value={menu.count || ''}
                                 onChange={(e) => {
                                   const newMenus = [...formData.menus]
-                                  newMenus[index].count = Number(e.target.value)
+                                  const value = Number(e.target.value)
+                                  // 최대값 9999 제한
+                                  newMenus[index].count = value > 9999 ? 9999 : value
                                   setFormData({ ...formData, menus: newMenus })
                                 }}
                                 className="w-full px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-50 border border-blue-300 rounded-lg text-sm text-right outline-none focus:outline-none focus:ring-0 focus:border-blue-400"
@@ -745,7 +753,7 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
                 // 증빙 자료가 있을 때: 그리드 레이아웃
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
                   {/* 왼쪽 열: 기본 정보 + 상세 정보 */}
-                  <div className="lg:col-span-2 space-y-4">
+                  <div className="lg:col-span-3 space-y-4">
                     {/* 기본 정보 */}
                     <div className="bg-gray-50 rounded-xl p-4 space-y-3">
                       <h3 className="text-lg font-bold text-text-500">기본 정보</h3>
@@ -841,7 +849,7 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
                   </div>
 
                   {/* 증빙 자료 - 오른쪽 (큰 화면) / 하단 (작은 화면) */}
-                  <div className="lg:col-span-3 lg:row-span-2 lg:self-start">
+                  <div className="lg:col-span-2 lg:row-span-2 lg:self-start">
                     <p className="text-sm text-text-600 mb-2 font-bmjua">증빙 자료</p>
                     <div className="relative bg-white rounded-xl overflow-hidden border border-gray-200">
                       <img
