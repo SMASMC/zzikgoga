@@ -35,10 +35,32 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
     items?: string
   }>({})
 
+  // 한국 시간으로 변환하는 함수
+  const getKoreanDateTime = (): string => {
+    const now = new Date()
+    // 한국 시간대(Asia/Seoul)로 변환
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Seoul',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    })
+    const parts = formatter.formatToParts(now)
+    const year = parts.find((p) => p.type === 'year')?.value || '2024'
+    const month = parts.find((p) => p.type === 'month')?.value || '01'
+    const day = parts.find((p) => p.type === 'day')?.value || '01'
+    const hour = parts.find((p) => p.type === 'hour')?.value || '00'
+    const minute = parts.find((p) => p.type === 'minute')?.value || '00'
+    return `${year}-${month}-${day} ${hour}:${minute}:00`
+  }
+
   // 폼 데이터 상태
   const [formData, setFormData] = useState<CostPlusRequest>({
     payerId: user?.id || '',
-    paidAt: new Date().toISOString().slice(0, 16).replace('T', ' ') + ':00',
+    paidAt: getKoreanDateTime(),
     place: '',
     // category: 'ETC',
     totalAmount: 0,

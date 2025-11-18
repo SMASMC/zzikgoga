@@ -415,13 +415,20 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
 
   if (!isOpen) return null
 
+  // 증빙 자료가 있는지 확인
+  const hasReceipt = costDetail?.receiptJson
+
   const modalContent = (
     <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-[100] p-4">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/40" onClick={handleClose} />
 
       {/* Modal Content */}
-      <div className="relative w-full max-w-md sm:max-w-lg bg-white rounded-3xl shadow-xl p-6 sm:p-8 font-bmjua max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div className={`relative w-full ${
+        hasReceipt 
+          ? 'max-w-2xl lg:max-w-4xl' 
+          : 'max-w-lg lg:max-w-xl'
+      } bg-white rounded-3xl shadow-xl p-6 sm:p-8 font-bmjua max-h-[90vh] overflow-y-auto custom-scrollbar`}>
         {/* Header */}
         <div className="flex justify-between items-center mb-6 pt-6">
           <h2 className="text-xl font-bold text-text-500 font-bmjua">
@@ -735,43 +742,111 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
                 </>
               ) : (
                 // 읽기 모드
-                <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-                  <h3 className="text-lg font-bold text-text-500">기본 정보</h3>
+                costDetail.receiptJson ? (
+                  // 증빙 자료가 있을 때: 그리드 레이아웃
+                  <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+                    {/* 왼쪽 열: 기본 정보 + 상세 정보 */}
+                    <div className="lg:col-span-2 space-y-4">
+                      {/* 기본 정보 */}
+                      <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                        <h3 className="text-lg font-bold text-text-500">기본 정보</h3>
 
-                  <div>
-                    <p className="text-sm text-text-600 mb-1">결제자</p>
-                    <p className="text-base font-semibold text-text-500">
-                      {getMemberName(costDetail.payerId)}
-                    </p>
-                  </div>
+                        <div>
+                          <p className="text-sm text-text-600 mb-1">결제자</p>
+                          <p className="text-base font-semibold text-text-500">
+                            {getMemberName(costDetail.payerId)}
+                          </p>
+                        </div>
 
-                  <div>
-                    <p className="text-sm text-text-600 mb-1">결제 일시</p>
-                    <p className="text-base font-semibold text-text-500">
-                      {formatDate(costDetail.paidAt)}
-                    </p>
-                  </div>
+                        <div>
+                          <p className="text-sm text-text-600 mb-1">결제 일시</p>
+                          <p className="text-base font-semibold text-text-500">
+                            {formatDate(costDetail.paidAt)}
+                          </p>
+                        </div>
 
-                  <div>
-                    <p className="text-sm text-text-600 mb-1">결제 금액</p>
-                    <p className="text-lg font-bold text-blue-600">
-                      {formatAmount(costDetail.totalAmount)}원
-                    </p>
-                  </div>
+                        <div>
+                          <p className="text-sm text-text-600 mb-1">결제 금액</p>
+                          <p className="text-lg font-bold text-blue-600">
+                            {formatAmount(costDetail.totalAmount)}원
+                          </p>
+                        </div>
 
-                  <div>
-                    <p className="text-sm text-text-600 mb-1">장소</p>
-                    <p className="text-base font-semibold text-text-500">{costDetail.place}</p>
-                  </div>
+                        <div>
+                          <p className="text-sm text-text-600 mb-1">장소</p>
+                          <p className="text-base font-semibold text-text-500">{costDetail.place}</p>
+                        </div>
 
-                  {costDetail.receiptJson && (
-                    <div>
-                      <p className="text-sm text-text-600 mb-2">증빙 자료</p>
+                        {costDetail.memo && (
+                          <div>
+                            <p className="text-sm text-text-600 mb-1">메모</p>
+                            <p className="text-base text-text-500">{costDetail.memo}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 상세 정보 */}
+                      {costDetail.items && costDetail.items.length > 0 && (
+                        <div className="bg-blue-50 rounded-xl p-4">
+                          <h3 className="text-lg font-bold text-text-500">상세 정보</h3>
+                          <div className="space-y-2">
+                            {costDetail.items.map((item, index) => (
+                              <div key={index} className="bg-white rounded-lg p-3">
+                                <div className="flex justify-between items-start mb-2">
+                                  <p className="font-semibold text-text-500">{item.menuName}</p>
+                                  <p className="font-bold text-blue-600">{formatAmount(item.amount)}원</p>
+                                </div>
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2 text-xs text-text-600">
+                                    <span>수량: {item.count}</span>
+                                  </div>
+                                  {item.memberIds && item.memberIds.length > 0 && (
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span className="text-xs text-text-600">참여자:</span>
+                                      {item.memberIds.map((memberIdString) => {
+                                        const member = getMemberById(memberIdString)
+                                        return (
+                                          <div
+                                            key={memberIdString}
+                                            className="flex items-center gap-1.5 bg-white rounded-full px-2 py-1 border border-gray-200"
+                                          >
+                                            {member?.thumbnailUrl ? (
+                                              <img
+                                                src={member.thumbnailUrl}
+                                                alt={member.memberName}
+                                                className="w-5 h-5 rounded-full object-cover"
+                                              />
+                                            ) : (
+                                              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                                                <span className="text-white text-xs font-bold">
+                                                  {member?.memberName?.charAt(0) || '?'}
+                                                </span>
+                                              </div>
+                                            )}
+                                            <span className="text-xs font-semibold text-text-500">
+                                              {member?.memberName || `ID: ${memberIdString}`}
+                                            </span>
+                                          </div>
+                                        )
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 증빙 자료 - 오른쪽 (큰 화면) / 하단 (작은 화면) */}
+                    <div className="lg:col-span-3 lg:row-span-2 lg:self-start">
+                      <p className="text-sm text-text-600 mb-2 font-bmjua">증빙 자료</p>
                       <div className="relative bg-white rounded-xl overflow-hidden border border-gray-200">
                         <img
                           src={costDetail.receiptJson}
                           alt="증빙 자료"
-                          className="w-full h-auto max-h-96 object-contain"
+                          className="w-full h-auto max-h-96 lg:max-h-full object-contain"
                           onError={(e) => {
                             // 이미지 로드 실패 시 에러 처리
                             const target = e.target as HTMLImageElement
@@ -785,68 +860,101 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
                         />
                       </div>
                     </div>
-                  )}
+                  </div>
+                ) : (
+                  // 증빙 자료가 없을 때: 원래 레이아웃
+                  <>
+                    <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                      <h3 className="text-lg font-bold text-text-500">기본 정보</h3>
 
-                  {costDetail.memo && (
-                    <div>
-                      <p className="text-sm text-text-600 mb-1">메모</p>
-                      <p className="text-base text-text-500">{costDetail.memo}</p>
-                    </div>
-                  )}
-                </div>
-              )}
+                      <div>
+                        <p className="text-sm text-text-600 mb-1">결제자</p>
+                        <p className="text-base font-semibold text-text-500">
+                          {getMemberName(costDetail.payerId)}
+                        </p>
+                      </div>
 
-              {/* 읽기 모드일 때만 상세 정보 표시 */}
-              {!isEditing && costDetail.items && costDetail.items.length > 0 && (
-                <div className="bg-blue-50 rounded-xl p-4">
-                  <h3 className="text-lg font-bold text-text-500">상세 정보</h3>
-                  <div className="space-y-2">
-                    {costDetail.items.map((item, index) => (
-                      <div key={index} className="bg-white rounded-lg p-3">
-                        <div className="flex justify-between items-start mb-2">
-                          <p className="font-semibold text-text-500">{item.menuName}</p>
-                          <p className="font-bold text-blue-600">{formatAmount(item.amount)}원</p>
+                      <div>
+                        <p className="text-sm text-text-600 mb-1">결제 일시</p>
+                        <p className="text-base font-semibold text-text-500">
+                          {formatDate(costDetail.paidAt)}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm text-text-600 mb-1">결제 금액</p>
+                        <p className="text-lg font-bold text-blue-600">
+                          {formatAmount(costDetail.totalAmount)}원
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm text-text-600 mb-1">장소</p>
+                        <p className="text-base font-semibold text-text-500">{costDetail.place}</p>
+                      </div>
+
+                      {costDetail.memo && (
+                        <div>
+                          <p className="text-sm text-text-600 mb-1">메모</p>
+                          <p className="text-base text-text-500">{costDetail.memo}</p>
                         </div>
+                      )}
+                    </div>
+
+                    {/* 상세 정보 */}
+                    {costDetail.items && costDetail.items.length > 0 && (
+                      <div className="bg-blue-50 rounded-xl p-4">
+                        <h3 className="text-lg font-bold text-text-500">상세 정보</h3>
                         <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-xs text-text-600">
-                            <span>수량: {item.count}</span>
-                          </div>
-                          {item.memberIds && item.memberIds.length > 0 && (
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-xs text-text-600">참여자:</span>
-                              {item.memberIds.map((memberIdString) => {
-                                const member = getMemberById(memberIdString)
-                                return (
-                                  <div
-                                    key={memberIdString}
-                                    className="flex items-center gap-1.5 bg-white rounded-full px-2 py-1 border border-gray-200"
-                                  >
-                                    {member?.thumbnailUrl ? (
-                                      <img
-                                        src={member.thumbnailUrl}
-                                        alt={member.memberName}
-                                        className="w-5 h-5 rounded-full object-cover"
-                                      />
-                                    ) : (
-                                      <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                                        <span className="text-white text-xs font-bold">
-                                          {member?.memberName?.charAt(0) || '?'}
-                                        </span>
-                                      </div>
-                                    )}
-                                    <span className="text-xs font-semibold text-text-500">
-                                      {member?.memberName || `ID: ${memberIdString}`}
-                                    </span>
+                          {costDetail.items.map((item, index) => (
+                            <div key={index} className="bg-white rounded-lg p-3">
+                              <div className="flex justify-between items-start mb-2">
+                                <p className="font-semibold text-text-500">{item.menuName}</p>
+                                <p className="font-bold text-blue-600">{formatAmount(item.amount)}원</p>
+                              </div>
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-xs text-text-600">
+                                  <span>수량: {item.count}</span>
+                                </div>
+                                {item.memberIds && item.memberIds.length > 0 && (
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-xs text-text-600">참여자:</span>
+                                    {item.memberIds.map((memberIdString) => {
+                                      const member = getMemberById(memberIdString)
+                                      return (
+                                        <div
+                                          key={memberIdString}
+                                          className="flex items-center gap-1.5 bg-white rounded-full px-2 py-1 border border-gray-200"
+                                        >
+                                          {member?.thumbnailUrl ? (
+                                            <img
+                                              src={member.thumbnailUrl}
+                                              alt={member.memberName}
+                                              className="w-5 h-5 rounded-full object-cover"
+                                            />
+                                          ) : (
+                                            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                                              <span className="text-white text-xs font-bold">
+                                                {member?.memberName?.charAt(0) || '?'}
+                                              </span>
+                                            </div>
+                                          )}
+                                          <span className="text-xs font-semibold text-text-500">
+                                            {member?.memberName || `ID: ${memberIdString}`}
+                                          </span>
+                                        </div>
+                                      )
+                                    })}
                                   </div>
-                                )
-                              })}
+                                )}
+                              </div>
                             </div>
-                          )}
+                          ))}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    )}
+                  </>
+                )
               )}
             </>
           ) : null}
