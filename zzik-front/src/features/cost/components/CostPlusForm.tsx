@@ -1,24 +1,17 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuthStore } from '@/shared/stores/useAuthStore'
 import { User } from '@/features/auth/types/auth'
-// import { CostCategory, CostItem, CostPlusRequest } from '@/features/cost/types/cost'
 import { CostItem, CostPlusRequest } from '@/features/cost/types/cost'
 import PayerSelectModal from './PayerSelectModal'
 import MemberSelectModal from './MemberSelectModal'
 import { PlanService } from '@/features/plan/services/planServices'
 import { CostPlusService } from '../services/costService'
 import { ToastDock } from '@/components/blocks/ToastDock'
-// import { DropdownSelect } from '@/components/blocks/DropdownSelect'
-// import { COST_CATEGORIES, COST_CATEGORY_LABELS } from '@/features/cost/types/cost'
 
 interface CostPlusFormProps {
   tripId: string
   onSuccess?: () => void
 }
-// const CATEGORY_OPTIONS = COST_CATEGORIES.map((cat) => ({
-//   label: COST_CATEGORY_LABELS[cat],
-//   value: cat,
-// }))
 
 const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -125,9 +118,6 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
     const newItems = [...formData.items]
     newItems[index] = { ...newItems[index], [field]: value }
 
-    // 수량은 참여자 수와 독립적으로 관리 (자동 변경 제거)
-    // count는 실제 구매한 상품의 개수를 의미하며, 참여자 수와는 별개
-
     setFormData({ ...formData, items: newItems })
 
     // 품목 금액이 변경되면 items 에러 제거 (금액 합계 재검증을 위해)
@@ -172,17 +162,6 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
     // 총 금액 검증
     if (!formData.totalAmount || formData.totalAmount <= 0) {
       newErrors.totalAmount = '총 금액을 입력해주세요.'
-    }
-
-    // 메모 검증
-    if (!formData.memo || formData.memo.trim() === '') {
-      newErrors.memo = '메모를 입력해주세요.'
-    }
-
-    // 증빙 자료 검증
-    const receiptJsonStr = String(formData.receiptJson || '')
-    if (!formData.receiptJson || receiptJsonStr.trim() === '') {
-      newErrors.receiptJson = '증빙 자료를 업로드해주세요.'
     }
 
     // 품목 검증
@@ -394,10 +373,10 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
         {/* 메모 */}
         <div className="mb-4 sm:mb-6">
           <label className="block text-base sm:text-lg mb-2 sm:mb-3 text-text-600 font-bmjua">
-            메모 (선택사항)
+            메모
           </label>
           <textarea
-            value={formData.memo}
+            value={formData.memo || ''}
             onChange={(e) => {
               setFormData({ ...formData, memo: e.target.value })
               // 에러 제거

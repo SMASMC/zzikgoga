@@ -40,9 +40,8 @@ export interface CostPlusRequest {
   payerId: string
   paidAt: string
   place: string
-  // category: CostCategory
   totalAmount: number
-  memo: string
+  memo: string | null
   receiptJson: string | null
   items: CostItem[]
 }
@@ -51,7 +50,6 @@ export interface CostListResponse {
   costId: number
   paidAt: string
   place: string
-  // category: CostCategory
   payerName: string
   payerId: number
   payerThumbnailUrl: string
