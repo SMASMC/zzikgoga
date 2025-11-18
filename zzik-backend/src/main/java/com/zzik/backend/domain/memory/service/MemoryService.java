@@ -119,7 +119,7 @@ public class MemoryService {
 		// 1. DB에서 내 기록 조회 (권한 확인 포함)
 		checkTripMembership(tripId, memberId);
 		Memory memory = memoryRepository.findByTripIdAndMemberIdWithDetailsFetch(tripId, memberId)
-			.orElseThrow(() -> BusinessException.from(ExceptionCode.NOT_FOUND_RESOURCE));
+			.orElseThrow(() -> BusinessException.from(ExceptionCode.NOT_FOUND_MEMORY));
 
 		try {
 			// 2. Memory 엔티티(JSONB)를 HTML 문자열로 변환

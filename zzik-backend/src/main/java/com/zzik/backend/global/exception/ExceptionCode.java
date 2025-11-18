@@ -83,6 +83,8 @@ public enum ExceptionCode {
 	INVALID_FILE_EXTENSION(HttpStatus.BAD_REQUEST, 40507, "BAD_REQUEST", "허용되지 않는 파일 확장자입니다."),
 	FILE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 40508, "INTERNAL_SERVER_ERROR", "파일 업로드에 실패했습니다."),
 	INVALID_FILE(HttpStatus.BAD_REQUEST, 40509, "BAD_REQUEST", "파일이 유효하지 않습니다."),
+	NOT_FOUND_MEMORY(HttpStatus.NOT_FOUND, 40510, "저장된 기록이 없습니다."),
+
 
 	/* 406xx - media */
 
@@ -98,8 +100,8 @@ public enum ExceptionCode {
 	/* 499xx ETC */
 	NOT_FOUND_RESOURCE(HttpStatus.NOT_FOUND, 49901, "해당 경로를 찾을 수 없습니다."),
 	METHOD_FORBIDDEN(HttpStatus.METHOD_NOT_ALLOWED, 49902, "지원하지 않는 HTTP 메서드를 사용합니다."),
-	INVALID_IMAGE_EXTENSION(HttpStatus.BAD_REQUEST, 49903, "지원되지 않는 이미지 파일 확장자입니다.",
-		"이미지 파일 업로드에 허용되지 않는 파일 형식입니다."),
+	INVALID_IMAGE_EXTENSION(HttpStatus.BAD_REQUEST, 49903, "지원되지 않는 이미지 파일 확장자입니다.", "이미지 파일 업로드에 허용되지 않는 파일 형식입니다."),
+
 	/* 4992x 외부 서비스 */
 	S3_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 49920, "이미지 서버 내부 오류로 인해 현재 파일을 업로드할 수 없습니다.",
 		"S3 SDK에서 익셉션 발생"),
