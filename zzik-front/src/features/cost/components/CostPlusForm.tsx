@@ -68,6 +68,23 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
     loadMembers()
   }, [loadMembers])
 
+  // 멤버가 한 명일 때 자동으로 결제 참여자 배정
+  useEffect(() => {
+    if (members.length === 1 && formData.items.length > 0) {
+      // 모든 품목의 결제 참여자가 비어있을 때만 자동 배정
+      const hasEmptyMemberIds = formData.items.some((item) => item.memberIds.length === 0)
+      if (hasEmptyMemberIds) {
+        const singleMemberId = members[0].id
+        const updatedItems = formData.items.map((item) => ({
+          ...item,
+          memberIds: item.memberIds.length === 0 ? [singleMemberId] : item.memberIds,
+        }))
+        setFormData((prev) => ({ ...prev, items: updatedItems }))
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [members.length])
+
   // 결제자 선택 핸들러
   const handlePayerSelect = (selectedUser: User) => {
     setPayer(selectedUser)
@@ -94,9 +111,14 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
 
   // 품목 추가
   const addItem = () => {
+    // 멤버가 한 명이면 자동으로 배정
+    const newItemMemberIds = members.length === 1 ? [members[0].id] : []
     setFormData({
       ...formData,
-      items: [...formData.items, { menuId: 0, menuName: '', amount: 0, memberIds: [], count: 1 }],
+      items: [
+        ...formData.items,
+        { menuId: 0, menuName: '', amount: 0, memberIds: newItemMemberIds, count: 1 },
+      ],
     })
   }
 
@@ -132,7 +154,9 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
       // 파일 크기 검증 (원본 파일이 너무 크면 거부)
       const maxOriginalSizeMB = 10 // 10MB
       if (file.size > maxOriginalSizeMB * 1024 * 1024) {
-        reject(new Error(`이미지 크기가 너무 큽니다. ${maxOriginalSizeMB}MB 이하의 파일을 선택해주세요.`))
+        reject(
+          new Error(`이미지 크기가 너무 큽니다. ${maxOriginalSizeMB}MB 이하의 파일을 선택해주세요.`)
+        )
         return
       }
 
@@ -168,7 +192,7 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
           ctx.drawImage(img, 0, 0, width, height)
 
           // 품질 조정하여 압축 (0.7 ~ 0.9 사이)
-          let quality = 0.8
+          const quality = 0.8
           let compressedDataUrl = canvas.toDataURL('image/jpeg', quality)
 
           // 목표 크기 이하로 압축 시도
