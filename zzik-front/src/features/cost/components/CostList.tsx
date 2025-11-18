@@ -14,9 +14,10 @@ import { ToastDock } from '@/components/blocks/ToastDock'
 interface CostListProps {
   tripId: string
   onRefresh?: number
+  onSettleAccepted?: () => void // 정산 수락 완료 시 호출되는 콜백
 }
 
-const CostList = ({ tripId, onRefresh }: CostListProps) => {
+const CostList = ({ tripId, onRefresh, onSettleAccepted }: CostListProps) => {
   const navigate = useNavigate()
   const { user } = useAuthStore()
   const [costs, setCosts] = useState<CostListResponse[]>([])
@@ -109,7 +110,7 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
   }
 
   const handleDelete = async (e: React.MouseEvent, costId: number) => {
-    e.stopPropagation() // 클릭 이벤트 버블링 방지 (모달이 열리지 않도록)
+    e.stopPropagation()
 
     if (!confirm('정말로 이 결제 내역을 삭제하시겠습니까?')) {
       return
@@ -142,6 +143,11 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
       // 정산 상태 다시 조회
       await loadSettleInfo()
       setToast({ open: true, variant: 'success', message: '정산 수락이 완료되었습니다.' })
+
+      // 정산 수락 완료 시 부모 컴포넌트에 알림
+      if (onSettleAccepted) {
+        onSettleAccepted()
+      }
     } catch (error) {
       console.error('정산 수락 실패:', error)
       setToast({
@@ -215,9 +221,6 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
                       <div className="flex items-center gap-2 mb-1">
                         <p className="font-bold text-text-500 truncate">{cost.payerName}</p>
                         <span className="text-xs text-text-600">결제</span>
-                        {/* <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">
-                        //   {/* {COST_CATEGORY_LABELS[cost.category]} */}
-                        {/* // </span>  */}
                       </div>
                       <p className="text-sm text-text-600 truncate">{cost.place}</p>
                       <p className="text-xs text-gray-500">{formatDate(cost.paidAt)}</p>
@@ -227,15 +230,18 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
                     <p className="text-lg font-bold text-blue-600">
                       {formatAmount(cost.totalAmount)}원
                     </p>
-                    <button
-                      type="button"
-                      onClick={(e) => handleDelete(e, cost.costId)}
-                      disabled={deletingCostId === cost.costId}
-                      className="relative z-20 px-3 py-1.5 text-sm font-bmjua rounded-full bg-red-500 text-white hover:bg-red-600 shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 touch-manipulation"
-                      title="삭제"
-                    >
-                      {deletingCostId === cost.costId ? '삭제 중...' : '삭제'}
-                    </button>
+                    {settleInfo &&
+                      settleInfo.acceptedCount < settleInfo.totalMemberCount &&
+                      settleInfo.totalMemberCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleDelete(e, cost.costId)}
+                          disabled={deletingCostId === cost.costId}
+                          className="relative z-20 px-3 py-1.5 text-sm font-bmjua rounded-full bg-red-500 text-white hover:bg-red-600 shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 touch-manipulation"
+                        >
+                          {deletingCostId === cost.costId ? '삭제 중...' : '삭제'}
+                        </button>
+                      )}
                   </div>
                 </div>
               </div>
@@ -360,7 +366,7 @@ const CostList = ({ tripId, onRefresh }: CostListProps) => {
                   size="lg"
                   className="w-full sm:w-auto"
                 >
-                  {isAlreadyAccepted ? '이미 수락함' : isSettling ? '정산 중...' : '정산 수락하기'}
+                  {isAlreadyAccepted ? '수락 완료' : isSettling ? '정산 중...' : '정산 수락하기'}
                 </SolidButton>
               )}
             </div>

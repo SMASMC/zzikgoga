@@ -3,32 +3,108 @@
 // 영수증 모달과 사진 직접 추가 모달을 위함
 
 import CostPlusModal from './CostPlusModal'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useImperativeHandle, forwardRef, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
-import { CostReciptService } from '../services/costService'
+import { CostReciptService, CostSettleService } from '../services/costService'
 import { ToastDock } from '@/components/blocks/ToastDock'
+import { SettleResponse } from '../types/settle'
 
 interface CostAddProps {
   onCostAdded?: () => void
 }
 
-const CostAdd = ({ onCostAdded }: CostAddProps) => {
+export interface CostAddRef {
+  refreshSettleInfo: () => void
+}
+
+const CostAdd = forwardRef<CostAddRef, CostAddProps>(({ onCostAdded }, ref) => {
   const { tripId } = useParams<{ tripId: string }>()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [settleInfo, setSettleInfo] = useState<SettleResponse | null>(null)
   const [toast, setToast] = useState<{
     variant: 'success' | 'warning' | 'error'
     message: string
   } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // 모든 인원이 정산 수락했는지 확인
+  const isAllMembersAccepted =
+    settleInfo &&
+    settleInfo.acceptedCount === settleInfo.totalMemberCount &&
+    settleInfo.totalMemberCount > 0
+
+  const canAddCost = !isAllMembersAccepted
+
+  // 정산 수락 정보 로드 함수
+  const loadSettleInfo = useCallback(async () => {
+    if (!tripId) return
+    try {
+      const response = await CostSettleService.getSettle(Number(tripId))
+      setSettleInfo(response)
+    } catch (err) {
+      console.error('정산 수락 정보 불러오기 실패:', err)
+    }
+  }, [tripId])
+
+  // 초기 로드
+  useEffect(() => {
+    if (tripId) {
+      loadSettleInfo()
+    }
+  }, [tripId, loadSettleInfo])
+
+  // 부모 컴포넌트에서 ref를 통해 loadSettleInfo 호출 가능하도록
+  useImperativeHandle(
+    ref,
+    () => ({
+      refreshSettleInfo: loadSettleInfo,
+    }),
+    [loadSettleInfo]
+  )
+
+  // 주기적으로 정산 수락 정보 polling (2초마다 - 빠른 반응을 위해)
+  useEffect(() => {
+    if (!tripId || isAllMembersAccepted) return // 이미 모든 인원이 수락했으면 polling 중단
+
+    const pollSettleInfo = async () => {
+      await loadSettleInfo()
+    }
+
+    // 2초(2000ms)마다 요청 - 빠른 반응을 위해
+    const intervalId = setInterval(pollSettleInfo, 2000)
+
+    // cleanup: 컴포넌트가 unmount되거나 모든 인원이 수락하면 interval 정리
+    return () => {
+      clearInterval(intervalId)
+    }
+  }, [tripId, isAllMembersAccepted, loadSettleInfo])
+
   const handleReceiptUpload = () => {
+    if (!canAddCost) {
+      setToast({
+        variant: 'warning',
+        message: '모든 인원이 정산을 수락하여 더 이상 추가할 수 없습니다.',
+      })
+      return
+    }
     fileInputRef.current?.click()
   }
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !tripId) return
+
+    if (!canAddCost) {
+      setToast({
+        variant: 'warning',
+        message: '모든 인원이 정산을 수락하여 더 이상 추가할 수 없습니다.',
+      })
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+      return
+    }
 
     setIsUploading(true)
 
@@ -43,6 +119,9 @@ const CostAdd = ({ onCostAdded }: CostAddProps) => {
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
+
+      // 정산 정보 업데이트
+      await loadSettleInfo()
 
       // 목록 새로고침
       if (onCostAdded) {
@@ -60,6 +139,13 @@ const CostAdd = ({ onCostAdded }: CostAddProps) => {
   }
 
   const handleModalOpen = () => {
+    if (!canAddCost) {
+      setToast({
+        variant: 'warning',
+        message: '모든 인원이 정산을 수락하여 더 이상 추가할 수 없습니다.',
+      })
+      return
+    }
     setIsModalOpen(true)
   }
 
@@ -68,8 +154,10 @@ const CostAdd = ({ onCostAdded }: CostAddProps) => {
     setIsModalOpen(false)
   }
 
-  const handleModalSuccess = () => {
+  const handleModalSuccess = async () => {
     setIsModalOpen(false)
+    // 정산 정보 업데이트
+    await loadSettleInfo()
     // 목록 새로고침
     if (onCostAdded) {
       onCostAdded()
@@ -102,20 +190,21 @@ const CostAdd = ({ onCostAdded }: CostAddProps) => {
         <div className="space-y-4">
           {/* 영수증으로 추가하기 */}
           <button
+            disabled={!canAddCost || isUploading || !tripId}
             type="button"
             onClick={(e) => {
               e.preventDefault()
               e.stopPropagation()
-              if (!isUploading && tripId) {
+              if (!isUploading && tripId && canAddCost) {
                 handleReceiptUpload()
               }
             }}
             className={`relative z-10 w-full group bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 transition-all duration-300 border-2 touch-manipulation ${
-              isUploading || !tripId
+              !canAddCost || isUploading || !tripId
                 ? 'opacity-50 cursor-not-allowed border-blue-200'
                 : 'cursor-pointer border-blue-200 hover:border-blue-400 hover:shadow-lg active:scale-[0.98]'
             }`}
-            aria-disabled={isUploading || !tripId}
+            aria-disabled={!canAddCost || isUploading || !tripId}
           >
             <div className="flex flex-col items-center text-center space-y-3">
               <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -151,9 +240,16 @@ const CostAdd = ({ onCostAdded }: CostAddProps) => {
           </button>
 
           {/* 직접 추가하기 */}
-          <div
+          <button
+            disabled={!canAddCost}
+            type="button"
             onClick={handleModalOpen}
-            className="w-full group bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-blue-200 hover:border-blue-400 active:scale-[0.98]"
+            className={`w-full group bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 transition-all duration-300 border-2 ${
+              !canAddCost
+                ? 'opacity-50 cursor-not-allowed border-blue-200'
+                : 'cursor-pointer border-blue-200 hover:border-blue-400 hover:shadow-lg active:scale-[0.98]'
+            }`}
+            aria-disabled={!canAddCost}
           >
             <div className="flex flex-col items-center text-center space-y-3">
               <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -176,7 +272,7 @@ const CostAdd = ({ onCostAdded }: CostAddProps) => {
                 <p className="text-xs text-text-600">정산 할 내용을 직접 추가해주세요</p>
               </div>
             </div>
-          </div>
+          </button>
         </div>
       </div>
 
@@ -191,6 +287,8 @@ const CostAdd = ({ onCostAdded }: CostAddProps) => {
       )}
     </>
   )
-}
+})
+
+CostAdd.displayName = 'CostAdd'
 
 export default CostAdd

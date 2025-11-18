@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import CloseButton from '@/components/atoms/CloseButton'
-import { CostDetailService, CostModifyService } from '../services/costService'
+import { CostDetailService, CostModifyService, CostSettleService } from '../services/costService'
 import { CostDetailResponse, CostModifyRequest } from '../types/cost'
+import { SettleResponse } from '../types/settle'
 import { PlanService } from '@/features/plan/services/planServices'
 import { Members } from '@/features/plan/types/plan'
 import { EditLockStateService } from '../services/editLockStateService'
@@ -29,6 +30,7 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false) // 삭제 중 상태
   const [editFormError, setEditFormError] = useState<string | null>(null)
+  const [settleInfo, setSettleInfo] = useState<SettleResponse | null>(null) // 정산 수락 정보
   const validateEditForm = (): string | null => {
     if (!isEditing) return null
 
@@ -120,6 +122,17 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
         }
       }
       checkEditStatus()
+
+      // 정산 수락 정보 로드
+      const loadSettleInfo = async () => {
+        try {
+          const response = await CostSettleService.getSettle(Number(tripId))
+          setSettleInfo(response)
+        } catch (err) {
+          console.error('정산 수락 정보 불러오기 실패:', err)
+        }
+      }
+      loadSettleInfo()
     } else {
       setCostDetail(null)
       setError(null)
@@ -135,13 +148,10 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
       try {
         // 수정 상태 조회 요청
         const response = await EditLockStateService.getLockState(Number(tripId), costId)
-        // console.log('수정 상태 polling 성공:', response)
         // 수정 가능 여부 업데이트
         setCanEdit(response.canEdit)
       } catch (err) {
         console.error('수정 상태 polling 실패:', err)
-        // polling 실패 시 이전 상태 유지 (에러로 인해 false로 설정하지 않음)
-        // 아무도 수정 중이 아닐 때는 수정 가능해야 하므로 false로 설정하지 않음
       }
     }
 
@@ -394,6 +404,15 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
     return members.find((m) => m.memberId === memberId)
   }
 
+  // 모든 인원이 정산 수락했는지 확인
+  const isAllMembersAccepted =
+    settleInfo &&
+    settleInfo.acceptedCount === settleInfo.totalMemberCount &&
+    settleInfo.totalMemberCount > 0
+
+  // 수정/삭제 가능 여부 (정산 수락 완료되면 불가능)
+  const canModifyOrDelete = canEdit && !isAllMembersAccepted
+
   if (!isOpen) return null
 
   const modalContent = (
@@ -423,21 +442,25 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
             </div>
           ) : (
             <div className="flex flex-col items-end gap-2">
-              <div className="flex gap-2">
-                <button
-                  onClick={handleDelete}
-                  disabled={!canEdit}
-                  className="inline-flex items-center justify-center whitespace-nowrap font-bmjua px-6 py-2.5 text-base rounded-full bg-red-500 text-white hover:bg-red-600 shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
-                >
-                  {isDeleting ? '삭제 중...' : '삭제'}
-                </button>
-                <SolidButton onClick={handleEditClick} disabled={!canEdit}>
-                  수정하기
-                </SolidButton>
-              </div>
-              {!canEdit && (
-                <p className="text-xs text-red-500 font-bmjua">다른 사용자가 수정 중입니다.</p>
-              )}
+              {canModifyOrDelete ? (
+                <>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleDelete}
+                      disabled={!canEdit}
+                      className="inline-flex items-center justify-center whitespace-nowrap font-bmjua px-6 py-2.5 text-base rounded-full bg-red-500 text-white hover:bg-red-600 shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
+                    >
+                      {isDeleting ? '삭제 중...' : '삭제'}
+                    </button>
+                    <SolidButton onClick={handleEditClick} disabled={!canEdit}>
+                      수정하기
+                    </SolidButton>
+                  </div>
+                  {!canEdit && (
+                    <p className="text-xs text-red-500 font-bmjua">다른 사용자가 수정 중입니다.</p>
+                  )}
+                </>
+              ) : null}
             </div>
           )}
           <CloseButton onClick={handleClose} className="absolute top-3 right-4" />
