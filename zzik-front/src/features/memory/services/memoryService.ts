@@ -3,6 +3,8 @@ import {
   CreateMemoryRequest,
   MemoryEntity,
   MemoryPdfResponse,
+  MemoryNftInfoResponse,
+  MemoryNftOwnershipResponse,
   TripPhotoListResponse,
 } from '@/features/memory/types/memory'
 
@@ -14,6 +16,21 @@ export class MemoryService {
 
   static async getMemory(tripId: string): Promise<MemoryEntity> {
     const res = await apiClient.get<MemoryEntity>(`/memory/${tripId}`)
+    return res
+  }
+
+  static async mintNft(tripId: string): Promise<{ message: string }> {
+    const res = await apiClient.post<{ message: string }>(`/memory/nft/${tripId}`)
+    return res
+  }
+
+  static async getNftInfo(tripId: string): Promise<MemoryNftInfoResponse> {
+    const res = await apiClient.get<MemoryNftInfoResponse>(`/memory/nft/${tripId}`)
+    return res
+  }
+
+  static async getNftOwnership(tripId: string): Promise<MemoryNftOwnershipResponse> {
+    const res = await apiClient.get<MemoryNftOwnershipResponse>(`/memory/nft/${tripId}/ownership`)
     return res
   }
 

@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { HelpCircle, Upload } from 'lucide-react'
 import Input from '@/components/atoms/Input'
@@ -6,7 +6,7 @@ import SolidButton from '@/components/atoms/SolidButton'
 import CloseButton from '@/components/atoms/CloseButton'
 import MarkdownEditor from '@/features/memory/components/MarkdownEditor'
 import MemoryPhotoGallery from '@/features/memory/components/MemoryPhotoGallery'
-import { CreateMemoryRequest, MemoryBlock } from '@/features/memory/types/memory'
+import { CreateMemoryRequest, MemoryBlock, MemoryEntity } from '@/features/memory/types/memory'
 import { MemoryService, MediaService } from '@/features/memory/services/memoryService'
 import { ToastDock } from '@/components/blocks/ToastDock'
 
@@ -18,11 +18,14 @@ const MemoryPage = () => {
   const [markdown, setMarkdown] = useState<string>('')
   const [saving, setSaving] = useState(false)
   const [pdfLoading, setPdfLoading] = useState(false)
+  const [mintLoading, setMintLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [savedId, setSavedId] = useState<number | null>(null)
   const [showHelpModal, setShowHelpModal] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [photoRefreshKey, setPhotoRefreshKey] = useState(0)
+  const [memory, setMemory] = useState<MemoryEntity | null>(null)
+  const [hasPdf, setHasPdf] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [toast, setToast] = useState<{
     open: boolean
@@ -31,6 +34,12 @@ const MemoryPage = () => {
   }>({ open: false, variant: 'success', message: '' })
 
   const canSave = title.trim().length > 0 && markdown.trim().length > 0 && !!safeTripId
+
+  const canGeneratePdf =
+    !!safeTripId &&
+    !!memory?.title &&
+    Array.isArray(memory?.content?.blocks) &&
+    (memory?.content?.blocks.length ?? 0) > 0
 
   const markdownToBlocks = (md: string): MemoryBlock[] => {
     const lines = md.replace(/\r\n/g, '\n').split('\n')
@@ -127,7 +136,6 @@ const MemoryPage = () => {
     return parts.join('\n\n')
   }
 
-  // 최초 진입 시 기존 기록 조회
   useEffect(() => {
     if (!safeTripId) return
     let cancelled = false
@@ -135,6 +143,8 @@ const MemoryPage = () => {
       try {
         const res = await MemoryService.getMemory(safeTripId)
         if (cancelled || !res) return
+        setMemory(res)
+        setHasPdf(!!res.pdfUrl)
         setTitle(res.title ?? '')
         const blocks = res.content?.blocks
         if (Array.isArray(blocks) && blocks.length > 0) {
@@ -143,7 +153,6 @@ const MemoryPage = () => {
           setMarkdown('')
         }
       } catch {
-        // 기록이 없거나 에러인 경우: 빈 에디터 유지
         setMarkdown('')
       }
     })()
@@ -164,6 +173,7 @@ const MemoryPage = () => {
       }
       const res = await MemoryService.putMemory(safeTripId, payload)
       setSavedId(res.memoryId)
+      setMemory(res)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'failed to save')
     } finally {
@@ -172,7 +182,7 @@ const MemoryPage = () => {
   }
 
   const handleGeneratePdf = async () => {
-    if (!safeTripId) return
+    if (!safeTripId || !canGeneratePdf) return
     setPdfLoading(true)
     setError(null)
     try {
@@ -187,10 +197,36 @@ const MemoryPage = () => {
       document.body.appendChild(a)
       a.click()
       a.remove()
+      setHasPdf(true)
+      setMemory((prev) => (prev ? { ...prev, pdfUrl: res.pdfUrl } : prev))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'failed to generate pdf')
     } finally {
       setPdfLoading(false)
+    }
+  }
+
+  const handleMintNft = async () => {
+    if (!safeTripId || !hasPdf) return
+    const confirmed = window.confirm(
+      '기록을 영구 저장하면 더 이상 수정할 수 없습니다. 계속하시겠습니까?'
+    )
+    if (!confirmed) return
+    setMintLoading(true)
+    setError(null)
+    try {
+      const res = await MemoryService.mintNft(safeTripId)
+      setToast({
+        open: true,
+        variant: 'success',
+        message: res.message || '영구 저장이 완료되었습니다.',
+      })
+    } catch (e) {
+      const message = e instanceof Error ? e.message : '영구 저장 중 오류가 발생했습니다.'
+      setError(message)
+      setToast({ open: true, variant: 'error', message })
+    } finally {
+      setMintLoading(false)
     }
   }
 
@@ -206,7 +242,6 @@ const MemoryPage = () => {
       await MediaService.uploadMedia(safeTripId, files)
       e.target.value = ''
       setToast({ open: true, variant: 'success', message: '사진이 업로드되었습니다.' })
-      // 사진 갤러리 새로고침
       setTimeout(() => {
         setPhotoRefreshKey((prev) => prev + 1)
       }, 500)
@@ -221,13 +256,11 @@ const MemoryPage = () => {
   return (
     <div>
       <main className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-12 mt-6 sm:mt-8 md:mt-10 pb-10">
-        {/* 반응형 레이아웃: 모바일에서는 세로, 데스크톱에서는 가로 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* 사진 갤러리 - 1/3 너비 (모바일에서는 전체 너비) */}
           <aside className="lg:col-span-1">
             <div className="bg-white rounded-3xl shadow-lg overflow-hidden flex flex-col h-full min-h-[400px] lg:min-h-[calc(100vh-200px)]">
               <div className="flex items-center justify-between mt-6 mx-6 mb-6">
-                <h2 className="text-xl font-bold text-text-500 font-bmjua">사진 목록</h2>
+                <h2 className="text-xl font-bold text-text-500 font-bmjua">사진 모아보기</h2>
                 <SolidButton
                   onClick={handleUploadButtonClick}
                   disabled={uploading}
@@ -249,7 +282,6 @@ const MemoryPage = () => {
             </div>
           </aside>
 
-          {/* 에디터 영역 - 2/3 너비 (모바일에서는 전체 너비) */}
           <section className="lg:col-span-2 flex flex-col min-h-0">
             <div className="bg-white rounded-3xl shadow-lg p-6 flex flex-col h-full min-h-[400px] lg:min-h-[calc(100vh-200px)] relative">
               <div className="flex items-center gap-2 mb-6">
@@ -257,16 +289,15 @@ const MemoryPage = () => {
                 <button
                   onClick={() => setShowHelpModal(true)}
                   className="text-blue-500 hover:text-blue-600 transition-colors"
-                  aria-label="마크다운 사용법 도움말"
+                  aria-label="마크다운 사용법 보기"
                 >
                   <HelpCircle size={20} />
                 </button>
               </div>
-              {/* 헤더 영역 */}
               <div className="mb-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2 shrink-0 relative z-10">
                 <div className="flex-1 relative z-10">
                   <Input
-                    placeholder="제목을 입력하세요"
+                    placeholder="제목을 입력해주세요"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     className="rounded-full flex-1"
@@ -283,21 +314,26 @@ const MemoryPage = () => {
                   </SolidButton>
                   <SolidButton
                     onClick={handleGeneratePdf}
-                    disabled={!safeTripId || pdfLoading}
+                    disabled={!canGeneratePdf || pdfLoading}
                     className="flex-1 sm:flex-none"
                   >
                     {pdfLoading ? 'PDF 생성 중...' : 'PDF 생성'}
                   </SolidButton>
+                  <SolidButton
+                    onClick={handleMintNft}
+                    disabled={!hasPdf || mintLoading}
+                    className="flex-1 sm:flex-none"
+                  >
+                    {mintLoading ? '영구 저장 중...' : '영구 저장'}
+                  </SolidButton>
                 </div>
               </div>
 
-              {/* 메시지 영역 */}
               {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
               {savedId && (
                 <div className="text-green-700 text-sm mb-2">저장 완료 (ID: {savedId})</div>
               )}
 
-              {/* 에디터 영역 */}
               <div
                 className="flex-1 min-h-0 overflow-hidden relative z-10"
                 onClick={(e) => e.stopPropagation()}
@@ -309,7 +345,6 @@ const MemoryPage = () => {
         </div>
       </main>
 
-      {/* 마크다운 도움말 모달 */}
       {showHelpModal && (
         <div
           className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4"
@@ -319,72 +354,50 @@ const MemoryPage = () => {
             className="w-full max-w-2xl bg-gradient-to-br from-white via-background-500 to-background-600 rounded-3xl shadow-xl p-6 sm:p-8 font-bmjua relative max-h-[90vh] overflow-y-auto custom-scrollbar"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* 닫기 버튼 */}
             <CloseButton
               onClick={() => setShowHelpModal(false)}
               className="absolute top-3 right-4"
             />
-
-            {/* 제목 */}
             <h2 className="text-xl sm:text-2xl font-bold text-text-500 mb-6 font-bmjua">
               마크다운 사용법
             </h2>
-
-            {/* 내용 */}
             <div className="space-y-6 text-sm">
-              {/* 제목 */}
               <div>
                 <h3 className="text-lg font-bold text-text-500 mb-2">제목</h3>
                 <div className="bg-gray-50 rounded-lg p-4 space-y-2">
                   <div>
                     <code className="text-blue-600"># 제목 1</code>
-                    <div className="text-gray-600 mt-1">→ 가장 큰 제목</div>
                   </div>
                   <div>
                     <code className="text-blue-600">## 제목 2</code>
-                    <div className="text-gray-600 mt-1">→ 중간 제목</div>
                   </div>
                   <div>
                     <code className="text-blue-600">### 제목 3</code>
-                    <div className="text-gray-600 mt-1">→ 작은 제목</div>
                   </div>
                 </div>
               </div>
 
-              {/* 이미지 */}
               <div>
                 <h3 className="text-lg font-bold text-text-500 mb-2">이미지</h3>
                 <div className="bg-gray-50 rounded-lg p-4 space-y-2">
                   <div>
                     <code className="text-blue-600">![이미지 설명](이미지URL)</code>
-                    <div className="text-gray-600 mt-1">→ 이미지 삽입</div>
-                  </div>
-                  <div className="text-gray-600 text-xs mt-2">
-                    💡 팁: 왼쪽 사진 갤러리에서 사진을 드래그하여 에디터에 넣을 수 있습니다!
                   </div>
                 </div>
               </div>
 
-              {/* 텍스트 스타일 */}
               <div>
                 <h3 className="text-lg font-bold text-text-500 mb-2">텍스트 스타일</h3>
                 <div className="bg-gray-50 rounded-lg p-4 space-y-2">
                   <div>
                     <code className="text-blue-600">**굵게**</code>
-                    <div className="text-gray-600 mt-1">
-                      → <strong>굵게</strong>
-                    </div>
                   </div>
                   <div>
                     <code className="text-blue-600">*기울임*</code>
-                    <div className="text-gray-600 mt-1">
-                      → <em>기울임</em>
-                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* 리스트 */}
               <div>
                 <h3 className="text-lg font-bold text-text-500 mb-2">리스트</h3>
                 <div className="bg-gray-50 rounded-lg p-4 space-y-2">
@@ -392,28 +405,23 @@ const MemoryPage = () => {
                     <code className="text-blue-600">- 항목 1</code>
                     <br />
                     <code className="text-blue-600">- 항목 2</code>
-                    <div className="text-gray-600 mt-1">→ 순서 없는 리스트</div>
                   </div>
                   <div className="mt-2">
                     <code className="text-blue-600">1. 항목 1</code>
                     <br />
                     <code className="text-blue-600">2. 항목 2</code>
-                    <div className="text-gray-600 mt-1">→ 순서 있는 리스트</div>
                   </div>
                 </div>
               </div>
 
-              {/* 링크 */}
               <div>
                 <h3 className="text-lg font-bold text-text-500 mb-2">링크</h3>
                 <div className="bg-gray-50 rounded-lg p-4">
                   <code className="text-blue-600">[링크 텍스트](URL)</code>
-                  <div className="text-gray-600 mt-1">→ 클릭 가능한 링크</div>
                 </div>
               </div>
             </div>
 
-            {/* 닫기 버튼 */}
             <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setShowHelpModal(false)}
@@ -426,7 +434,6 @@ const MemoryPage = () => {
         </div>
       )}
 
-      {/* Toast */}
       <ToastDock
         open={toast.open}
         variant={toast.variant}
