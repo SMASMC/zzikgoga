@@ -14,6 +14,29 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 const upload = multer({ storage: multer.memoryStorage() });
 
 /**
+ * Health check endpoint
+ */
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    service: "nft-uploader",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
+
+/**
+ * Root endpoint
+ */
+app.get("/", (req, res) => {
+  res.status(200).json({
+    service: "NFT Uploader Service",
+    version: "1.0.0",
+    endpoints: ["/upload/pdf", "/upload/json", "/health"],
+  });
+});
+
+/**
  * 1) PDF 업로드 API
  * SpringBoot에서는 이걸 먼저 호출함
  */
