@@ -167,50 +167,52 @@ const HomePage = () => {
           <div className="flex-1 flex items-center">
             <div className="w-full max-w-7xl mx-auto px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               {/* Left Side - Text Content */}
-              <div className="space-y-8">
-                <div
-                  className="inline-flex items-center gap-3 px-6 py-3 rounded-full backdrop-blur-md transition-all duration-500"
-                  style={{
-                    backgroundColor: `${current.color}20`,
-                    border: `2px solid ${current.color}`,
-                  }}
-                >
-                  {/* <Icon className="w-6 h-6" style={{ color: current.color }} /> */}
-                  <span className="tracking-wide" style={{ color: current.color }}>
-                    {`0${currentSlide + 1}`}
-                  </span>
-                </div>
+              <div className="rounded-3xl backdrop-blur-xl bg-white/10 border-2 border-white/30 p-8 md:p-12 lg:p-16 transition-all duration-500">
+                <div className="space-y-8">
+                  <div
+                    className="inline-flex items-center gap-3 px-6 py-3 rounded-full backdrop-blur-md transition-all duration-500"
+                    style={{
+                      backgroundColor: `${current.color}20`,
+                      border: `2px solid ${current.color}`,
+                    }}
+                  >
+                    {/* <Icon className="w-6 h-6" style={{ color: current.color }} /> */}
+                    <span className="tracking-wide" style={{ color: current.color }}>
+                      {`0${currentSlide + 1}`}
+                    </span>
+                  </div>
 
-                <div className="space-y-4 transition-all duration-500">
-                  <h1 className="text-5xl lg:text-6xl leading-tight font-extrabold drop-shadow-lg tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-point-500 via-hover-600 to-main-500">
-                    {current.title}
-                  </h1>
-                  <p className="text-white text-lg lg:text-xl leading-relaxed max-w-xl drop-shadow">
-                    {current.description}
-                  </p>
-                </div>
+                  <div className="space-y-4 transition-all duration-500">
+                    <h1 className="text-5xl lg:text-6xl leading-tight font-extrabold drop-shadow-lg tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-point-500 via-hover-600 to-main-500">
+                      {current.title}
+                    </h1>
+                    <p className="text-white text-lg lg:text-xl leading-relaxed max-w-xl drop-shadow">
+                      {current.description}
+                    </p>
+                  </div>
 
-                <div className="flex flex-wrap gap-4">
-                  {(() => {
-                    const primary =
-                      current.id === 1
-                        ? { label: '계획 하기', to: '/mypage' }
-                        : current.id === 2
-                          ? { label: '정산 하기', to: '/mypage' }
-                          : current.id === 3
-                            ? { label: '기록 하기', to: '/mypage' }
-                            : { label: '시작하기', to: '/' }
-                    return (
-                      <Link to={primary.to}>
-                        <Button
-                          className={`px-8 py-6 rounded-full transition-all duration-300 hover:scale-105 shadow-xl ring-2 ring-white/20 bg-gradient-to-br ${gradientMap[current.id] ?? 'from-blue-500 to-blue-700'}`}
-                          style={{ color: '#FFFFFF' }}
-                        >
-                          {primary.label}
-                        </Button>
-                      </Link>
-                    )
-                  })()}
+                  <div className="flex flex-wrap gap-4">
+                    {(() => {
+                      const primary =
+                        current.id === 1
+                          ? { label: '계획 하기', to: '/mypage' }
+                          : current.id === 2
+                            ? { label: '정산 하기', to: '/mypage' }
+                            : current.id === 3
+                              ? { label: '기록 하기', to: '/mypage' }
+                              : { label: '시작하기', to: '/' }
+                      return (
+                        <Link to={primary.to}>
+                          <Button
+                            className={`px-8 py-6 rounded-full transition-all duration-300 hover:scale-105 shadow-xl ring-2 ring-white/20 bg-gradient-to-br ${gradientMap[current.id] ?? 'from-blue-500 to-blue-700'}`}
+                            style={{ color: '#FFFFFF' }}
+                          >
+                            {primary.label}
+                          </Button>
+                        </Link>
+                      )
+                    })()}
+                  </div>
                 </div>
               </div>
 
@@ -239,27 +241,27 @@ const HomePage = () => {
             </div>
           </div>
 
+          {/* Navigation Arrows - Left Side */}
+          <button
+            onClick={prevSlide}
+            className="absolute left-4 md:left-8 bottom-4 lg:bottom-auto lg:top-1/2 lg:-translate-y-1/2 w-14 h-14 md:w-16 md:h-16 lg:w-16 lg:h-16 rounded-full backdrop-blur-md border-2 border-white/30 bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all duration-300 shadow-xl hover:scale-110 active:scale-95 z-20"
+            aria-label="Previous slide"
+          >
+            <ChevronLeft className="w-7 h-7 md:w-8 md:h-8 lg:w-8 lg:h-8" />
+          </button>
+
+          {/* Navigation Arrows - Right Side */}
+          <button
+            onClick={nextSlide}
+            className="absolute right-4 md:right-8 bottom-4 lg:bottom-auto lg:top-1/2 lg:-translate-y-1/2 w-14 h-14 md:w-16 md:h-16 lg:w-16 lg:h-16 rounded-full backdrop-blur-md border-2 border-white/30 bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all duration-300 shadow-xl hover:scale-110 active:scale-95 z-20"
+            aria-label="Next slide"
+          >
+            <ChevronRight className="w-7 h-7 md:w-8 md:h-8 lg:w-8 lg:h-8" />
+          </button>
+
           {/* Bottom Controls */}
           <div className="px-8 py-8">
-            <div className="max-w-7xl mx-auto flex items-center justify-between">
-              {/* Navigation Arrows */}
-              <div className="flex gap-3">
-                <button
-                  onClick={prevSlide}
-                  className="w-12 h-12 rounded-full backdrop-blur-md border border-white/20 text-white hover:bg-white/10 flex items-center justify-center transition-all duration-200"
-                  aria-label="Previous slide"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={nextSlide}
-                  className="w-12 h-12 rounded-full backdrop-blur-md border border-white/20 text-white hover:bg-white/10 flex items-center justify-center transition-all duration-200"
-                  aria-label="Next slide"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
-
+            <div className="max-w-7xl mx-auto flex items-center justify-center">
               {/* Progress Dots */}
               <div className="flex gap-3">
                 {slides.map((slide, index) => (
@@ -286,9 +288,6 @@ const HomePage = () => {
                   </button>
                 ))}
               </div>
-
-              {/* Skip Button */}
-              <div className="text-white/60 hover:text-white transition-colors duration-200 px-4 py-2"></div>
             </div>
           </div>
         </div>
