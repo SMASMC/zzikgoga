@@ -1,24 +1,17 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuthStore } from '@/shared/stores/useAuthStore'
 import { User } from '@/features/auth/types/auth'
-// import { CostCategory, CostItem, CostPlusRequest } from '@/features/cost/types/cost'
 import { CostItem, CostPlusRequest } from '@/features/cost/types/cost'
 import PayerSelectModal from './PayerSelectModal'
 import MemberSelectModal from './MemberSelectModal'
 import { PlanService } from '@/features/plan/services/planServices'
 import { CostPlusService } from '../services/costService'
 import { ToastDock } from '@/components/blocks/ToastDock'
-// import { DropdownSelect } from '@/components/blocks/DropdownSelect'
-// import { COST_CATEGORIES, COST_CATEGORY_LABELS } from '@/features/cost/types/cost'
 
 interface CostPlusFormProps {
   tripId: string
   onSuccess?: () => void
 }
-// const CATEGORY_OPTIONS = COST_CATEGORIES.map((cat) => ({
-//   label: COST_CATEGORY_LABELS[cat],
-//   value: cat,
-// }))
 
 const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -75,6 +68,23 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
     loadMembers()
   }, [loadMembers])
 
+  // 멤버가 한 명일 때 자동으로 결제 참여자 배정
+  useEffect(() => {
+    if (members.length === 1 && formData.items.length > 0) {
+      // 모든 품목의 결제 참여자가 비어있을 때만 자동 배정
+      const hasEmptyMemberIds = formData.items.some((item) => item.memberIds.length === 0)
+      if (hasEmptyMemberIds) {
+        const singleMemberId = members[0].id
+        const updatedItems = formData.items.map((item) => ({
+          ...item,
+          memberIds: item.memberIds.length === 0 ? [singleMemberId] : item.memberIds,
+        }))
+        setFormData((prev) => ({ ...prev, items: updatedItems }))
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [members.length])
+
   // 결제자 선택 핸들러
   const handlePayerSelect = (selectedUser: User) => {
     setPayer(selectedUser)
@@ -101,9 +111,14 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
 
   // 품목 추가
   const addItem = () => {
+    // 멤버가 한 명이면 자동으로 배정
+    const newItemMemberIds = members.length === 1 ? [members[0].id] : []
     setFormData({
       ...formData,
-      items: [...formData.items, { menuId: 0, menuName: '', amount: 0, memberIds: [], count: 1 }],
+      items: [
+        ...formData.items,
+        { menuId: 0, menuName: '', amount: 0, memberIds: newItemMemberIds, count: 1 },
+      ],
     })
   }
 
@@ -125,9 +140,6 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
     const newItems = [...formData.items]
     newItems[index] = { ...newItems[index], [field]: value }
 
-    // 수량은 참여자 수와 독립적으로 관리 (자동 변경 제거)
-    // count는 실제 구매한 상품의 개수를 의미하며, 참여자 수와는 별개
-
     setFormData({ ...formData, items: newItems })
 
     // 품목 금액이 변경되면 items 에러 제거 (금액 합계 재검증을 위해)
@@ -136,19 +148,104 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
     }
   }
 
-  // 이미지 업로드 핸들러
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
+  // 이미지 압축 함수
+  const compressImage = (file: File, maxSizeKB: number = 500): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      // 파일 크기 검증 (원본 파일이 너무 크면 거부)
+      const maxOriginalSizeMB = 10 // 10MB
+      if (file.size > maxOriginalSizeMB * 1024 * 1024) {
+        reject(
+          new Error(`이미지 크기가 너무 큽니다. ${maxOriginalSizeMB}MB 이하의 파일을 선택해주세요.`)
+        )
+        return
+      }
+
       const reader = new FileReader()
-      reader.onloadend = () => {
-        setFormData({ ...formData, receiptJson: reader.result as string })
-        // 에러 제거
-        if (errors.receiptJson) {
-          setErrors({ ...errors, receiptJson: undefined })
+      reader.onload = (event) => {
+        const img = new Image()
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          let width = img.width
+          let height = img.height
+
+          // 최대 크기 제한 (1920px)
+          const maxDimension = 1920
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = (height * maxDimension) / width
+              width = maxDimension
+            } else {
+              width = (width * maxDimension) / height
+              height = maxDimension
+            }
+          }
+
+          canvas.width = width
+          canvas.height = height
+
+          const ctx = canvas.getContext('2d')
+          if (!ctx) {
+            reject(new Error('이미지 처리에 실패했습니다.'))
+            return
+          }
+
+          ctx.drawImage(img, 0, 0, width, height)
+
+          // 품질 조정하여 압축 (0.7 ~ 0.9 사이)
+          const quality = 0.8
+          let compressedDataUrl = canvas.toDataURL('image/jpeg', quality)
+
+          // 목표 크기 이하로 압축 시도
+          const compress = (currentQuality: number): void => {
+            compressedDataUrl = canvas.toDataURL('image/jpeg', currentQuality)
+            const sizeKB = (compressedDataUrl.length * 3) / 4 / 1024 // base64 크기 계산 (대략적)
+
+            if (sizeKB > maxSizeKB && currentQuality > 0.3) {
+              // 품질을 낮춰서 다시 압축
+              compress(currentQuality - 0.1)
+            } else {
+              resolve(compressedDataUrl)
+            }
+          }
+
+          compress(quality)
+        }
+        img.onerror = () => {
+          reject(new Error('이미지를 불러올 수 없습니다.'))
+        }
+        if (event.target?.result) {
+          img.src = event.target.result as string
         }
       }
+      reader.onerror = () => {
+        reject(new Error('파일을 읽을 수 없습니다.'))
+      }
       reader.readAsDataURL(file)
+    })
+  }
+
+  // 이미지 업로드 핸들러
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // 파일 타입 검증
+      if (!file.type.startsWith('image/')) {
+        setErrors({ ...errors, receiptJson: '이미지 파일만 업로드 가능합니다.' })
+        return
+      }
+
+      try {
+        setErrors({ ...errors, receiptJson: undefined })
+        // 이미지 압축 (최대 500KB로 제한)
+        const compressedImage = await compressImage(file, 500)
+        setFormData({ ...formData, receiptJson: compressedImage })
+      } catch (error) {
+        console.error('이미지 압축 실패:', error)
+        setErrors({
+          ...errors,
+          receiptJson: error instanceof Error ? error.message : '이미지 처리에 실패했습니다.',
+        })
+      }
     }
   }
 
@@ -172,17 +269,6 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
     // 총 금액 검증
     if (!formData.totalAmount || formData.totalAmount <= 0) {
       newErrors.totalAmount = '총 금액을 입력해주세요.'
-    }
-
-    // 메모 검증
-    if (!formData.memo || formData.memo.trim() === '') {
-      newErrors.memo = '메모를 입력해주세요.'
-    }
-
-    // 증빙 자료 검증
-    const receiptJsonStr = String(formData.receiptJson || '')
-    if (!formData.receiptJson || receiptJsonStr.trim() === '') {
-      newErrors.receiptJson = '증빙 자료를 업로드해주세요.'
     }
 
     // 품목 검증
@@ -394,10 +480,10 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
         {/* 메모 */}
         <div className="mb-4 sm:mb-6">
           <label className="block text-base sm:text-lg mb-2 sm:mb-3 text-text-600 font-bmjua">
-            메모 (선택사항)
+            메모
           </label>
           <textarea
-            value={formData.memo}
+            value={formData.memo || ''}
             onChange={(e) => {
               setFormData({ ...formData, memo: e.target.value })
               // 에러 제거
