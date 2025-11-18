@@ -34,3 +34,6 @@ logging:
   level:
     com.zzik.backend.domain.cost.service.CostSettlementService: DEBUG
 
+nft:
+  node:
+    url: http://localhost:4000
