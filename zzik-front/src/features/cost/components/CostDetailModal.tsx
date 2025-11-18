@@ -741,6 +741,29 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
                     <p className="text-base font-semibold text-text-500">{costDetail.place}</p>
                   </div>
 
+                  {costDetail.receiptJson && (
+                    <div>
+                      <p className="text-sm text-text-600 mb-2">증빙 자료</p>
+                      <div className="relative bg-white rounded-xl overflow-hidden border border-gray-200">
+                        <img
+                          src={costDetail.receiptJson}
+                          alt="증빙 자료"
+                          className="w-full h-auto max-h-96 object-contain"
+                          onError={(e) => {
+                            // 이미지 로드 실패 시 에러 처리
+                            const target = e.target as HTMLImageElement
+                            target.style.display = 'none'
+                            const parent = target.parentElement
+                            if (parent) {
+                              parent.innerHTML =
+                                '<div class="p-4 text-center text-gray-500">증빙 자료를 불러올 수 없습니다.</div>'
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   {costDetail.memo && (
                     <div>
                       <p className="text-sm text-text-600 mb-1">메모</p>

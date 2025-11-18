@@ -126,19 +126,102 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
     }
   }
 
-  // 이미지 업로드 핸들러
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
+  // 이미지 압축 함수
+  const compressImage = (file: File, maxSizeKB: number = 500): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      // 파일 크기 검증 (원본 파일이 너무 크면 거부)
+      const maxOriginalSizeMB = 10 // 10MB
+      if (file.size > maxOriginalSizeMB * 1024 * 1024) {
+        reject(new Error(`이미지 크기가 너무 큽니다. ${maxOriginalSizeMB}MB 이하의 파일을 선택해주세요.`))
+        return
+      }
+
       const reader = new FileReader()
-      reader.onloadend = () => {
-        setFormData({ ...formData, receiptJson: reader.result as string })
-        // 에러 제거
-        if (errors.receiptJson) {
-          setErrors({ ...errors, receiptJson: undefined })
+      reader.onload = (event) => {
+        const img = new Image()
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          let width = img.width
+          let height = img.height
+
+          // 최대 크기 제한 (1920px)
+          const maxDimension = 1920
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = (height * maxDimension) / width
+              width = maxDimension
+            } else {
+              width = (width * maxDimension) / height
+              height = maxDimension
+            }
+          }
+
+          canvas.width = width
+          canvas.height = height
+
+          const ctx = canvas.getContext('2d')
+          if (!ctx) {
+            reject(new Error('이미지 처리에 실패했습니다.'))
+            return
+          }
+
+          ctx.drawImage(img, 0, 0, width, height)
+
+          // 품질 조정하여 압축 (0.7 ~ 0.9 사이)
+          let quality = 0.8
+          let compressedDataUrl = canvas.toDataURL('image/jpeg', quality)
+
+          // 목표 크기 이하로 압축 시도
+          const compress = (currentQuality: number): void => {
+            compressedDataUrl = canvas.toDataURL('image/jpeg', currentQuality)
+            const sizeKB = (compressedDataUrl.length * 3) / 4 / 1024 // base64 크기 계산 (대략적)
+
+            if (sizeKB > maxSizeKB && currentQuality > 0.3) {
+              // 품질을 낮춰서 다시 압축
+              compress(currentQuality - 0.1)
+            } else {
+              resolve(compressedDataUrl)
+            }
+          }
+
+          compress(quality)
+        }
+        img.onerror = () => {
+          reject(new Error('이미지를 불러올 수 없습니다.'))
+        }
+        if (event.target?.result) {
+          img.src = event.target.result as string
         }
       }
+      reader.onerror = () => {
+        reject(new Error('파일을 읽을 수 없습니다.'))
+      }
       reader.readAsDataURL(file)
+    })
+  }
+
+  // 이미지 업로드 핸들러
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // 파일 타입 검증
+      if (!file.type.startsWith('image/')) {
+        setErrors({ ...errors, receiptJson: '이미지 파일만 업로드 가능합니다.' })
+        return
+      }
+
+      try {
+        setErrors({ ...errors, receiptJson: undefined })
+        // 이미지 압축 (최대 500KB로 제한)
+        const compressedImage = await compressImage(file, 500)
+        setFormData({ ...formData, receiptJson: compressedImage })
+      } catch (error) {
+        console.error('이미지 압축 실패:', error)
+        setErrors({
+          ...errors,
+          receiptJson: error instanceof Error ? error.message : '이미지 처리에 실패했습니다.',
+        })
+      }
     }
   }
 

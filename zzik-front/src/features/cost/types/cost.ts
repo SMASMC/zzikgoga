@@ -1,6 +1,7 @@
 // cost.ts
 // cost 관련 타입 정리
 // 수정 락은 코드 길어짐 방지 및 용도 구분을 위해 editLockState.ts에 정의!
+// 정산 관련은 settle.ts에 정의!
 
 export type CostCategory = 'STAY' | 'FOOD' | 'TRANSPORT' | 'SHOPPING' | 'LEISURE' | 'ETC'
 
