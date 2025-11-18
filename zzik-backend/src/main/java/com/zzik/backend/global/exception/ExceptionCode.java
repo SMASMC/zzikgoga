@@ -108,7 +108,8 @@ public enum ExceptionCode {
 
 	/* NFT */
 	WALLET_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 50101, "지갑 생성에 실패했습니다.", "지갑 생성에 실패"),
-	WALLET_DECRYPTION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 50102, "지갑 해석에 실패했습니다.", "지갑 해석에 실패");
+	WALLET_DECRYPTION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 50102, "지갑 해석에 실패했습니다.", "지갑 해석에 실패"),
+	ARWEAVE_LIMIT_EXCEEDED(HttpStatus.BANDWIDTH_LIMIT_EXCEEDED, 50103, "사용량이 부족합니다");
 
 	private final HttpStatus httpStatus;
 	private final int errorCode;

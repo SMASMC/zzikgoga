@@ -142,4 +142,9 @@ public class Member extends BaseEntity {
 			.remainingArweaveUses((short)1)
 			.build();
 	}
+
+	public void setRemainingArweaveUses(short remainingArweaveUses) {
+		this.remainingArweaveUses = remainingArweaveUses;
+	}
+
 }
