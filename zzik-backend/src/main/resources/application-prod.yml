@@ -30,3 +30,7 @@ invite:
 
 kakao:
   redirect-uri: ${KAKAO_REDIRECT_URI}
+
+nft:
+  node:
+    url: https://nft.zzik.kr/
