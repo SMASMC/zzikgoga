@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TravelAddCardProps, TravelCardProps } from '../types/mypage'
 import SolidButton from '@/components/atoms/SolidButton'
-import { MediaService } from '@/features/memory/services/memoryService'
+import { MediaService, MemoryService } from '@/features/memory/services/memoryService'
 import { ToastDock } from '@/components/blocks/ToastDock'
 
 const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCardProps) => {
@@ -35,9 +35,19 @@ const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCard
     navigate(`/cost/${tripId}`)
   }
 
-  const handlePhotoClick = (e: React.MouseEvent) => {
+  const handlePhotoClick = async (e: React.MouseEvent) => {
     e.stopPropagation()
-    navigate(`/memory/${tripId}`)
+    try {
+      const memory = await MemoryService.getMemory(String(tripId))
+      if (memory.arweaveUrl) {
+        navigate(`/memory/${tripId}/nft`)
+      } else {
+        navigate(`/memory/${tripId}`)
+      }
+    } catch {
+      // 조회 실패 시에는 기존 동작 유지
+      navigate(`/memory/${tripId}`)
+    }
   }
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
