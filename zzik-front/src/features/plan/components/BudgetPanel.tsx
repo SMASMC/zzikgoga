@@ -70,10 +70,12 @@ const BudgetAmountEditor = ({ yItem }: { yItem: Y.Map<unknown> }) => {
     const syncToNumber = () => {
       const raw = amountText.toString().replace(/[^0-9]/g, '')
       const num = raw.length ? Number(raw) : 0
+      // 최대값 1억(100,000,000) 제한
+      const limitedNum = num > 100000000 ? 100000000 : num
       const prev = yItem.get('amount') as number | undefined
-      if (prev !== num) {
+      if (prev !== limitedNum) {
         yItem.doc?.transact(() => {
-          yItem.set('amount', num)
+          yItem.set('amount', limitedNum)
         }, 'update-budget-amount')
       }
     }
@@ -163,11 +165,13 @@ const BudgetPanel = () => {
     if (!selectedDateKey || !category || !Number.isFinite(amt)) {
       return
     }
+    // 최대값 1억(100,000,000) 제한
+    const limitedAmount = amt > 100000000 ? 100000000 : amt
     if (!isWithinTripRange(selectedDateKey)) {
       notifyOutOfRange()
       return
     }
-    addBudget(selectedDateKey, { category, amount: amt, description: description.trim() })
+    addBudget(selectedDateKey, { category, amount: limitedAmount, description: description.trim() })
     setAmount('')
     setDescription('')
   }
@@ -271,7 +275,13 @@ const BudgetPanel = () => {
                 value={amount}
                 onChange={(e) => {
                   const numericValue = e.target.value.replace(/[^0-9]/g, '')
-                  setAmount(numericValue) // 숫자만 상태에 저장 (메모리 낭비/파싱 오류 방지)
+                  const num = numericValue.length ? Number(numericValue) : 0
+                  // 최대값 1억(100,000,000) 제한
+                  if (num > 100000000) {
+                    setAmount('100000000')
+                  } else {
+                    setAmount(numericValue) // 숫자만 상태에 저장 (메모리 낭비/파싱 오류 방지)
+                  }
                 }}
                 size="md"
               />

@@ -144,7 +144,8 @@ const YTextEditor = ({
         attributes: {
           class: cn(
             'prose max-w-none focus:outline-none min-h-[1rem] bg-transparent text-inherit leading-tight',
-            sizeClasses.text
+            sizeClasses.text,
+            className?.includes('text-right') && 'text-right'
           ),
           ...(numericOnly && {
             inputmode: 'numeric',

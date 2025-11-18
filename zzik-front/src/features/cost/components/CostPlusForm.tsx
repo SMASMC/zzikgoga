@@ -35,10 +35,32 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
     items?: string
   }>({})
 
+  // 한국 시간으로 변환하는 함수
+  const getKoreanDateTime = (): string => {
+    const now = new Date()
+    // 한국 시간대(Asia/Seoul)로 변환
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Seoul',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    })
+    const parts = formatter.formatToParts(now)
+    const year = parts.find((p) => p.type === 'year')?.value || '2024'
+    const month = parts.find((p) => p.type === 'month')?.value || '01'
+    const day = parts.find((p) => p.type === 'day')?.value || '01'
+    const hour = parts.find((p) => p.type === 'hour')?.value || '00'
+    const minute = parts.find((p) => p.type === 'minute')?.value || '00'
+    return `${year}-${month}-${day} ${hour}:${minute}:00`
+  }
+
   // 폼 데이터 상태
   const [formData, setFormData] = useState<CostPlusRequest>({
     payerId: user?.id || '',
-    paidAt: new Date().toISOString().slice(0, 16).replace('T', ' ') + ':00',
+    paidAt: getKoreanDateTime(),
     place: '',
     // category: 'ETC',
     totalAmount: 0,
@@ -109,24 +131,34 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
     return members.find((m) => m.id === memberId)
   }
 
+  // 품목별 금액 합계 계산
+  const calculateTotalAmount = (items: typeof formData.items): number => {
+    return items.reduce((sum, item) => sum + (item.amount || 0), 0)
+  }
+
   // 품목 추가
   const addItem = () => {
     // 멤버가 한 명이면 자동으로 배정
     const newItemMemberIds = members.length === 1 ? [members[0].id] : []
+    const newItems = [
+      ...formData.items,
+      { menuId: 0, menuName: '', amount: 0, memberIds: newItemMemberIds, count: 1 },
+    ]
+    const newTotalAmount = calculateTotalAmount(newItems)
     setFormData({
       ...formData,
-      items: [
-        ...formData.items,
-        { menuId: 0, menuName: '', amount: 0, memberIds: newItemMemberIds, count: 1 },
-      ],
+      totalAmount: newTotalAmount,
+      items: newItems,
     })
   }
 
   // 품목 삭제
   const removeItem = (index: number) => {
     const newItems = formData.items.filter((_, i) => i !== index)
+    const newTotalAmount = calculateTotalAmount(newItems)
     setFormData({
       ...formData,
+      totalAmount: newTotalAmount,
       items: newItems,
     })
     // 품목이 남아있으면 에러 제거
@@ -140,7 +172,11 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
     const newItems = [...formData.items]
     newItems[index] = { ...newItems[index], [field]: value }
 
-    setFormData({ ...formData, items: newItems })
+    // 금액이 변경되면 totalAmount 자동 계산
+    const newTotalAmount =
+      field === 'amount' ? calculateTotalAmount(newItems) : formData.totalAmount
+
+    setFormData({ ...formData, totalAmount: newTotalAmount, items: newItems })
 
     // 품목 금액이 변경되면 items 에러 제거 (금액 합계 재검증을 위해)
     if (field === 'amount' && errors.items) {
@@ -266,11 +302,6 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
       newErrors.place = '결제 장소는 200자 이하로 입력해주세요.'
     }
 
-    // 총 금액 검증
-    if (!formData.totalAmount || formData.totalAmount <= 0) {
-      newErrors.totalAmount = '총 금액을 입력해주세요.'
-    }
-
     // 품목 검증
     if (!formData.items || formData.items.length === 0) {
       newErrors.items = '최소 1개 이상의 품목을 추가해주세요.'
@@ -300,14 +331,6 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
       // 품목별 에러가 있으면 표시
       if (itemErrors.length > 0) {
         newErrors.items = itemErrors.join(' ')
-      } else {
-        // 품목별 금액 합계 계산 (수량 고려하지 않고 개별 금액만 합산)
-        const itemsTotal = formData.items.reduce((sum, item) => sum + (item.amount || 0), 0)
-
-        // 품목별 금액 합계가 총 금액과 일치하는지 검증
-        if (itemsTotal !== formData.totalAmount) {
-          newErrors.items = `품목별 금액 합계(${itemsTotal.toLocaleString()}원)가 총 금액(${formData.totalAmount.toLocaleString()}원)과 일치하지 않습니다.`
-        }
       }
     }
 
@@ -446,35 +469,6 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
             }`}
           />
           {errors.place && <p className="mt-1 text-sm text-red-500 font-bmjua">{errors.place}</p>}
-        </div>
-
-        {/* 총 금액 */}
-        <div className="mb-4 sm:mb-6">
-          <label className="block text-base sm:text-lg mb-2 sm:mb-3 text-text-600 font-bmjua">
-            총 금액
-          </label>
-          <input
-            type="number"
-            value={formData.totalAmount || ''}
-            onChange={(e) => {
-              setFormData({ ...formData, totalAmount: Number(e.target.value) })
-              // 에러 제거
-              if (errors.totalAmount) {
-                setErrors({ ...errors, totalAmount: undefined })
-              }
-              // 총 금액이 변경되면 items 에러도 제거 (금액 합계 재검증을 위해)
-              if (errors.items) {
-                setErrors({ ...errors, items: undefined })
-              }
-            }}
-            placeholder="0"
-            className={`w-full px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md hover:scale-[1.02] placeholder:text-gray-400 ${
-              errors.totalAmount ? 'ring-2 ring-red-400' : ''
-            }`}
-          />
-          {errors.totalAmount && (
-            <p className="mt-1 text-sm text-red-500 font-bmjua">{errors.totalAmount}</p>
-          )}
         </div>
 
         {/* 메모 */}
@@ -619,37 +613,41 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
               <input
                 type="number"
                 min="0"
+                max="100000000"
                 value={item.amount || ''}
                 onChange={(e) => {
                   const value = e.target.value === '' ? 0 : Number(e.target.value)
-                  // 음수값 방지
+                  // 음수값 방지 및 최대값 1억(100,000,000) 제한
                   if (value >= 0) {
-                    updateItem(index, 'amount', value)
+                    const limitedValue = value > 100000000 ? 100000000 : value
+                    updateItem(index, 'amount', limitedValue)
                     // 에러 제거
                     if (errors.items && errors.items.includes(`품목 ${index + 1}: 금액`)) {
                       setErrors({ ...errors, items: undefined })
                     }
                   }
                 }}
-                className="w-full px-3 py-2 bg-gray-50 border border-blue-300 rounded-lg text-sm outline-none focus:outline-none focus:ring-0 focus:border-blue-400"
+                className="w-full px-3 py-2 bg-gray-50 border border-blue-300 rounded-lg text-sm text-right outline-none focus:outline-none focus:ring-0 focus:border-blue-400"
               />
               <label className="text-xs text-text-500 mb-1 block">수량</label>
               <input
                 type="number"
                 min="0"
+                max="9999"
                 value={item.count || ''}
                 onChange={(e) => {
                   const value = e.target.value === '' ? 0 : Number(e.target.value)
-                  // 음수값 방지
+                  // 음수값 방지 및 최대값 9999 제한
                   if (value >= 0) {
-                    updateItem(index, 'count', value)
+                    const limitedValue = value > 9999 ? 9999 : value
+                    updateItem(index, 'count', limitedValue)
                     // 에러 제거
                     if (errors.items && errors.items.includes(`품목 ${index + 1}: 수량`)) {
                       setErrors({ ...errors, items: undefined })
                     }
                   }
                 }}
-                className="w-full px-3 py-2 bg-gray-50 border border-blue-300 rounded-lg text-sm outline-none focus:outline-none focus:ring-0 focus:border-blue-400"
+                className="w-full px-3 py-2 bg-gray-50 border border-blue-300 rounded-lg text-sm text-right outline-none focus:outline-none focus:ring-0 focus:border-blue-400"
               />
               <div>
                 <label className="text-xs text-text-500 mb-1 block">결제 참여자</label>
