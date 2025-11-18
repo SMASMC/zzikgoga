@@ -21,6 +21,7 @@ public class SaveCostRequest {
 	private String place;
 	private Long totalAmount;
 	private String memo;
+	/** 변수 이름으론 Json이지만, 사용자가 올린 증빙자료의 base64*/
 	private String receiptJson;
 	private List<SaveCostMenuItem> items = new ArrayList<>();
 }
