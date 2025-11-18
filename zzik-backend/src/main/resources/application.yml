@@ -60,3 +60,14 @@ external:
       password: ${ARWEAVE_CREDENTIALS_PASSWORD}
       # 16진수 16바이트(32자) 이상의 강력한 솔트
       salt: ${ARWEAVE_CREDENTIALS_SALT}
+
+polygon:
+  rpc:
+    url: ${POLYGON_RPC_URL_AMOY}
+  chain-id: ${POLYGON_CHAIN_ID_AMOY}
+
+nft:
+  contract:
+    address: ${NFT_CONTRACT_ADDRESS}
+  wallet:
+    privatekey: ${SERVICE_MINTER_PRIVATE_KEY}
