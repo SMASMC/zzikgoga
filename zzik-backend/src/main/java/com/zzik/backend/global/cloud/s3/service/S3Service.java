@@ -1,5 +1,7 @@
 package com.zzik.backend.global.cloud.s3.service;
 
+import java.io.InputStream;
+import java.net.URL;
 import java.time.Duration;
 
 import org.springframework.stereotype.Service;
@@ -204,6 +206,15 @@ public class S3Service {
 		} catch (Exception e) {
 			log.error("Failed to extract key from URL: {}", url, e);
 			return null;
+		}
+	}
+
+	/** Presigned URL로 파일 다운로드 후 byte[] 반환 */
+	public byte[] downloadBytes(String presignedUrl) {
+		try (InputStream in = new URL(presignedUrl).openStream()) {
+			return in.readAllBytes();
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to download bytes from S3: " + e.getMessage());
 		}
 	}
 }

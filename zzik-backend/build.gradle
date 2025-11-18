@@ -114,6 +114,8 @@ dependencies {
 
     // Spring Security Crypto (암호화)
     implementation 'org.springframework.security:spring-security-crypto'
+
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
 }
 
 // QueryDSL 설정

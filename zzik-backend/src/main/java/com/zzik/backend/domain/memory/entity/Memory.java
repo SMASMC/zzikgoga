@@ -26,6 +26,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * 추억 엔티티
@@ -34,6 +35,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "memory")
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Memory extends BaseEntity {
 
@@ -65,6 +67,10 @@ public class Memory extends BaseEntity {
 
     @Column(name = "arweave_url", length = 1024)
     private String arweaveUrl; // Arweave URL
+
+	public void updatePermanentArchive(String arweaveUrl) {
+		this.arweaveUrl = arweaveUrl;
+	}
 
     @Column(name = "nft_id", length = 255)
     private String nftId; // NFT ID
