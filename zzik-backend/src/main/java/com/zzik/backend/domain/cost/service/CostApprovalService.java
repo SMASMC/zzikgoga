@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,6 +13,7 @@ import com.zzik.backend.domain.cost.dto.response.CostApprovalResponse;
 import com.zzik.backend.domain.cost.dto.response.CostApprovalStatusResponse;
 import com.zzik.backend.domain.cost.dto.response.CostApprovalStatusResponse.AcceptedMemberDto;
 import com.zzik.backend.domain.cost.dto.response.CostApprovalStatusResponse.NotAcceptedMemberDto;
+import com.zzik.backend.domain.cost.event.CostFinalApprovalEvent;
 import com.zzik.backend.domain.plan.entity.TripMember;
 import com.zzik.backend.domain.plan.repository.TripMemberRepository;
 import com.zzik.backend.domain.plan.repository.TripRepository;
@@ -28,6 +30,7 @@ public class CostApprovalService {
 	private final TripMemberRepository tripMemberRepository;
 	private final TripRepository tripRepository;
 	private final TripMemberService tripMemberService;
+	private final ApplicationEventPublisher applicationEventPublisher;
 
 	@Transactional
 	public CostApprovalResponse doCostApproval(Long tripId, CostApprovalRequest request) {
@@ -35,15 +38,33 @@ public class CostApprovalService {
 		long memberId = SecurityUtil.getCurrentMemberId();
 		if (!tripRepository.existsById(tripId))
 			throw BusinessException.from(ExceptionCode.TRIP_NOT_FOUND);
-		TripMember tripMember = tripMemberService.validateMembershipAndGet(memberId, tripId);
+		var tripMembers = tripMemberService.validateMembershipAndGetAll(memberId, tripId);
 		//2. 이미 true면 에러
-		if (tripMember.getIsCostAccepted())
-			throw BusinessException.from(ExceptionCode.ALREADY_ACCEPTED_COST);
-		tripMember.setIsCostAccepted(true);
+		long acceptedCountExceptMe = 0L;
+		TripMember myTripMember = null;
+		for (TripMember tripMember : tripMembers) {
+			if (tripMember.getMember().getId().equals(memberId)) {
+				if (tripMember.getIsCostAccepted() == true)
+					throw BusinessException.from(ExceptionCode.ALREADY_ACCEPTED_COST);
+				else
+					myTripMember = tripMember;
+			} else
+				//본인이 아닌 멤버 중 수락한 사람만 카운트
+				if (tripMember.getIsCostAccepted())
+					acceptedCountExceptMe++;
+		}
+		myTripMember.setIsCostAccepted(true);
 		// NOTE: @Transactional엔 save 필요없음 영속성 보장됨.
 		// tripMemberRepository.save(tripMember);
+
+		// 최종 정산인지 확인 -> 실제 결제 서비스 실행
+		if (tripMembers.size() - 1 == acceptedCountExceptMe)
+			applicationEventPublisher.publishEvent(
+				new CostFinalApprovalEvent(tripId, memberId)
+			);
+
 		return CostApprovalResponse.builder()
-			.isAccepted(tripMember.getIsCostAccepted())
+			.isAccepted(myTripMember.getIsCostAccepted())
 			.acceptedAt(LocalDateTime.now().toString())
 			.memberId(memberId)
 			.build();
@@ -87,7 +108,7 @@ public class CostApprovalService {
 			: 0.0;
 
 		// 4. 응답 생성
-		return CostApprovalStatusResponse.builder()
+		var response = CostApprovalStatusResponse.builder()
 			.tripId(tripId)
 			.acceptedMembers(acceptedMembers)
 			.notAcceptedMembers(notAcceptedMembers)
@@ -95,5 +116,6 @@ public class CostApprovalService {
 			.totalMemberCount(totalMemberCount)
 			.acceptanceRate(acceptanceRate)
 			.build();
+		return response;
 	}
 }

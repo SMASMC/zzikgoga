@@ -26,6 +26,7 @@ public class CostCalculateResponse {
 	public static class CombinedSettlement {
 		private long memberId;
 		private String memberName;
+		private String thumbnailUrl;
 		private int memberCount;
 		private List<ToSend> toSend;
 		private List<ToReceive> toReceive;
@@ -40,6 +41,7 @@ public class CostCalculateResponse {
 	public static class ToSend {
 		private long targetMemberId;
 		private String targetMemberName;
+		private String targetThumbnailUrl;
 		private long amount;
 	}
 
@@ -51,6 +53,7 @@ public class CostCalculateResponse {
 	public static class ToReceive {
 		private long fromMemberId;
 		private String fromMemberName;
+		private String fromThumbnailUrl;
 		private long amount;
 	}
 }

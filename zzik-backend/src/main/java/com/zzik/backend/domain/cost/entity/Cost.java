@@ -97,7 +97,7 @@ public class Cost extends BaseEntity {
 
 	public void recalcTotal() {
 		long sum = (this.costMenus == null ? 0L :
-			this.costMenus.stream().mapToLong(cm -> cm.getAmount() * cm.getCount()).sum());
+			this.costMenus.stream().mapToLong(CostMenu::getAmount).sum());
 		this.totalAmount = sum;
 	}
 }

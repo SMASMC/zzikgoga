@@ -77,6 +77,19 @@ public class CostCalculateService {
 		redis.expire(key, TTL);                  // TTL
 	}
 
+	/**
+	 * Redis에서 특정 송금자의 정산 데이터를 조회하여 타입 변환 후 반환
+	 * <p>
+	 * Redis Hash에서 가져온 원시 데이터(Map&lt;Object, Object&gt;)를
+	 * 애플리케이션에서 사용 가능한 타입(Map&lt;Long, Long&gt;)으로 변환합니다.
+	 * </p>
+	 *
+	 * @param tripId 여행 ID
+	 * @param senderId 송금자(보내는 사람) ID
+	 * @return 수신자 ID를 키로, 보낼 금액을 값으로 하는 Map
+	 *         (Key: 받는 사람 ID, Value: 보낼 금액)
+	 *         데이터가 없으면 빈 Map 반환
+	 */
 	public Map<Long, Long> getSendMapFromRedis(long tripId, long senderId) {
 		Map<Object, Object> raw = redis.opsForHash().entries(senderKey(tripId, senderId));
 		Map<Long, Long> out = new HashMap<>();
@@ -119,6 +132,13 @@ public class CostCalculateService {
 				tm -> tm.getMember().getName()
 			));
 
+		// thumbnailUrl도 Map으로 저장
+		Map<Long, String> memberThumbnailMap = trip.getTripMembers().stream()
+			.collect(Collectors.toMap(
+				tm -> tm.getMember().getId(),
+				tm -> tm.getMember().getThumbnailUrl()
+			));
+
 		Set<Long> memberIds = memberNameMap.keySet();
 		if (!memberIds.contains(userId)) {
 			throw BusinessException.from(ExceptionCode.NOT_TRIP_MEMBER);
@@ -135,7 +155,7 @@ public class CostCalculateService {
 			Long payerId = cost.getPayer().getId();
 
 			for (CostMenu m : Optional.ofNullable(cost.getCostMenus()).orElse(List.of())) {
-				long menuTotal = nz(m.getAmount()) * m.getCount();
+				long menuTotal = nz(m.getAmount());
 				List<Long> bens = resolveBeneficiaries(m.getMustPayerIds(), memberIds);
 				if (bens.isEmpty())
 					throw BusinessException.from(ExceptionCode.SHARE_MISSING);
@@ -183,6 +203,7 @@ public class CostCalculateService {
 			.map(e -> CostCalculateResponse.ToSend.builder()
 				.targetMemberId(e.getKey())
 				.targetMemberName(memberNameMap.get(e.getKey()))
+				.targetThumbnailUrl(memberThumbnailMap.get(e.getKey()))
 				.amount(e.getValue())
 				.build())
 			.toList();
@@ -192,6 +213,7 @@ public class CostCalculateService {
 			.map(e -> CostCalculateResponse.ToReceive.builder()
 				.fromMemberId(e.getKey())
 				.fromMemberName(memberNameMap.get(e.getKey()))
+				.fromThumbnailUrl(memberThumbnailMap.get(e.getKey()))
 				.amount(e.getValue())
 				.build())
 			.toList();
@@ -204,6 +226,7 @@ public class CostCalculateService {
 				CostCalculateResponse.CombinedSettlement.builder()
 					.memberId(userId)
 					.memberName(memberNameMap.get(userId))
+					.thumbnailUrl(memberThumbnailMap.get(userId))
 					.memberCount(relatedCount)
 					.toSend(toSend)
 					.toReceive(toReceive)
@@ -211,5 +234,10 @@ public class CostCalculateService {
 					.build()
 			)
 			.build();
+	}
+
+	public boolean hasCalculateOfTripAndMember(Long tripId, Long memberId) {
+		String cached = redis.opsForValue().get(senderKey(tripId, memberId));
+		return (cached == null) ? false : true;
 	}
 }

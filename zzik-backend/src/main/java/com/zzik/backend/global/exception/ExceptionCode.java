@@ -62,6 +62,7 @@ public enum ExceptionCode {
 		"cost - trip.isCostCompleted = true"),
 	COST_MENU_NOT_FOUND(HttpStatus.NOT_FOUND, 40313, "존재하지 않는 결제 메뉴 항목입니다.", "cost - cost_menu not found"),
 	COST_NOT_FOUND(HttpStatus.NOT_FOUND, 40314, "존재하지 않는 결제 항목입니다.", "cost - cost not found"),
+	COST_PAYER_IDS_EMPTY(HttpStatus.BAD_REQUEST, 40315, "메뉴 분담자가 지정되지 않았습니다.", "cost - payerIds 빈 리스트"),
 	/* 4032x - cost - accept */
 	ALREADY_ACCEPTED_COST(HttpStatus.CONFLICT, 40320, "이미 정산에 수락 하셨습니다.", "cost - approval 이미 정산을 수락함"),
 

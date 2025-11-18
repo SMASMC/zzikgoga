@@ -80,4 +80,11 @@ public class Trip extends BaseEntity {
 		this.femaleCount = femaleCount != null ? femaleCount : 0;
 		this.isCostCompleted = isCostCompleted != null ? isCostCompleted : false;
 	}
+
+	/**
+	 * 여행 정산을 완료 상태로 변경
+	 */
+	public void completeCostSettlement() {
+		this.isCostCompleted = true;
+	}
 }
