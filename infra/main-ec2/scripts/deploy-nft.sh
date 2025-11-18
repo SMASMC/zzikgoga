@@ -27,16 +27,23 @@ PREVIOUS_IMAGE="${IMAGE_NAME}:${IMAGE_TAG}-previous"
 echo ""
 echo "🔧 Nginx 설정 사전 점검 중..."
 
-# SSL 인증서 확인 (sudo 권한으로 확인 - /etc/letsencrypt는 root만 접근 가능)
+# SSL 인증서 확인
 SSL_CERT="/etc/letsencrypt/live/nft.zzik.kr/fullchain.pem"
-USE_HTTPS=false
 
-if sudo test -f "$SSL_CERT"; then
-    echo "✅ SSL 인증서 존재 - HTTPS 모드로 배포됩니다"
-    USE_HTTPS=true
+# 환경 변수로 HTTPS 모드가 지정되어 있으면 우선 사용
+if [ "${USE_HTTPS}" = "true" ]; then
+    echo "✅ HTTPS 모드 지정됨 (환경 변수) - HTTPS로 배포됩니다"
+elif [ "${USE_HTTPS}" = "false" ]; then
+    echo "⚠️ HTTP 모드 지정됨 (환경 변수) - HTTP로 배포됩니다"
 else
-    echo "⚠️ SSL 인증서 없음 - HTTP 모드로 먼저 배포 후 HTTPS로 전환됩니다"
-    USE_HTTPS=false
+    # 환경 변수가 없으면 SSL 인증서 파일 확인
+    if sudo test -f "$SSL_CERT" 2>/dev/null; then
+        echo "✅ SSL 인증서 존재 - HTTPS 모드로 배포됩니다"
+        USE_HTTPS=true
+    else
+        echo "⚠️ SSL 인증서 없음 - HTTP 모드로 먼저 배포 후 HTTPS로 전환됩니다"
+        USE_HTTPS=false
+    fi
 fi
 
 # 기존 잘못된 HTTPS 설정이 있는지 확인

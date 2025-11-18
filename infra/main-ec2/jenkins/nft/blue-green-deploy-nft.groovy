@@ -102,6 +102,8 @@ pipeline {
                         chmod +x scripts/deploy-nft.sh
 
                         echo "🚀 Starting Blue-Green deployment..."
+                        # SSL 인증서가 이미 발급되어 있으므로 HTTPS 모드로 배포
+                        export USE_HTTPS=true
                         ./scripts/deploy-nft.sh
                     '''
                 }
