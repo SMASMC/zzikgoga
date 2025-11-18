@@ -403,6 +403,9 @@ public class CostService {
 				.build());
 		}
 
+		// 5) receiptUrl을 presigned URL로 변환
+		String receiptPresignedUrl = s3Service.getPresignedUrl(cost.getReceiptUrl());
+
 		return CostItemDetailResponse.builder()
 			.costId(cost.getId())
 			.createdBy(cost.getCreatedBy() != null ? cost.getCreatedBy().getId() : null)
@@ -411,7 +414,7 @@ public class CostService {
 			.place(cost.getPlace())
 			.totalAmount(cost.getTotalAmount())
 			.memo(cost.getMemo())
-			.receiptJson(cost.getReceipt())
+			.receiptJson(receiptPresignedUrl)
 			.items(items)
 			.build();
 	}

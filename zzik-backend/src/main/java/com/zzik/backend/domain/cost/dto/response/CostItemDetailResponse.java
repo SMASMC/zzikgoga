@@ -21,6 +21,7 @@ public class CostItemDetailResponse {
 	private String place;
 	private Long totalAmount;
 	private String memo;
+	/** 이름은 Json이지만, 이미지s3 url이 담길 것임*/
 	private String receiptJson;
 	private List<CostItemResponse> items;
 }
