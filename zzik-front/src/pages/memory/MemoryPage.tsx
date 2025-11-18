@@ -1,18 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { HelpCircle, Upload } from 'lucide-react'
 import Input from '@/components/atoms/Input'
 import SolidButton from '@/components/atoms/SolidButton'
 import CloseButton from '@/components/atoms/CloseButton'
 import MarkdownEditor from '@/features/memory/components/MarkdownEditor'
 import MemoryPhotoGallery from '@/features/memory/components/MemoryPhotoGallery'
-import { CreateMemoryRequest, MemoryBlock, MemoryEntity } from '@/features/memory/types/memory'
+import {
+  CreateMemoryRequest,
+  MemoryBlock,
+  MemoryEntity,
+} from '@/features/memory/types/memory'
 import { MemoryService, MediaService } from '@/features/memory/services/memoryService'
 import { ToastDock } from '@/components/blocks/ToastDock'
 
 const MemoryPage = () => {
   const { tripId } = useParams<{ tripId: string }>()
   const safeTripId = useMemo(() => tripId ?? '', [tripId])
+  const navigate = useNavigate()
 
   const [title, setTitle] = useState('')
   const [markdown, setMarkdown] = useState<string>('')
@@ -26,6 +31,8 @@ const MemoryPage = () => {
   const [photoRefreshKey, setPhotoRefreshKey] = useState(0)
   const [memory, setMemory] = useState<MemoryEntity | null>(null)
   const [hasPdf, setHasPdf] = useState(false)
+  const [showMintConfirm, setShowMintConfirm] = useState(false)
+  const [showMintComplete, setShowMintComplete] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [toast, setToast] = useState<{
     open: boolean
@@ -175,7 +182,7 @@ const MemoryPage = () => {
       setSavedId(res.memoryId)
       setMemory(res)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'failed to save')
+      setError(e instanceof Error ? e.message : '저장에 실패했습니다.')
     } finally {
       setSaving(false)
     }
@@ -200,27 +207,20 @@ const MemoryPage = () => {
       setHasPdf(true)
       setMemory((prev) => (prev ? { ...prev, pdfUrl: res.pdfUrl } : prev))
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'failed to generate pdf')
+      setError(e instanceof Error ? e.message : 'PDF 생성에 실패했습니다.')
     } finally {
       setPdfLoading(false)
     }
   }
 
-  const handleMintNft = async () => {
-    if (!safeTripId || !hasPdf) return
-    const confirmed = window.confirm(
-      '기록을 영구 저장하면 더 이상 수정할 수 없습니다. 계속하시겠습니까?'
-    )
-    if (!confirmed) return
+  const startMintNft = async () => {
+    if (!safeTripId || !hasPdf || mintLoading) return
+    setShowMintConfirm(false)
     setMintLoading(true)
     setError(null)
     try {
-      const res = await MemoryService.mintNft(safeTripId)
-      setToast({
-        open: true,
-        variant: 'success',
-        message: res.message || '영구 저장이 완료되었습니다.',
-      })
+      await MemoryService.mintNft(safeTripId)
+      setShowMintComplete(true)
     } catch (e) {
       const message = e instanceof Error ? e.message : '영구 저장 중 오류가 발생했습니다.'
       setError(message)
@@ -228,6 +228,11 @@ const MemoryPage = () => {
     } finally {
       setMintLoading(false)
     }
+  }
+
+  const handleMintClick = () => {
+    if (!safeTripId || !hasPdf || mintLoading) return
+    setShowMintConfirm(true)
   }
 
   const handleUploadButtonClick = () => {
@@ -320,7 +325,7 @@ const MemoryPage = () => {
                     {pdfLoading ? 'PDF 생성 중...' : 'PDF 생성'}
                   </SolidButton>
                   <SolidButton
-                    onClick={handleMintNft}
+                    onClick={handleMintClick}
                     disabled={!hasPdf || mintLoading}
                     className="flex-1 sm:flex-none"
                   >
@@ -345,6 +350,7 @@ const MemoryPage = () => {
         </div>
       </main>
 
+      {/* 마크다운 도움말 모달 */}
       {showHelpModal && (
         <div
           className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4"
@@ -434,6 +440,81 @@ const MemoryPage = () => {
         </div>
       )}
 
+      {/* 영구 저장 확인 모달 */}
+      {showMintConfirm && (
+        <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4">
+          <div
+            className="w-full max-w-md bg-white rounded-3xl shadow-xl p-6 sm:p-8 font-bmjua"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-bold text-text-500 mb-4">정말 영구 저장할까요?</h2>
+            <p className="text-text-500 text-sm mb-2">
+              영구 저장을 하면 이 여행 기록은 블록체인에 기록되어
+              <br />
+              삭제하거나 수정할 수 없습니다.
+            </p>
+            <p className="text-text-400 text-xs mb-6">
+              네트워크 상황에 따라 처리에 시간이 다소 걸릴 수 있어요.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowMintConfirm(false)}
+                className="px-4 py-2 rounded-full border border-gray-300 text-sm text-text-500 hover:bg-gray-50"
+              >
+                취소
+              </button>
+              <button
+                onClick={startMintNft}
+                className="px-5 py-2 rounded-full bg-gradient-to-br from-hover-600 to-point-600 text-white text-sm font-semibold hover:scale-105 transition-transform"
+              >
+                영구 저장하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 영구 저장 진행 중 모달 */}
+      {mintLoading && (
+        <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4">
+          <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-6 sm:p-8 font-bmjua flex flex-col items-center">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-point-500 mb-4" />
+            <h2 className="text-lg font-bold text-text-500 mb-2">영구 저장을 진행 중이에요</h2>
+            <p className="text-text-500 text-sm text-center">
+              네트워크 상황에 따라 수 분 정도 걸릴 수 있어요.
+              <br />
+              페이지를 닫지 말고 잠시만 기다려 주세요.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* 영구 저장 완료 모달 */}
+      {showMintComplete && (
+        <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4">
+          <div
+            className="w-full max-w-md bg-white rounded-3xl shadow-xl p-6 sm:p-8 font-bmjua"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-bold text-text-500 mb-4">영구 저장이 완료되었습니다.</h2>
+            <p className="text-text-500 text-sm mb-6">
+              마이페이지에서 NFT로 저장된 여행 기록을 확인하실 수 있어요.
+            </p>
+            <div className="flex justify-end">
+              <button
+                onClick={() => {
+                  setShowMintComplete(false)
+                  navigate('/mypage')
+                }}
+                className="px-6 py-2 rounded-full bg-gradient-to-br from-hover-600 to-point-600 text-white text-sm font-semibold hover:scale-105 transition-transform"
+              >
+                마이페이지로 이동
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ToastDock
         open={toast.open}
         variant={toast.variant}
@@ -445,3 +526,4 @@ const MemoryPage = () => {
 }
 
 export default MemoryPage
+
