@@ -238,7 +238,7 @@ const CostAdd = forwardRef<CostAddRef, CostAddProps>(({ onCostAdded }, ref) => {
               </div>
             </div>
           </button>
-
+          <p className="h-4"></p>
           {/* 직접 추가하기 */}
           <button
             disabled={!canAddCost}
