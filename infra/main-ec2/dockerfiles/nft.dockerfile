@@ -22,8 +22,8 @@ RUN npm ci --only=production --quiet && \
 # 소스 코드 복사 (JavaScript 프로젝트이므로 src 디렉토리 복사)
 COPY src/ ./src/
 
-# 환경 설정 파일 복사 (선택적)
-COPY build-info.txt ./build-info.txt 2>/dev/null || true
+# 환경 설정 파일 복사 (CI에서 생성됨)
+COPY build-info.txt ./build-info.txt
 
 # 로그 디렉토리 생성
 RUN mkdir -p logs
