@@ -6,6 +6,7 @@ import "dotenv/config";
 let cachedClient = null;
 
 /** Irys Client */
+// TEST
 async function getClient() {
   if (cachedClient) return cachedClient;
 
@@ -114,7 +115,7 @@ async function autoFund(irys, sizeInBytes) {
     const needed = (price - balance);
     console.log(`💸 Funding needed: ${needed}`);
 
-    const fundRes = await irys.fund(needed*5n);
+    const fundRes = await irys.fund(needed * 5n);
     await ensureFundingConfirmed(irys, fundRes.id)
     await waitForBalanceIncrease(irys, balance)
     console.log(`💸 Funding executed: tx = ${fundRes.id}`);
