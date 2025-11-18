@@ -5,7 +5,6 @@ import java.util.Base64;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,6 +21,7 @@ import com.zzik.backend.domain.cost.dto.response.CostListResponse;
 import com.zzik.backend.domain.cost.dto.response.ReceiptOcrResponse;
 import com.zzik.backend.domain.cost.service.CostCalculateService;
 import com.zzik.backend.domain.cost.service.CostService;
+import com.zzik.backend.domain.cost.util.Base64MultipartFile;
 import com.zzik.backend.domain.user.service.UserService;
 import com.zzik.backend.global.cloud.s3.service.S3Directory;
 import com.zzik.backend.global.cloud.s3.service.S3Service;
@@ -114,11 +114,11 @@ public class CostController implements CostApi {
 			String extension = getExtensionFromMimeType(mimeType);
 
 			// MultipartFile로 변환
-			MultipartFile file = new MockMultipartFile(
+			MultipartFile file = new Base64MultipartFile(
+				imageBytes,
 				"receipt",
 				"receipt_" + System.currentTimeMillis() + extension,
-				mimeType,
-				imageBytes
+				mimeType
 			);
 
 			// S3에 업로드하고 objectKey 반환
