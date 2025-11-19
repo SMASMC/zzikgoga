@@ -38,14 +38,14 @@ export class NaverMapService {
     start: { lat: number; lng: number },
     goal: { lat: number; lng: number },
     option: string = 'traoptimal'
-  ): Promise<{ durationMinutes: number; distance: number } | null> {
+  ): Promise<{ durationMinutes: number; durationSeconds: number; distance: number } | null> {
     // 시작점과 도착점이 동일한 경우
     const distance = Math.sqrt(
       Math.pow(goal.lat - start.lat, 2) + Math.pow(goal.lng - start.lng, 2)
     )
     if (distance < 0.0001) {
       console.log('[NaverMapService] Same start and goal, returning 0')
-      return { durationMinutes: 0, distance: 0 }
+      return { durationMinutes: 0, durationSeconds: 0, distance: 0 }
     }
 
     const url = `https://maps.apigw.ntruss.com/map-direction/v1/driving?start=${start.lng},${start.lat}&goal=${goal.lng},${goal.lat}&option=${option}`
@@ -91,10 +91,14 @@ export class NaverMapService {
 
               const durationMs = routeSummary.duration
               const distanceM = routeSummary.distance
-              const durationMinutes = Math.ceil(durationMs / 1000 / 60)
+              const durationSeconds = Math.round(durationMs / 1000)
+              const durationMinutes = Math.round(durationSeconds / 60)
+
+              console.log(`[NaverMapService] Travel time calculated: ${durationMinutes}min (${durationSeconds}s), distance: ${distanceM}m`)
 
               resolve({
                 durationMinutes,
+                durationSeconds,
                 distance: distanceM,
               })
             } catch (error) {

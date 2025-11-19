@@ -358,12 +358,18 @@ export class YDocPersistenceService {
       event.changes.added.forEach((item) => {
         for (const addedVal of item.content.getContent()) {
           if (addedVal instanceof Y.Map) {
-            const keyId = (addedVal.get('id') ?? addedVal.get('uid') ?? 'new') as string | number
-            // 아이템 observer와 동일한 debounce key 사용하여 중복 방지
-            debounce(`schedule:${tripId}:${dateKey}:${keyId}`, () => {
-              this.upsertScheduleItem(tripId, addedVal, dateKey)
-            })
+            // 새 아이템 추가 시에는 observer만 등록
+            // 아이템의 필드가 설정되면 observer를 통해 자동으로 저장됨
             this.hookScheduleItemObservers(addedVal, tripId, dateKey)
+
+            // 아이템이 이미 완전히 설정된 경우(DB 로드 등)를 위한 저장
+            const hasRequiredFields = addedVal.get('start_time') != null
+            if (hasRequiredFields) {
+              const keyId = (addedVal.get('id') ?? addedVal.get('uid') ?? 'new') as string | number
+              debounce(`schedule:${tripId}:${dateKey}:${keyId}`, () => {
+                this.upsertScheduleItem(tripId, addedVal, dateKey)
+              }, 500) // 약간 긴 딜레이로 observer 이벤트와 겹치지 않도록
+            }
           }
         }
       })
@@ -455,12 +461,18 @@ export class YDocPersistenceService {
       event.changes.added.forEach((item) => {
         for (const addedVal of item.content.getContent()) {
           if (addedVal instanceof Y.Map) {
-            const keyId = (addedVal.get('id') ?? addedVal.get('uid') ?? 'new') as string | number
-            // 아이템 observer와 동일한 debounce key 사용하여 중복 방지
-            debounce(`budget:${tripId}:${dateKey}:${keyId}`, () => {
-              this.upsertBudgetItem(tripId, addedVal, dateKey)
-            })
+            // 새 아이템 추가 시에는 observer만 등록
+            // 아이템의 필드가 설정되면 observer를 통해 자동으로 저장됨
             this.hookBudgetItemObservers(addedVal, tripId, dateKey)
+
+            // 아이템이 이미 완전히 설정된 경우(DB 로드 등)를 위한 저장
+            const hasRequiredFields = addedVal.get('category') != null && addedVal.get('amount') != null
+            if (hasRequiredFields) {
+              const keyId = (addedVal.get('id') ?? addedVal.get('uid') ?? 'new') as string | number
+              debounce(`budget:${tripId}:${dateKey}:${keyId}`, () => {
+                this.upsertBudgetItem(tripId, addedVal, dateKey)
+              }, 500) // 약간 긴 딜레이로 observer 이벤트와 겹치지 않도록
+            }
           }
         }
       })
