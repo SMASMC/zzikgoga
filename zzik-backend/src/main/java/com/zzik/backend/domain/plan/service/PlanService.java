@@ -1,0 +1,359 @@
+package com.zzik.backend.domain.plan.service;
+
+import static com.zzik.backend.global.security.jwt.invite.InviteTokenClaimKeys.*;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.zzik.backend.domain.auth.entity.Member;
+import com.zzik.backend.domain.media.entity.Photo;
+import com.zzik.backend.domain.media.repository.PhotoRepository;
+import com.zzik.backend.domain.plan.dto.request.CreateTripRequest;
+import com.zzik.backend.domain.plan.dto.response.ExitTripResponse;
+import com.zzik.backend.domain.plan.dto.response.InviteAcceptResponse;
+import com.zzik.backend.domain.plan.dto.response.TripCursorResponse;
+import com.zzik.backend.domain.plan.dto.response.TripListResponse;
+import com.zzik.backend.domain.plan.dto.response.TripSummaryResponse;
+import com.zzik.backend.domain.plan.entity.Companion;
+import com.zzik.backend.domain.plan.entity.Thema;
+import com.zzik.backend.domain.plan.entity.Trip;
+import com.zzik.backend.domain.plan.entity.TripCompanion;
+import com.zzik.backend.domain.plan.entity.TripMember;
+import com.zzik.backend.domain.plan.entity.TripThema;
+import com.zzik.backend.domain.plan.repository.CompanionRepository;
+import com.zzik.backend.domain.plan.repository.ThemaRepository;
+import com.zzik.backend.domain.plan.repository.TripCompanionRepository;
+import com.zzik.backend.domain.plan.repository.TripMemberRepository;
+import com.zzik.backend.domain.plan.repository.TripRepository;
+import com.zzik.backend.domain.plan.repository.TripThemaRepository;
+import com.zzik.backend.global.cloud.s3.service.S3Util;
+import com.zzik.backend.global.exception.BusinessException;
+import com.zzik.backend.global.exception.ExceptionCode;
+import com.zzik.backend.global.pagination.TripPageInfo;
+import com.zzik.backend.global.security.jwt.invite.InviteTokenProvider;
+
+import jakarta.persistence.EntityManager;
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class PlanService {
+
+	private final TripRepository tripRepository;
+	private final TripCompanionRepository tripCompanionRepository;
+	private final TripMemberRepository tripMemberRepository;
+	private final TripThemaRepository tripThemaRepository;
+	private final CompanionRepository companionRepository;
+	private final ThemaRepository themaRepository;
+	private final EntityManager em;
+	private final InviteTokenProvider inviteTokenProvider;
+	private final StringRedisTemplate redisTemplate;
+	private final PhotoRepository photoRepository;
+	private final S3Util s3Util;
+
+	private String tokenKey(Long tripId) {
+		return "invite:trip:%d:token".formatted(tripId);
+	}
+
+	private String jtiKey(Long tripId) {
+		return "invite:trip:%d:jti".formatted(tripId);
+	}
+
+	@Value("${invite.base-url}")
+	private String inviteBaseUrl;
+
+	@Transactional(readOnly = true)
+	public TripListResponse getTripList(Long memberId, int page, int size) {
+
+		// 페이지는 1부터 시작, 내부적으로는 0부터 시작
+		int pageIndex = Math.max(0, page - 1);
+
+		Pageable pageRequest = PageRequest.of(pageIndex, size, Sort.by(Sort.Direction.DESC, "id"));
+
+		List<Trip> trips = tripRepository.findByMemberId(memberId, pageRequest);
+
+		// 전체 개수 조회
+		long totalCount = tripRepository.countByMemberId(memberId);
+		int totalPages = (int) Math.ceil((double) totalCount / size);
+
+		List<TripSummaryResponse> items = new ArrayList<>();
+
+		for (Trip t : trips) {
+			List<Photo> photos = photoRepository.findByTripId(t.getId());
+
+			Photo photo = null;
+			if (!photos.isEmpty()) {
+				photo = photos.get(
+					ThreadLocalRandom.current().nextInt(photos.size())
+				);
+			}
+
+			items.add(TripSummaryResponse.builder()
+				.tripId(t.getId())
+				.title(t.getTitle())
+				.startDate(t.getStartDate())
+				.endDate(t.getEndDate())
+				.thumbnail(photo != null
+					? s3Util.generatePresignedUrl(photo.getS3Url())
+					: null)
+				.build());
+		}
+
+		return TripListResponse.builder()
+			.trip(items)
+			.pageInfo(new TripPageInfo(page, totalPages, totalCount))
+			.build();
+	}
+
+	@Transactional(readOnly = true)
+	public TripCursorResponse getTripListWithCursor(Long memberId, Long cursor, int size) {
+		// 커서 기반으로 size+1개 조회 (hasMore 판단용)
+		Pageable pageRequest = PageRequest.of(0, size + 1, Sort.by(Sort.Direction.DESC, "id"));
+
+		List<Trip> trips = tripRepository.findByMemberIdWithCursor(memberId, cursor, pageRequest);
+
+		// 전체 개수 조회
+		long totalCount = tripRepository.countByMemberId(memberId);
+
+		// hasMore 판단: size+1개를 요청했으므로, size+1개가 왔다면 더 있음
+		boolean hasMore = trips.size() > size;
+
+		// 실제 반환할 데이터는 size개만
+		List<Trip> resultTrips = hasMore ? trips.subList(0, size) : trips;
+
+		List<TripSummaryResponse> items = new ArrayList<>();
+		Long nextCursor = null;
+
+		for (Trip t : resultTrips) {
+			List<Photo> photos = photoRepository.findByTripId(t.getId());
+
+			Photo photo = null;
+			if (!photos.isEmpty()) {
+				photo = photos.get(
+					ThreadLocalRandom.current().nextInt(photos.size())
+				);
+			}
+
+			items.add(TripSummaryResponse.builder()
+				.tripId(t.getId())
+				.title(t.getTitle())
+				.startDate(t.getStartDate())
+				.endDate(t.getEndDate())
+				.thumbnail(photo != null
+					? s3Util.generatePresignedUrl(photo.getS3Url())
+					: null)
+				.build());
+
+			// 마지막 trip의 ID를 다음 커서로 사용
+			nextCursor = t.getId();
+		}
+
+		return TripCursorResponse.builder()
+			.trips(items)
+			.nextCursor(hasMore ? nextCursor : null)
+			.hasMore(hasMore)
+			.totalCount(totalCount)
+			.build();
+	}
+
+	@Transactional
+	public Long createTrip(CreateTripRequest req, Long ownerId) {
+		validate(req);
+		Member ownerRef = em.getReference(Member.class, ownerId);
+		Trip trip = Trip.builder()
+			.owner(ownerRef)
+			.title(req.getTitle().trim())
+			.startDate(req.getStartDate())
+			.endDate(req.getEndDate())
+			.maleCount(req.getMaleCount())
+			.femaleCount(req.getFemaleCount())
+			.isCostCompleted(false)
+			.build();
+
+		trip = tripRepository.save(trip);
+
+		// 여행 생성한 사람 TripMember로 추가
+		TripMember ownerMember = TripMember.builder()
+			.trip(trip)
+			.member(ownerRef)
+			.isCostAccepted(false)
+			.build();
+		tripMemberRepository.save(ownerMember);
+
+		// 동반자 태그 연결
+		if (req.getCompanionId() != null && !req.getCompanionId().isEmpty()) {
+			List<TripCompanion> links = new ArrayList<>();
+			for (Long cid : req.getCompanionId()) {
+				// 필요하면 가벼운 존재 검증
+				if (!companionRepository.existsById(cid)) {
+					throw BusinessException.from(ExceptionCode.INVALID_COMPANION);
+				}
+				Companion compRef = em.getReference(Companion.class, cid);
+				links.add(TripCompanion.builder()
+					.trip(trip)
+					.companion(compRef)
+					.build());
+			}
+			tripCompanionRepository.saveAll(links);
+		}
+
+		// 테마 태그 연결
+		if (req.getThemaId() != null && !req.getThemaId().isEmpty()) {
+			List<TripThema> links = new ArrayList<>();
+			for (Long tid : req.getThemaId()) {
+				if (!themaRepository.existsById(tid)) {
+					throw BusinessException.from(ExceptionCode.INVALID_THEMA);
+				}
+				Thema themaRef = em.getReference(Thema.class, tid);
+				links.add(TripThema.builder()
+					.trip(trip)
+					.thema(themaRef)
+					.build());
+			}
+			tripThemaRepository.saveAll(links);
+		}
+
+		return trip.getId();
+	}
+
+	private void validate(CreateTripRequest req) {
+		if (req.getTitle() == null || req.getTitle().isBlank()) {
+			throw BusinessException.from(ExceptionCode.PLAN_INVALID_TITLE);
+		}
+		LocalDate s = req.getStartDate();
+		LocalDate e = req.getEndDate();
+		if (s == null || e == null || e.isBefore(s)) {
+			throw BusinessException.from(ExceptionCode.PLAN_INVALID_DATE_RANGE);
+		}
+	}
+
+	@Transactional(readOnly = true)
+	public String createInviteLink(Long tripId, Long requesterId) {
+		// 존재하는 여행인지 확인
+		Trip trip = tripRepository.findById(tripId)
+			.orElseThrow(() -> BusinessException.from(ExceptionCode.TRIP_NOT_FOUND));
+
+		// 해당 여행의 멤버가 맞는지 확인
+		boolean isMember = tripMemberRepository.existsByTripIdAndMemberId(tripId, requesterId);
+		if (!isMember) {
+			throw BusinessException.from(ExceptionCode.FORBIDDEN_TRIP);
+		}
+
+		// 링크 만료 시간 계산
+		Instant now = Instant.now();
+		Instant defaultExp = now.plus(Duration.ofHours(24));
+		LocalDate cutoffDate = trip.getEndDate().plusDays(1);
+		Instant hardCutoff = cutoffDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
+		Instant finalExp = defaultExp.isBefore(hardCutoff) ? defaultExp : hardCutoff;
+
+		Duration ttl = Duration.between(now, finalExp);
+		if (ttl.isNegative() || ttl.isZero()) {
+			// 여행이 이미 종료+1일을 지나 초대가 의미 없을 때
+			throw BusinessException.from(ExceptionCode.PLAN_INVALID_DATE_RANGE);
+		}
+
+		// 기존 토큰 있으면 그대로 반환
+		String tKey = tokenKey(tripId);
+		String existing = redisTemplate.opsForValue().get(tKey);
+		if (existing != null) {
+			return inviteBaseUrl + "?token=" + existing;
+		}
+
+		// 초대 토큰 생성
+		String jti = UUID.randomUUID().toString();
+		Map<String, Object> claims = new HashMap<>();
+		claims.put(TRIP_ID.getValue(), tripId);
+		claims.put(PURPOSE.getValue(), "invite");
+		claims.put(JTI.getValue(), jti);
+
+		String token = inviteTokenProvider.issueInviteToken(claims, ttl);
+
+		Boolean ok = redisTemplate.opsForValue().setIfAbsent(tKey, token, ttl);
+		if (Boolean.FALSE.equals(ok)) {
+			return inviteBaseUrl + "?token=" + redisTemplate.opsForValue().get(tKey);
+		}
+
+		redisTemplate.opsForValue().set(jtiKey(tripId), jti, ttl);
+
+		return inviteBaseUrl + "?token=" + token;
+	}
+
+	@Transactional
+	public InviteAcceptResponse acceptInvite(String token, Long memberId) {
+		try {
+			var claims = inviteTokenProvider.getClaimsFromToken(token);
+			Long tripId = ((Number)claims.get("tripId")).longValue();
+
+			String jti = (String)claims.get("jti");
+			assertLatestJti(tripId, jti);
+
+			Trip trip = tripRepository.findById(tripId)
+				.orElseThrow(() -> BusinessException.from(ExceptionCode.TRIP_NOT_FOUND));
+
+			boolean already = tripMemberRepository.existsByTripIdAndMemberId(tripId, memberId);
+			if (!already) {
+				Member memberRef = em.getReference(Member.class, memberId);
+				TripMember join = TripMember.builder()
+					.trip(trip)
+					.member(memberRef)
+					.isCostAccepted(false)
+					.build();
+				tripMemberRepository.save(join);
+			}
+
+			return InviteAcceptResponse.builder()
+				.joined(!already)
+				.tripId(trip.getId())
+				.build();
+
+		} catch (io.jsonwebtoken.ExpiredJwtException e) {
+			throw BusinessException.from(ExceptionCode.EXPIRED_ACCESS_TOKEN);
+		} catch (Exception e) {
+			throw BusinessException.from(ExceptionCode.MALFORMED_TOKEN);
+		}
+	}
+
+	@Transactional
+	public ExitTripResponse exitTrip(Long memberId, Long tripId) {
+		// 여행 ID가 유효한지 확인
+		Trip trip = tripRepository.findById(tripId)
+			.orElseThrow(() -> BusinessException.from(ExceptionCode.TRIP_NOT_FOUND));
+
+		// 사용자가 해당 여행에 참여한 멤버인지 확인
+		boolean isMember = tripMemberRepository.existsByTripIdAndMemberId(tripId, memberId);
+		if (!isMember) {
+			throw BusinessException.from(ExceptionCode.NOT_TRIP_MEMBER);
+		}
+
+		tripMemberRepository.deleteByTripIdAndMemberId(tripId, memberId);
+
+		return ExitTripResponse.builder()
+			.deleted(true)
+			.build();
+	}
+
+	private void assertLatestJti(Long tripId, String jti) {
+		String saved = redisTemplate.opsForValue().get(jtiKey(tripId));
+		if (saved == null || !saved.equals(jti)) {
+			// 저장된 최신 JTI가 없거나 다르면 거부
+			throw BusinessException.from(ExceptionCode.INVITE_INVALID);
+		}
+	}
+
+}
