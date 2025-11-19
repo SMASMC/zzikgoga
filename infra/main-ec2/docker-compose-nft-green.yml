@@ -1,0 +1,28 @@
+services:
+  nft-server:
+    image: zzikgoga-nft:latest
+    container_name: zzikgoga-nft-green
+    ports:
+      - "5002:3200"
+    env_file:
+      - .env.nft
+    environment:
+      # 서버 설정
+      HOST: "0.0.0.0"
+      PORT: "3200"
+      NODE_ENV: "production"
+      ENV_COLOR: "green"
+    restart: unless-stopped
+    networks:
+      - default
+      - main-ec2_default
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3200/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+networks:
+  main-ec2_default:
+    external: true

@@ -1,0 +1,31 @@
+services:
+  node-server:
+    image: zzikgoga-node:latest
+    container_name: zzikgoga-node-blue
+    ports:
+      - "4001:3100"
+    env_file:
+      - .env.crdt
+    environment:
+      # 서버 설정
+      HOST: "0.0.0.0"
+      YJS_PORT: "3100"
+      NODE_ENV: "production"
+      ENV_COLOR: "blue"
+      PORT: "3100"
+      # DB 환경변수는 .env.crdt에서 로드
+      # DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
+    restart: unless-stopped
+    networks:
+      - default
+      - main-ec2_default
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3100/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+networks:
+  main-ec2_default:
+    external: true

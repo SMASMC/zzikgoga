@@ -1,1 +1,23 @@
 zzik-backend/nul
+# Editor settings
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node.js
+node_modules/
+package-lock.json
+.npm/
+logs/
+
+# Environment variables
+*.env
+.env.*
+!.env.example
+
+# Build artifacts
+build-info.txt
+dist/
+build/

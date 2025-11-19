@@ -1,0 +1,42 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /var/lib/promtail/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: docker
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: docker
+          __path__: /var/lib/docker/containers/*/*-json.log
+
+  - job_name: nginx
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: nginx
+          log_type: access
+          __path__: /var/log/nginx/*access*.log
+      - targets: [localhost]
+        labels:
+          job: nginx
+          log_type: error
+          __path__: /var/log/nginx/*error*.log
+    pipeline_stages:
+      - match:
+          selector: '{job="nginx", log_type="access"}'
+          stages:
+            - regex:
+                expression: '^(?P<remote_addr>[^ ]*) - (?P<remote_user>[^ ]*) \[(?P<time_local>[^\]]+)\] "(?P<request>[^"]*)" (?P<status>\d{3}) (?P<body_bytes_sent>[^ ]*) "(?P<http_referer>[^"]*)" "(?P<http_user_agent>[^"]*)"'
+            - regex:
+                source: request
+                expression: '^(?P<method>\S+) (?P<uri>\S+) (?P<protocol>\S+)$'
+            - labels:
+                status:
+                method:

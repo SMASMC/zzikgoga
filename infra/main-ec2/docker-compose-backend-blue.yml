@@ -1,0 +1,27 @@
+services:
+  backend:
+    image: zzikgoga:latest
+    container_name: zzikgoga-blue
+    ports:
+      - "8081:8080"
+    env_file:
+      - .env
+    environment:
+      SERVER_PORT: "8080"
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://zzik.kr:5432/${POSTGRES_DB:-zzik}"
+      SPRING_DATASOURCE_USERNAME: "${POSTGRES_USER}"
+      SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD}"
+      SPRING_DATA_REDIS_HOST: "${REDIS_HOST}"
+      SPRING_DATA_REDIS_PORT: "${REDIS_PORT:-6379}"
+      SPRING_DATA_REDIS_PASSWORD: "${REDIS_PASSWORD}"
+      SPRING_DATA_REDIS_DATABASE: "${REDIS_DATABASE:-0}"
+    restart: unless-stopped
+    networks:
+      - default
+      - main-ec2_default
+
+networks:
+  default:
+    name: main-ec2_default
+  main-ec2_default:
+    external: true

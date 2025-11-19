@@ -1,0 +1,10 @@
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+
+scrape_configs:
+  # Spring Boot Actuator metrics exposed via Nginx on host:18080
+  - job_name: 'spring-actuator'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['host.docker.internal:18080']

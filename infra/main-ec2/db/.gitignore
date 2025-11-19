@@ -1,0 +1,3 @@
+# Local backend development environment variable file
+# This file is copied from local-backend/.env during start.bat execution
+.env

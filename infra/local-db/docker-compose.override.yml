@@ -1,0 +1,7 @@
+# 로컬 개발 환경을 위한 override 설정
+# 운영 환경(main-ec2/db)의 docker-compose 파일에 포트 매핑만 추가합니다.
+
+services:
+  redis:
+    ports:
+      - "6379:6379"
