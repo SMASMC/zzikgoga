@@ -333,7 +333,10 @@ export class YDocPersistenceService {
             ...payload,
           })
           Y.transact(scheduleItem.doc!, () => {
-            scheduleItem.set('location', { ...loc, id: newLocId })
+            const existingLocation = scheduleItem.get('location')
+            if (existingLocation instanceof Y.Map) {
+              existingLocation.set('id', newLocId)
+            }
           }, DB_UPDATE_ORIGIN)
         }
       } else {
