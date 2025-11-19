@@ -349,6 +349,15 @@ const PlaceBoard = ({ cursorSession, onOpenPlaceDrawer }: PlaceBoardProps) => {
     const sortedSchedules = schedulesForSelected
 
     try {
+      // 모든 이동시간 계산을 먼저 완료하고 업데이트 정보 수집
+      const updates: Array<{
+        nextItem: Y.Map<unknown>
+        newStartTime: string
+        travelMinutes: number
+        travelSeconds?: number
+        travelDistance?: number
+      }> = []
+
       for (let i = 0; i < sortedSchedules.length - 1; i++) {
         const current = sortedSchedules[i]
         const next = sortedSchedules[i + 1]
@@ -435,27 +444,41 @@ const PlaceBoard = ({ cursorSession, onOpenPlaceDrawer }: PlaceBoardProps) => {
           continue
         }
 
+        // Y.Map 참조와 업데이트 정보를 배열에 저장 (실제 적용은 나중에 한 번에)
+        updates.push({
+          nextItem: yNextItem,
+          newStartTime: newNextStartTime,
+          travelMinutes,
+          travelSeconds,
+          travelDistance,
+        })
+      }
+
+      // 모든 업데이트를 하나의 transaction으로 처리 (observer 한 번만 실행)
+      if (doc && updates.length > 0) {
         doc.transact(() => {
-          yNextItem.set('start_time', newNextStartTime)
-          const startText = yNextItem.get('start_hhmm_text')
-          if (startText instanceof Y.Text) {
-            const newHHMM = newNextStartTime.slice(11, 16)
-            startText.delete(0, startText.length)
-            startText.insert(0, newHHMM)
-          }
+          updates.forEach(({ nextItem, newStartTime, travelMinutes, travelSeconds, travelDistance }) => {
+            nextItem.set('start_time', newStartTime)
+            const startText = nextItem.get('start_hhmm_text')
+            if (startText instanceof Y.Text) {
+              const newHHMM = newStartTime.slice(11, 16)
+              startText.delete(0, startText.length)
+              startText.insert(0, newHHMM)
+            }
 
-          if (typeof travelMinutes === 'number') {
-            yNextItem.set('travel_duration', travelMinutes)
-          }
+            if (typeof travelMinutes === 'number') {
+              nextItem.set('travel_duration', travelMinutes)
+            }
 
-          if (typeof travelSeconds === 'number') {
-            yNextItem.set('travel_duration_seconds', travelSeconds)
-          }
+            if (typeof travelSeconds === 'number') {
+              nextItem.set('travel_duration_seconds', travelSeconds)
+            }
 
-          if (typeof travelDistance === 'number') {
-            yNextItem.set('travel_distance', travelDistance)
-          }
-        }, 'save-travel-time')
+            if (typeof travelDistance === 'number') {
+              nextItem.set('travel_distance', travelDistance)
+            }
+          })
+        }, 'save-all-travel-times')
       }
 
       setToast({
