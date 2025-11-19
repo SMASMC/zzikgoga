@@ -8,28 +8,28 @@ const MESSAGE_TTL = 5000
 const CURSOR_COLOR_STORAGE_KEY = 'plan-cursor-color-map'
 
 // 구분하기 쉬운 20개 고정 색상 팔레트
-// 모든 참여자는 이 팔레트에서 순서대로 색상을 할당받습니다
+// 명확하게 구분되는 색상으로 구성
 const COLOR_PALETTE = [
-  '#F3C300', // vivid yellow
-  '#875692', // strong purple
-  '#F38400', // vivid orange
-  '#A1CAF1', // very light blue
-  '#BE0032', // vivid red
-  '#C2B280', // grayish yellow
-  '#848482', // medium gray
-  '#008856', // vivid green
-  '#E68FAC', // strong purplish pink
-  '#0067A5', // strong blue
-  '#F99379', // strong yellowish pink
-  '#604E97', // strong violet
-  '#F6A600', // vivid orange yellow
-  '#B3446C', // strong purplish red
-  '#DCD300', // vivid greenish yellow
-  '#882D17', // strong reddish brown
-  '#8DB600', // vivid yellowish green
-  '#654522', // deep brown
-  '#E25822', // vivid reddish orange
-  '#2B3D26', // dark olive green
+  '#EF4444', // 빨강 (Red)
+  '#F97316', // 주황 (Orange)
+  '#FBBF24', // 노랑 (Yellow)
+  '#84CC16', // 연두 (Lime Green)
+  '#22C55E', // 초록 (Green)
+  '#10B981', // 청록 (Emerald)
+  '#14B8A6', // 청록 (Teal)
+  '#06B6D4', // 시안 (Cyan)
+  '#3B82F6', // 파랑 (Blue)
+  '#2563EB', // 진한 파랑 (Deep Blue)
+  '#6366F1', // 남색 (Indigo)
+  '#8B5CF6', // 보라 (Purple)
+  '#A855F7', // 진한 보라 (Violet)
+  '#D946EF', // 자홍 (Magenta)
+  '#EC4899', // 분홍 (Pink)
+  '#F43F5E', // 로즈 (Rose)
+  '#DC2626', // 진한 빨강 (Dark Red)
+  '#EA580C', // 진한 주황 (Dark Orange)
+  '#CA8A04', // 진한 노랑 (Dark Yellow)
+  '#16A34A', // 진한 초록 (Dark Green)
 ]
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
@@ -50,35 +50,21 @@ const pickColor = (seed: string) =>
 // 이미 사용 중인 색상을 피하여 겹치지 않도록 함
 const assignDynamicColor = (
   userId: string,
-  allUserIds: string[],
+  _allUserIds: string[],
   usedColors: Set<string>
 ): string => {
   // 사용되지 않은 색상 찾기
   const availableColors = COLOR_PALETTE.filter((color) => !usedColors.has(color))
 
   if (availableColors.length > 0) {
-    // 사용되지 않은 색상이 있으면, userId를 기반으로 일관되게 선택
-    const sortedUserIds = [...allUserIds].sort()
-    const index = sortedUserIds.indexOf(userId)
-
-    if (index === -1) {
-      // 폴백: userId를 찾을 수 없는 경우 첫 번째 사용 가능한 색상 반환
-      return availableColors[0]
-    }
-
-    // 사용 가능한 색상 중에서 순환하여 선택
-    return availableColors[index % availableColors.length]
+    // 사용되지 않은 색상이 있으면, userId의 해시값을 기반으로 일관되게 선택
+    // 해시 기반 선택으로 userId가 비슷해도 다른 색상을 받도록 보장
+    const hashIndex = hashToIndex(userId, availableColors.length)
+    return availableColors[hashIndex]
   }
 
-  // 모든 색상이 사용 중인 경우 (20명 이상), 기존 방식대로 순환
-  const sortedUserIds = [...allUserIds].sort()
-  const index = sortedUserIds.indexOf(userId)
-
-  if (index === -1) {
-    return pickColor(userId)
-  }
-
-  return COLOR_PALETTE[index % COLOR_PALETTE.length]
+  // 모든 색상이 사용 중인 경우 (20명 이상), 기존 방식대로 해시 기반 선택
+  return pickColor(userId)
 }
 
 const GUEST_ID_STORAGE_KEY = 'plan-cursor-guest-identity'
