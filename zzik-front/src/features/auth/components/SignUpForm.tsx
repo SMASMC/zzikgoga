@@ -119,8 +119,15 @@ const SignUpForm = ({
         title: '회원가입 완료',
         message: '회원가입이 완료되었습니다!',
       })
-      // console.log('mypage로 이동')
-      navigate('/mypage', { replace: true })
+
+      // sessionStorage에서 초대 링크 확인 (비회원이 초대 링크를 통해 회원가입한 경우)
+      const redirectUrl = sessionStorage.getItem('redirectAfterLogin')
+      if (redirectUrl) {
+        sessionStorage.removeItem('redirectAfterLogin')
+        navigate(redirectUrl, { replace: true })
+      } else {
+        navigate('/mypage', { replace: true })
+      }
     } catch (error) {
       console.error('회원가입 실패:', error)
       const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다'
@@ -269,7 +276,9 @@ const SignUpForm = ({
         </div>
 
         <Input
-          label="계좌번호"
+          //label="계좌번호"
+          //TODO: 추후 실제 금융망 사용시 label 복원 예정
+          label="계좌번호 (SSAFY 금융망 전용 계좌)"
           placeholder="숫자만 입력하세요 (- 제외)"
           value={formData.accountNum}
           onChange={handleChange('accountNum')}
