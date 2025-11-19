@@ -359,7 +359,8 @@ export class YDocPersistenceService {
         for (const addedVal of item.content.getContent()) {
           if (addedVal instanceof Y.Map) {
             const keyId = (addedVal.get('id') ?? addedVal.get('uid') ?? 'new') as string | number
-            debounce(`schedule_upsert:${tripId}:${dateKey}:${keyId}`, () => {
+            // 아이템 observer와 동일한 debounce key 사용하여 중복 방지
+            debounce(`schedule:${tripId}:${dateKey}:${keyId}`, () => {
               this.upsertScheduleItem(tripId, addedVal, dateKey)
             })
             this.hookScheduleItemObservers(addedVal, tripId, dateKey)
@@ -385,7 +386,8 @@ export class YDocPersistenceService {
     scheduleItem.observe((_evt: Y.YMapEvent<any>, tr: Y.Transaction) => {
       if (!isUserOrigin(tr)) return
       const keyId = (scheduleItem.get('id') ?? scheduleItem.get('uid') ?? 'new') as string | number
-      debounce(`schedule_item:${tripId}:${dateKey}:${keyId}`, () => {
+      // 배열 observer와 동일한 debounce key 사용하여 중복 방지
+      debounce(`schedule:${tripId}:${dateKey}:${keyId}`, () => {
         this.upsertScheduleItem(tripId, scheduleItem, dateKey)
       })
     })
@@ -396,7 +398,8 @@ export class YDocPersistenceService {
       memoVal.observe((_textEvt: Y.YTextEvent, tr: Y.Transaction) => {
         if (!isUserOrigin(tr)) return
         const keyId = (scheduleItem.get('id') ?? scheduleItem.get('uid') ?? 'new') as string | number
-        debounce(`schedule_item_memo:${tripId}:${dateKey}:${keyId}`, () => {
+        // 통일된 debounce key 사용
+        debounce(`schedule:${tripId}:${dateKey}:${keyId}`, () => {
           this.upsertScheduleItem(tripId, scheduleItem, dateKey)
         })
       })
@@ -453,7 +456,8 @@ export class YDocPersistenceService {
         for (const addedVal of item.content.getContent()) {
           if (addedVal instanceof Y.Map) {
             const keyId = (addedVal.get('id') ?? addedVal.get('uid') ?? 'new') as string | number
-            debounce(`budget_upsert:${tripId}:${dateKey}:${keyId}`, () => {
+            // 아이템 observer와 동일한 debounce key 사용하여 중복 방지
+            debounce(`budget:${tripId}:${dateKey}:${keyId}`, () => {
               this.upsertBudgetItem(tripId, addedVal, dateKey)
             })
             this.hookBudgetItemObservers(addedVal, tripId, dateKey)
@@ -478,7 +482,8 @@ export class YDocPersistenceService {
     budgetItem.observe((_evt, tr) => {
       if (!isUserOrigin(tr)) return
       const keyId = budgetItem.get('id') ?? budgetItem.get('uid') ?? 'new'
-      debounce(`budget_item:${tripId}:${dateKey}:${keyId}`, () => {
+      // 배열 observer와 동일한 debounce key 사용하여 중복 방지
+      debounce(`budget:${tripId}:${dateKey}:${keyId}`, () => {
         this.upsertBudgetItem(tripId, budgetItem, dateKey)
       })
     })
@@ -488,7 +493,8 @@ export class YDocPersistenceService {
       descVal.observe((_textEvt, tr) => {
         if (!isUserOrigin(tr)) return
         const keyId = budgetItem.get('id') ?? budgetItem.get('uid') ?? 'new'
-        debounce(`budget_item_desc:${tripId}:${dateKey}:${keyId}`, () => {
+        // 통일된 debounce key 사용
+        debounce(`budget:${tripId}:${dateKey}:${keyId}`, () => {
           this.upsertBudgetItem(tripId, budgetItem, dateKey)
         })
       })
