@@ -42,8 +42,18 @@ async function getOrCreateRoom(roomName: string): Promise<Room> {
   } else {
     const tripId = Number(m[1])
     console.log(`[room] loading trip ${tripId} from DB into Y.Doc ...`)
-    await ydocLoaderService.loadTripData(tripId, doc)
-    console.log(`[room] trip ${tripId} loaded into doc.`)
+
+    try {
+      await ydocLoaderService.loadTripData(tripId, doc)
+      console.log(`[room] trip ${tripId} loaded into doc.`)
+    } catch (error) {
+      console.error(`[room] Failed to load trip ${tripId} from DB:`, error)
+      console.log(`[room] Creating empty doc for trip ${tripId}`)
+
+      // 빈 문서 초기화 (tripInfo만 설정)
+      const tripInfo = doc.getMap('tripInfo')
+      tripInfo.set('id', tripId)
+    }
 
     // tripInfo.id 보정 (DB 로드가 id를 안 넣었을 경우 대비)
     const tripInfo = doc.getMap('tripInfo')
@@ -76,7 +86,15 @@ async function handleConnection(ws: WebSocket, req: http.IncomingMessage) {
   const roomName = fullUrl.pathname.replace(/^\//, '') || 'default-room'
   console.log(`[server] new ws connection for room="${roomName}"`)
 
-  const room = await getOrCreateRoom(roomName)
+  let room: Room
+  try {
+    room = await getOrCreateRoom(roomName)
+  } catch (error) {
+    console.error(`[server] Failed to create room "${roomName}":`, error)
+    ws.close(1011, 'Failed to initialize room')
+    return
+  }
+
   const { doc, awareness } = room
   room.conns.add(ws)
 
@@ -272,7 +290,16 @@ const server = http.createServer((req, res) => {
 })
 
 const wss = new WebSocketServer({ server })
-wss.on('connection', (ws, req) => { void handleConnection(ws, req) })
+wss.on('connection', (ws, req) => {
+  handleConnection(ws, req).catch(error => {
+    console.error('[server] Unhandled error in handleConnection:', error)
+    try {
+      ws.close(1011, 'Internal server error')
+    } catch (closeError) {
+      console.error('[server] Failed to close websocket:', closeError)
+    }
+  })
+})
 
 server.listen(PORT, () => {
   console.log(`y-websocket compatible server running at ws://${HOST}:${PORT}`)
