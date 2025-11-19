@@ -26,6 +26,9 @@ const TimePicker = ({
   const [tempHour, setTempHour] = useState('09')
   const [tempMinute, setTempMinute] = useState('00')
   const [dropdownPosition, setDropdownPosition] = useState<'bottom' | 'top'>('bottom')
+  const [maxDropdownHeight, setMaxDropdownHeight] = useState<number | undefined>(undefined)
+  const [dropdownWidth, setDropdownWidth] = useState<number | undefined>(undefined)
+  const [dropdownLeft, setDropdownLeft] = useState<number | undefined>(undefined)
   const containerRef = useRef<HTMLDivElement>(null)
 
   // value가 변경되면 tempHour, tempMinute 업데이트
@@ -37,22 +40,91 @@ const TimePicker = ({
     }
   }, [value])
 
-  // 드롭다운 위치 계산
+  // 드롭다운 위치 계산 (모달 경계 고려)
   useEffect(() => {
     if (isOpen && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect()
-      const dropdownHeight = 400 // 예상 드롭다운 높이
-      const spaceBelow = window.innerHeight - rect.bottom
-      const spaceAbove = rect.top
+      const preferredDropdownHeight = 400 // 선호하는 드롭다운 높이
 
-      // 아래 공간이 부족하고 위 공간이 더 넉넉하면 위로 열기
-      if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
-        setDropdownPosition('top')
+      // 가장 가까운 모달 컨테이너 찾기 (overflow-y-auto 또는 overflow-y-scroll이 있는 부모)
+      let modalContainer: HTMLElement | null = containerRef.current.parentElement
+      while (modalContainer) {
+        const style = window.getComputedStyle(modalContainer)
+        if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+          break
+        }
+        modalContainer = modalContainer.parentElement
+      }
+
+      if (modalContainer) {
+        // 모달 컨테이너의 경계 계산
+        const modalRect = modalContainer.getBoundingClientRect()
+        const spaceBelowInModal = modalRect.bottom - rect.bottom
+        const spaceAboveInModal = rect.top - modalRect.top
+
+        // 드롭다운 너비 계산 (모달 경계 내에서)
+        const preferredWidth = 280 // min-w-[280px]
+
+        // 드롭다운이 모달 오른쪽 경계를 넘지 않도록 너비 조정
+        let calculatedWidth = preferredWidth
+        let calculatedLeft: number | undefined = undefined
+
+        if (align === 'right') {
+          // 오른쪽 정렬인 경우
+          if (rect.right - preferredWidth < modalRect.left) {
+            // 왼쪽으로 벗어나면 모달 너비에 맞춤
+            calculatedWidth = rect.right - modalRect.left - 16 // 패딩 고려
+            calculatedLeft = modalRect.left - rect.left + 8
+          }
+        } else {
+          // 왼쪽 정렬인 경우 (기본)
+          if (rect.left + preferredWidth > modalRect.right) {
+            // 오른쪽으로 벗어나면 모달 너비에 맞춤
+            calculatedWidth = modalRect.right - rect.left - 16 // 패딩 고려
+          }
+        }
+
+        // 모달 내부에서 공간이 충분한지 확인
+        if (spaceBelowInModal >= preferredDropdownHeight) {
+          // 아래 공간이 충분하면 아래로
+          setDropdownPosition('bottom')
+          setMaxDropdownHeight(undefined) // 제한 없음
+        } else if (spaceAboveInModal >= preferredDropdownHeight) {
+          // 위 공간이 충분하면 위로
+          setDropdownPosition('top')
+          setMaxDropdownHeight(undefined) // 제한 없음
+        } else {
+          // 양쪽 모두 부족하면 더 넉넉한 쪽으로 선택하고 높이 제한
+          if (spaceAboveInModal > spaceBelowInModal) {
+            setDropdownPosition('top')
+            // 위쪽 공간에 맞춰 높이 제한 (여유 공간 10px)
+            setMaxDropdownHeight(Math.max(250, spaceAboveInModal - 10))
+          } else {
+            setDropdownPosition('bottom')
+            // 아래쪽 공간에 맞춰 높이 제한 (여유 공간 10px)
+            setMaxDropdownHeight(Math.max(250, spaceBelowInModal - 10))
+          }
+        }
+
+        // 너비 설정
+        setDropdownWidth(calculatedWidth < 200 ? undefined : calculatedWidth) // 최소 200px
+        setDropdownLeft(calculatedLeft)
       } else {
-        setDropdownPosition('bottom')
+        // 모달 컨테이너를 찾지 못한 경우 기존 로직 사용
+        const spaceBelow = window.innerHeight - rect.bottom
+        const spaceAbove = rect.top
+
+        if (spaceBelow < preferredDropdownHeight && spaceAbove > spaceBelow) {
+          setDropdownPosition('top')
+        } else {
+          setDropdownPosition('bottom')
+        }
+        setMaxDropdownHeight(undefined) // 모달이 없으면 제한 없음
+        setDropdownWidth(undefined) // 모달이 없으면 기본 너비
+        setDropdownLeft(undefined)
       }
     }
-  }, [isOpen])
+  }, [isOpen, align])
 
   // 외부 클릭 감지
   useEffect(() => {
@@ -120,9 +192,18 @@ const TimePicker = ({
       {/* 드롭다운 패널 */}
       {isOpen && (
         <div
-          className={`absolute w-full min-w-[280px] bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 overflow-hidden ${
+          className={`absolute bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 overflow-hidden ${
             dropdownPosition === 'top' ? 'bottom-full mb-2' : 'top-full mt-2'
-          } ${align === 'right' ? 'right-0' : 'left-0'}`}
+          } ${align === 'right' && !dropdownLeft ? 'right-0' : ''} ${!dropdownLeft && align !== 'right' ? 'left-0' : ''}`}
+          style={{
+            ...(dropdownWidth
+              ? { width: `${dropdownWidth}px`, minWidth: `${Math.min(dropdownWidth, 280)}px` }
+              : { width: '100%', minWidth: '280px' }),
+            ...(dropdownLeft !== undefined ? { left: `${dropdownLeft}px` } : {}),
+            ...(maxDropdownHeight
+              ? { maxHeight: `${maxDropdownHeight}px`, display: 'flex', flexDirection: 'column' }
+              : { display: 'flex', flexDirection: 'column' }),
+          }}
         >
           {/* 빠른 선택 */}
           <div className="p-3 border-b border-slate-100">
@@ -142,12 +223,19 @@ const TimePicker = ({
           </div>
 
           {/* 시간/분 선택 */}
-          <div className="p-3">
+          <div className="p-3 flex-1 min-h-0">
             <div className="grid grid-cols-2 gap-3 mb-3">
               {/* 시간 */}
-              <div>
+              <div className="flex flex-col min-h-0">
                 <div className="text-xs font-semibold text-slate-600 mb-2">시</div>
-                <div className="max-h-48 overflow-y-auto custom-scrollbar border border-slate-200 rounded-lg">
+                <div
+                  className="flex-1 overflow-y-auto custom-scrollbar border border-slate-200 rounded-lg"
+                  style={
+                    maxDropdownHeight
+                      ? { maxHeight: `${Math.max(150, (maxDropdownHeight - 180) / 2)}px` }
+                      : { maxHeight: '192px' }
+                  }
+                >
                   {hours.map((h) => (
                     <button
                       key={h}
@@ -166,9 +254,16 @@ const TimePicker = ({
               </div>
 
               {/* 분 */}
-              <div>
+              <div className="flex flex-col min-h-0">
                 <div className="text-xs font-semibold text-slate-600 mb-2">분</div>
-                <div className="max-h-48 overflow-y-auto custom-scrollbar border border-slate-200 rounded-lg">
+                <div
+                  className="flex-1 overflow-y-auto custom-scrollbar border border-slate-200 rounded-lg"
+                  style={
+                    maxDropdownHeight
+                      ? { maxHeight: `${Math.max(150, (maxDropdownHeight - 180) / 2)}px` }
+                      : { maxHeight: '192px' }
+                  }
+                >
                   {minutes.map((m) => (
                     <button
                       key={m}

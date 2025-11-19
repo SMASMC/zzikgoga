@@ -86,6 +86,10 @@ const CreateTravelModal = ({ onClose }: { onClose: () => void }) => {
     //   setToast({ variant: 'warning', message: '여행 인원을 선택해주세요.' })
     //   return
     // }
+    if (!title) {
+      setToast({ variant: 'warning', message: '여행 제목을 입력해주세요.' })
+      return
+    }
     if (!startDate || !endDate) {
       setToast({ variant: 'warning', message: '여행 날짜를 선택해주세요.' })
       return
@@ -139,16 +143,16 @@ const CreateTravelModal = ({ onClose }: { onClose: () => void }) => {
 
         {/* 섹션 1: 누구와 함께 가나요 */}
         {/* <div className="mb-4 sm:mb-6"> */}
-          {/* <h3 className="text-base sm:text-lg mb-2 sm:mb-3 text-text-600">누구와 함께 가나요?</h3> */}
-          {/* <div className="bg-white rounded-2xl p-3 sm:p-4 shadow-sm"> */}
-            {/* <div className="flex flex-col gap-2"> */}
-              {/* 첫 번째 줄: 3개 */}
-              {/* <div className="flex flex-wrap gap-2 justify-center"> */}
-                {/* {['연인 ∙ 배우자', '친구', '지인 ∙ 동료'].map((label) => ( */}
-                  {/* <button */}
-                    {/* key={label} */}
-                    {/* onClick={() => handleCompanionToggle(label)} */}
-                    {/* className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm transition-all hover:scale-105 ${
+        {/* <h3 className="text-base sm:text-lg mb-2 sm:mb-3 text-text-600">누구와 함께 가나요?</h3> */}
+        {/* <div className="bg-white rounded-2xl p-3 sm:p-4 shadow-sm"> */}
+        {/* <div className="flex flex-col gap-2"> */}
+        {/* 첫 번째 줄: 3개 */}
+        {/* <div className="flex flex-wrap gap-2 justify-center"> */}
+        {/* {['연인 ∙ 배우자', '친구', '지인 ∙ 동료'].map((label) => ( */}
+        {/* <button */}
+        {/* key={label} */}
+        {/* onClick={() => handleCompanionToggle(label)} */}
+        {/* className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm transition-all hover:scale-105 ${
                       companion.includes(label)
                         ? 'bg-gradient-to-br from-hover-600 to-point-600 text-white shadow-md'
                         : 'bg-gray-50 text-text-500 border border-background-700'
@@ -159,12 +163,12 @@ const CreateTravelModal = ({ onClose }: { onClose: () => void }) => {
                 ))}
               </div>
               {/* 두 번째 줄: 4개 */}
-              {/* <div className="flex flex-wrap gap-2 justify-center"> */}
-                {/* {['혼자', '아이', '부모님', '기타'].map((label) => ( */}
-                  {/* <button */}
-                    {/* key={label} */}
-                    {/* onClick={() => handleCompanionToggle(label)} */}
-                    {/* className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm transition-all hover:scale-105 ${
+        {/* <div className="flex flex-wrap gap-2 justify-center"> */}
+        {/* {['혼자', '아이', '부모님', '기타'].map((label) => ( */}
+        {/* <button */}
+        {/* key={label} */}
+        {/* onClick={() => handleCompanionToggle(label)} */}
+        {/* className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm transition-all hover:scale-105 ${
                       companion.includes(label)
                         ? 'bg-gradient-to-br from-hover-600 to-point-600 text-white shadow-md'
                         : 'bg-gray-50 text-text-500 border border-background-700'
@@ -180,10 +184,10 @@ const CreateTravelModal = ({ onClose }: { onClose: () => void }) => {
 
         {/* 섹션 2: 여행 인원 */}
         {/* <div className="mb-4 sm:mb-6"> */}
-          {/* <h3 className="text-base sm:text-lg mb-2 sm:mb-3 text-text-600">여행 인원</h3> */}
+        {/* <h3 className="text-base sm:text-lg mb-2 sm:mb-3 text-text-600">여행 인원</h3> */}
 
-          {/* <div className="bg-white rounded-2xl p-3 sm:p-4 shadow-sm flex flex-col gap-2"> */}
-            {/* {[
+        {/* <div className="bg-white rounded-2xl p-3 sm:p-4 shadow-sm flex flex-col gap-2"> */}
+        {/* {[
               { label: '남자', count: maleCount, setter: setMaleCount },
               { label: '여자', count: femaleCount, setter: setFemaleCount },
             ].map(({ label, count, setter }) => (
@@ -256,7 +260,7 @@ const CreateTravelModal = ({ onClose }: { onClose: () => void }) => {
         {/* <div className="mb-6 sm:mb-8">
           <h3 className="text-base sm:text-lg mb-2 sm:mb-3 text-text-600">여행 테마</h3>
           <div className="bg-white rounded-2xl p-3 sm:p-4 shadow-sm"> */}
-            {/* <div className="flex flex-wrap gap-2 justify-center">
+        {/* <div className="flex flex-wrap gap-2 justify-center">
               {[
                 '#카페투어',
                 '#도심 속 휴식',
@@ -281,7 +285,7 @@ const CreateTravelModal = ({ onClose }: { onClose: () => void }) => {
                 </button>
               ))}
             </div> */}
-          {/* </div> */}
+        {/* </div> */}
         {/* </div> */}
 
         {/* 여행 시작 버튼 */}

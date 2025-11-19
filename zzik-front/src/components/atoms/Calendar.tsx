@@ -228,7 +228,7 @@ const Calendar = ({
                     ? 'hover:bg-background-500 text-text-500'
                     : ''
                 }
-                ${!disabled && today && !isStart && !isEnd ? 'border-2 border-point-500' : ''}
+                ${!disabled && today && !isStart && !isEnd ? 'border-2 border-point-500 box-border' : 'border-2 border-transparent box-border'}
                 ${!disabled && date.getDay() === 0 && !isStart && !isEnd ? 'text-red-500' : ''}
                 ${!disabled && date.getDay() === 6 && !isStart && !isEnd ? 'text-blue-500' : ''}
               `}
