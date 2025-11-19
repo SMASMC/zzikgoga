@@ -1,7 +1,7 @@
-import { InputHTMLAttributes, forwardRef, useMemo } from 'react'
+import { InputHTMLAttributes, forwardRef, useMemo, ReactNode } from 'react'
 
 interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
-  label?: string
+  label?: string | ReactNode
   error?: string
   size?: 'xs' | 'sm' | 'md' | 'lg'
 }

@@ -278,7 +278,11 @@ const SignUpForm = ({
         <Input
           //label="계좌번호"
           //TODO: 추후 실제 금융망 사용시 label 복원 예정
-          label="계좌번호 (SSAFY 금융망 전용 계좌)"
+          label={
+            <>
+              계좌번호 <span className="text-red-600">(SSAFY 금융망 전용 계좌)</span>
+            </>
+          }
           placeholder="숫자만 입력하세요 (- 제외)"
           value={formData.accountNum}
           onChange={handleChange('accountNum')}
