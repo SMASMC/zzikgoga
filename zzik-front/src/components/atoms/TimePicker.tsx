@@ -23,6 +23,7 @@ const TimePicker = ({
   align = 'left',
 }: TimePickerProps) => {
   const [isOpen, setIsOpen] = useState(false)
+  const [inputValue, setInputValue] = useState(value)
   const [tempHour, setTempHour] = useState('09')
   const [tempMinute, setTempMinute] = useState('00')
   const [dropdownPosition, setDropdownPosition] = useState<'bottom' | 'top'>('bottom')
@@ -30,15 +31,70 @@ const TimePicker = ({
   const [dropdownWidth, setDropdownWidth] = useState<number | undefined>(undefined)
   const [dropdownLeft, setDropdownLeft] = useState<number | undefined>(undefined)
   const containerRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
-  // value가 변경되면 tempHour, tempMinute 업데이트
+  // value가 변경되면 tempHour, tempMinute, inputValue 업데이트
   useEffect(() => {
+    setInputValue(value)
     if (value && /^\d{2}:\d{2}$/.test(value)) {
       const [h, m] = value.split(':')
       setTempHour(h)
       setTempMinute(m)
     }
   }, [value])
+
+  // 입력값 파싱 및 유효성 검사
+  const parseTimeInput = (input: string): string | null => {
+    const cleaned = input.replace(/[^\d:]/g, '')
+
+    // HH:MM 형식
+    if (/^\d{1,2}:\d{1,2}$/.test(cleaned)) {
+      const [h, m] = cleaned.split(':').map(Number)
+      if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+      }
+    }
+
+    // HHMM 또는 HMM 형식 (예: 0900, 930)
+    if (/^\d{3,4}$/.test(cleaned)) {
+      const padded = cleaned.padStart(4, '0')
+      const h = parseInt(padded.slice(0, 2))
+      const m = parseInt(padded.slice(2, 4))
+      if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+      }
+    }
+
+    return null
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(e.target.value)
+  }
+
+  const handleInputBlur = () => {
+    const parsed = parseTimeInput(inputValue)
+    if (parsed) {
+      onChange(parsed)
+      setInputValue(parsed)
+    } else if (value) {
+      // 유효하지 않은 입력이면 원래 값으로 복원
+      setInputValue(value)
+    }
+    setIsOpen(false)
+    onBlur?.()
+  }
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleInputBlur()
+      inputRef.current?.blur()
+    } else if (e.key === 'Escape') {
+      setInputValue(value)
+      setIsOpen(false)
+      inputRef.current?.blur()
+    }
+  }
 
   // 드롭다운 위치 계산 (모달 경계 고려)
   useEffect(() => {
@@ -162,8 +218,6 @@ const TimePicker = ({
     onBlur?.()
   }
 
-  const displayValue = value || placeholder
-
   // 시간 옵션 (00-23)
   const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
   // 분 옵션 (0, 5, 10, ..., 55)
@@ -172,27 +226,44 @@ const TimePicker = ({
   return (
     <div ref={containerRef} className={`relative ${className}`}>
       {/* 입력 필드 */}
-      <button
-        type="button"
-        onClick={() => !disabled && setIsOpen(!isOpen)}
-        disabled={disabled}
-        className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-sm border border-slate-300 rounded-full bg-white hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all ${
-          disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-        } ${!value ? 'text-slate-400' : 'text-slate-700'}`}
-      >
-        <div className="flex items-center gap-2">
-          <HiClock className="w-4 h-4 text-slate-400" />
-          <span className="font-medium">{displayValue}</span>
-        </div>
-        <svg
-          className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+      <div className="relative flex items-center">
+        <input
+          ref={inputRef}
+          type="text"
+          value={inputValue}
+          onChange={handleInputChange}
+          onBlur={handleInputBlur}
+          onKeyDown={handleInputKeyDown}
+          onFocus={() => setIsOpen(false)}
+          disabled={disabled}
+          placeholder={placeholder}
+          className={`w-full pl-9 pr-10 py-2 text-sm border border-slate-300 rounded-full bg-white hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all ${
+            disabled ? 'opacity-50 cursor-not-allowed' : ''
+          } ${!value ? 'text-slate-400' : 'text-slate-700 font-medium'}`}
+        />
+        <HiClock className="absolute left-3 w-4 h-4 text-slate-400 pointer-events-none" />
+        <button
+          type="button"
+          onClick={() => !disabled && setIsOpen(!isOpen)}
+          disabled={disabled}
+          className="absolute right-2 p-1 hover:bg-slate-100 rounded-full transition-colors"
+          title="드롭다운 열기"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
+          <svg
+            className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        </button>
+      </div>
 
       {/* 드롭다운 패널 */}
       {isOpen && (

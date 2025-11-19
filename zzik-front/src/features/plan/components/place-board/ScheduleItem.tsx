@@ -197,6 +197,9 @@ const ScheduleItem = ({
     (newStartHHMM: string, newOffsetHHMM: string): boolean => {
       if (!isValidHHMM(newStartHHMM) || !isValidHHMM(newOffsetHHMM)) return false
 
+      // allSchedules가 없으면 겹침 없음
+      if (!allSchedules || allSchedules.length === 0) return false
+
       // 새로운 시작/종료 시간 계산
       const newStartDate = new Date(`${selectedDateKey}T${newStartHHMM}`)
       const [offsetH, offsetM] = newOffsetHHMM.split(':').map(Number)
@@ -204,8 +207,16 @@ const ScheduleItem = ({
 
       // 다른 모든 일정과 겹치는지 확인
       for (const other of allSchedules) {
-        // 자기 자신은 제외 (uid와 yArrayIndex 모두 확인)
-        if (other.uid === schedule.uid && other.yArrayIndex === schedule.yArrayIndex) continue
+        // 자기 자신은 제외 (uid로 고유 식별, realIndex는 보조 확인)
+        const isSameSchedule =
+          (schedule.uid && other.uid && schedule.uid === other.uid) ||
+          (realIndex !== undefined &&
+            other.yArrayIndex !== undefined &&
+            realIndex === other.yArrayIndex)
+
+        if (isSameSchedule) {
+          continue
+        }
 
         const otherStartHHMM = toTimeFromAny(other.start_time)
         const otherOffsetHHMM = normalizeOffsetToHHMM(other.offset_time)
@@ -231,7 +242,7 @@ const ScheduleItem = ({
 
       return false
     },
-    [allSchedules, schedule.uid, schedule.yArrayIndex, selectedDateKey, onToast]
+    [allSchedules, schedule.uid, realIndex, selectedDateKey, onToast]
   )
 
   /** 장소 라인(간결 표기) */
