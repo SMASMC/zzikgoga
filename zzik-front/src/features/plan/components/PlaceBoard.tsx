@@ -384,6 +384,8 @@ const PlaceBoard = ({ cursorSession, onOpenPlaceDrawer }: PlaceBoardProps) => {
 
         const travelMinutes =
           typeof travelResult === 'number' ? travelResult : travelResult.durationMinutes
+        const travelSeconds =
+          typeof travelResult === 'object' ? travelResult.durationSeconds : undefined
         const travelDistance = typeof travelResult === 'object' ? travelResult.distance : undefined
 
         const offsetHHMM = normalizeOffsetToHHMM(current.offset_time)
@@ -444,6 +446,10 @@ const PlaceBoard = ({ cursorSession, onOpenPlaceDrawer }: PlaceBoardProps) => {
 
           if (typeof travelMinutes === 'number') {
             yNextItem.set('travel_duration', travelMinutes)
+          }
+
+          if (typeof travelSeconds === 'number') {
+            yNextItem.set('travel_duration_seconds', travelSeconds)
           }
 
           if (typeof travelDistance === 'number') {

@@ -264,6 +264,7 @@ const ScheduleList = ({
 
               // 저장된 이동시간 및 거리 정보 가져오기
               let travelTimeMinutes: number | null = null
+              let travelTimeSeconds: number | null = null
               let travelDistance: number | null = null
               if (nextSchedule && doc) {
                 // Y.js에서 직접 읽어오기 (스냅샷이 아직 업데이트 안 되었을 수 있음)
@@ -277,10 +278,16 @@ const ScheduleList = ({
 
                 if (yNextItem) {
                   const savedDuration = yNextItem.get('travel_duration') as number | undefined
+                  const savedDurationSeconds = yNextItem.get('travel_duration_seconds') as
+                    | number
+                    | undefined
                   const savedDistance = yNextItem.get('travel_distance') as number | undefined
 
                   if (typeof savedDuration === 'number') {
                     travelTimeMinutes = savedDuration
+                  }
+                  if (typeof savedDurationSeconds === 'number') {
+                    travelTimeSeconds = savedDurationSeconds
                   }
                   if (typeof savedDistance === 'number') {
                     travelDistance = savedDistance
@@ -329,8 +336,14 @@ const ScheduleList = ({
                       const currentEnd = new Date(currentStart.getTime() + (oh * 60 + om) * 60000)
                       const currentEndTime = `${String(currentEnd.getHours()).padStart(2, '0')}:${String(currentEnd.getMinutes()).padStart(2, '0')}`
 
-                      // 다음 일정의 시작 시간
-                      const nextStartTime = nextSchedule?.start_time.slice(11, 16) || ''
+                      // 이동시간 기반 예상 도착 시간 계산 (초 단위가 있으면 더 정확하게 계산)
+                      const expectedArrival = new Date(
+                        currentEnd.getTime() +
+                          (travelTimeSeconds !== null
+                            ? travelTimeSeconds * 1000
+                            : travelTimeMinutes * 60000)
+                      )
+                      const expectedArrivalTime = `${String(expectedArrival.getHours()).padStart(2, '0')}:${String(expectedArrival.getMinutes()).padStart(2, '0')}`
 
                       return (
                         <div className="relative flex items-center justify-center py-4">
@@ -348,7 +361,9 @@ const ScheduleList = ({
                               <span className="text-slate-400">→</span>
                               <div className="flex items-center gap-1.5">
                                 <span className="text-slate-500 font-medium">도착</span>
-                                <span className="font-bold text-slate-700">{nextStartTime}</span>
+                                <span className="font-bold text-slate-700">
+                                  {expectedArrivalTime}
+                                </span>
                               </div>
                             </div>
 

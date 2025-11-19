@@ -5,17 +5,17 @@
  * 두 지점 사이의 자동차 이동시간을 계산합니다
  * @param start 출발지 좌표 {lat, lng}
  * @param goal 도착지 좌표 {lat, lng}
- * @returns { durationMinutes: 소요시간(분), distance: 거리(미터) } 또는 null
+ * @returns { durationMinutes: 소요시간(분), durationSeconds: 소요시간(초), distance: 거리(미터) } 또는 null
  */
 export async function calculateTravelTime(
   start: { lat: number; lng: number },
   goal: { lat: number; lng: number }
-): Promise<{ durationMinutes: number; distance: number } | null> {
+): Promise<{ durationMinutes: number; durationSeconds: number; distance: number } | null> {
   // 시작점과 도착점이 동일한 경우 0분 반환
   const distance = Math.sqrt(Math.pow(goal.lat - start.lat, 2) + Math.pow(goal.lng - start.lng, 2))
   if (distance < 0.0001) {
     // 약 10미터 이내
-    return { durationMinutes: 0, distance: 0 }
+    return { durationMinutes: 0, durationSeconds: 0, distance: 0 }
   }
 
   try {
@@ -32,7 +32,8 @@ export async function calculateTravelTime(
       return null
     }
 
-    const data: { durationMinutes: number; distance: number } = await response.json()
+    const data: { durationMinutes: number; durationSeconds: number; distance: number } =
+      await response.json()
 
     return data
   } catch (error) {
