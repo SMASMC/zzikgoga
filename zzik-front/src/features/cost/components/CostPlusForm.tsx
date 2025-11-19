@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuthStore } from '@/shared/stores/useAuthStore'
 import { User } from '@/features/auth/types/auth'
 import { CostItem, CostPlusRequest } from '@/features/cost/types/cost'
@@ -7,6 +7,7 @@ import MemberSelectModal from './MemberSelectModal'
 import { PlanService } from '@/features/plan/services/planServices'
 import { CostPlusService } from '../services/costService'
 import { ToastDock } from '@/components/blocks/ToastDock'
+import Calendar from '@/components/atoms/Calendar'
 
 interface CostPlusFormProps {
   tripId: string
@@ -57,10 +58,30 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
     return `${year}-${month}-${day} ${hour}:${minute}:00`
   }
 
+  // 날짜와 시간을 분리해서 관리
+  const parsePaidAt = (paidAt: string): { date: Date | null; time: string } => {
+    try {
+      const [datePart, timePart] = paidAt.split(' ')
+      if (datePart && timePart) {
+        const [year, month, day] = datePart.split('-').map(Number)
+        const [hour, minute] = timePart.split(':').map(Number)
+        const date = new Date(year, month - 1, day)
+        return { date, time: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}` }
+      }
+    } catch (error) {
+      console.error('날짜 파싱 실패:', error)
+    }
+    const now = new Date()
+    return { date: now, time: '09:00' }
+  }
+
+  const initialPaidAt = getKoreanDateTime()
+  const { date: initialDate, time: initialTime } = parsePaidAt(initialPaidAt)
+
   // 폼 데이터 상태
   const [formData, setFormData] = useState<CostPlusRequest>({
     payerId: user?.id || '',
-    paidAt: getKoreanDateTime(),
+    paidAt: initialPaidAt,
     place: '',
     // category: 'ETC',
     totalAmount: 0,
@@ -68,6 +89,146 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
     receiptJson: null,
     items: [{ menuId: 0, menuName: '', amount: 0, memberIds: [], count: 1 }],
   })
+
+  // 날짜와 시간 상태
+  const [selectedDate, setSelectedDate] = useState<Date | null>(initialDate)
+  const [selectedTime, setSelectedTime] = useState<string>(initialTime)
+  const [showCalendar, setShowCalendar] = useState(false)
+  const calendarContainerRef = useRef<HTMLDivElement>(null)
+  const dateTimeButtonRef = useRef<HTMLButtonElement>(null)
+
+  // 24시간 형식을 12시간 형식으로 변환
+  const convertTo12Hour = (time24: string): { hour: number; minute: number; isAM: boolean } => {
+    const [hour24, minute] = time24.split(':').map(Number)
+    let hour12 = hour24
+    let isAM = true
+
+    if (hour24 === 0) {
+      hour12 = 12
+      isAM = true
+    } else if (hour24 === 12) {
+      hour12 = 12
+      isAM = false
+    } else if (hour24 > 12) {
+      hour12 = hour24 - 12
+      isAM = false
+    } else {
+      hour12 = hour24
+      isAM = true
+    }
+
+    return { hour: hour12, minute: minute || 0, isAM }
+  }
+
+  // 12시간 형식을 24시간 형식으로 변환
+  const convertTo24Hour = (hour12: number, minute: number, isAM: boolean): string => {
+    let hour24 = hour12
+
+    if (isAM) {
+      if (hour12 === 12) {
+        hour24 = 0
+      } else {
+        hour24 = hour12
+      }
+    } else {
+      if (hour12 === 12) {
+        hour24 = 12
+      } else {
+        hour24 = hour12 + 12
+      }
+    }
+
+    return `${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+  }
+
+  // 초기 12시간 형식 값
+  const initial12Hour = convertTo12Hour(initialTime)
+  const [hour12, setHour12] = useState<number>(initial12Hour.hour)
+  const [minute, setMinute] = useState<number>(initial12Hour.minute)
+  const [isAM, setIsAM] = useState<boolean>(initial12Hour.isAM)
+
+  // selectedTime이 외부에서 변경될 때 12시간 형식으로 동기화
+  useEffect(() => {
+    const converted = convertTo12Hour(selectedTime)
+    setHour12(converted.hour)
+    setMinute(converted.minute)
+    setIsAM(converted.isAM)
+  }, [selectedTime])
+
+  // 외부 클릭 감지하여 캘린더 닫기
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node
+      // 버튼이나 캘린더/시간 선택 영역 내부 클릭은 무시
+      if (
+        dateTimeButtonRef.current?.contains(target) ||
+        calendarContainerRef.current?.contains(target)
+      ) {
+        return
+      }
+      // 외부 클릭 시 캘린더 닫기
+      setShowCalendar(false)
+    }
+
+    if (showCalendar) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showCalendar])
+
+  // 날짜와 시간을 합쳐서 paidAt 업데이트
+  const updatePaidAt = (date: Date | null, time: string) => {
+    if (date) {
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const paidAt = `${year}-${month}-${day} ${time}:00`
+      setFormData({ ...formData, paidAt })
+    }
+  }
+
+  // 날짜 선택 핸들러
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleDateSelect = (start: Date, _end: Date) => {
+    setSelectedDate(start)
+    updatePaidAt(start, selectedTime)
+    // 날짜 선택 시 모달을 닫지 않음 (비용 직접 추가하기에서만)
+  }
+
+  // 시간 선택 핸들러
+  const handleTimeChange = (time: string) => {
+    setSelectedTime(time)
+    if (selectedDate) {
+      updatePaidAt(selectedDate, time)
+    }
+  }
+
+  // 12시간 형식 시간 변경 핸들러
+  const handle12HourTimeChange = (newHour?: number, newMinute?: number, newIsAM?: boolean) => {
+    const updatedHour = newHour !== undefined ? newHour : hour12
+    const updatedMinute = newMinute !== undefined ? newMinute : minute
+    const updatedIsAM = newIsAM !== undefined ? newIsAM : isAM
+
+    // 범위 검증
+    const validHour = Math.max(1, Math.min(12, updatedHour))
+    const validMinute = Math.max(0, Math.min(59, updatedMinute))
+
+    setHour12(validHour)
+    setMinute(validMinute)
+    setIsAM(updatedIsAM)
+
+    // 24시간 형식으로 변환
+    const time24 = convertTo24Hour(validHour, validMinute, updatedIsAM)
+    handleTimeChange(time24)
+  }
+
+  // 날짜 포맷 함수
+  const formatDate = (date: Date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
 
   // 멤버 목록 로드
   const loadMembers = useCallback(async () => {
@@ -438,14 +599,128 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
           <label className="block text-base sm:text-lg mb-2 sm:mb-3 text-text-600 font-bmjua">
             결제 일시
           </label>
-          <input
-            type="datetime-local"
-            value={formData.paidAt.replace(' ', 'T').slice(0, 16)}
-            onChange={(e) =>
-              setFormData({ ...formData, paidAt: e.target.value.replace('T', ' ') + ':00' })
-            }
-            className="w-full px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base text-text-500 rounded-xl border-none outline-none focus:outline-none focus:ring-0 transition-all hover:shadow-md hover:scale-[1.02]"
-          />
+          <button
+            ref={dateTimeButtonRef}
+            type="button"
+            onClick={() => setShowCalendar(!showCalendar)}
+            className="w-full bg-white rounded-2xl py-2.5 sm:py-3 px-4 sm:px-5 text-left text-text-500 text-sm sm:text-base shadow-sm hover:shadow-md hover:scale-[1.02] transition-all flex items-center justify-between"
+          >
+            <span>
+              {selectedDate && selectedTime
+                ? `${formatDate(selectedDate)} ${selectedTime}`
+                : 'YYYY-MM-DD HH:MM'}
+            </span>
+            <svg
+              className={`w-4 h-4 text-slate-400 transition-transform ${showCalendar ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </button>
+          {/* 캘린더와 시간 선택 표시 */}
+          {showCalendar && (
+            <div
+              ref={calendarContainerRef}
+              className="mt-3 flex flex-col sm:flex-row gap-2 justify-center items-start"
+            >
+              {/* 캘린더 */}
+              <div className="flex justify-center">
+                <Calendar
+                  mode="single"
+                  onDateSelect={handleDateSelect}
+                  initialStartDate={selectedDate || undefined}
+                  initialEndDate={selectedDate || undefined}
+                />
+              </div>
+              {/* 시간 선택 */}
+              <div className="w-full sm:w-auto min-w-[160px] max-w-[180px] bg-white border border-slate-200 rounded-2xl shadow-2xl p-3 font-bmjua">
+                <div className="grid grid-cols-3 gap-2">
+                  {/* 시 */}
+                  <div className="flex flex-col">
+                    <label className="text-xs font-semibold text-slate-600 mb-1 text-center">
+                      시
+                    </label>
+                    <div className="max-h-48 overflow-y-auto custom-scrollbar border border-slate-200 rounded-lg">
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
+                        <button
+                          key={h}
+                          type="button"
+                          onClick={() => handle12HourTimeChange(h, undefined, undefined)}
+                          className={`w-full px-2 py-1.5 text-sm text-center transition ${
+                            hour12 === h
+                              ? 'bg-blue-500 text-white font-semibold'
+                              : 'hover:bg-slate-100 text-slate-700'
+                          }`}
+                        >
+                          {h}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {/* 분 */}
+                  <div className="flex flex-col">
+                    <label className="text-xs font-semibold text-slate-600 mb-1 text-center">
+                      분
+                    </label>
+                    <div className="max-h-48 overflow-y-auto custom-scrollbar border border-slate-200 rounded-lg">
+                      {Array.from({ length: 60 }, (_, i) => i).map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => handle12HourTimeChange(undefined, m, undefined)}
+                          className={`w-full px-2 py-1.5 text-sm text-center transition ${
+                            minute === m
+                              ? 'bg-blue-500 text-white font-semibold'
+                              : 'hover:bg-slate-100 text-slate-700'
+                          }`}
+                        >
+                          {String(m).padStart(2, '0')}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {/* 오전/오후 */}
+                  <div className="flex flex-col gap-2 justify-center items-center">
+                    <button
+                      type="button"
+                      onClick={() => handle12HourTimeChange(undefined, undefined, true)}
+                      className={`w-10 h-10 rounded-full text-xs font-semibold transition flex items-center justify-center ${
+                        isAM
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      오전
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handle12HourTimeChange(undefined, undefined, false)}
+                      className={`w-10 h-10 rounded-full text-xs font-semibold transition flex items-center justify-center ${
+                        !isAM
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      오후
+                    </button>
+                  </div>
+                </div>
+                {/* 미리보기 */}
+                <div className="mt-3 pt-2 border-t border-slate-100">
+                  <div className="text-xs font-semibold text-slate-700 text-center">
+                    {selectedTime || '00:00'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 결제 장소 */}
@@ -768,6 +1043,23 @@ const CostPlusForm = ({ tripId, onSuccess }: CostPlusFormProps) => {
           />
         )}
       </form>
+      {/* 스크롤바 스타일 */}
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f1f5f9;
+          border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #94a3b8;
+        }
+      `}</style>
     </>
   )
 }
