@@ -263,6 +263,39 @@ export const useYTripDoc = (roomId: string) => {
     const schedulesMap = doc.getMap('schedules') as Y.Map<unknown>
     const tripMap = doc.getMap('tripInfo') as Y.Map<unknown>
 
+    // uid 보정 (observer 등록 전에 먼저 실행)
+    const ensureUids = () => {
+      doc.transact(() => {
+        const sm = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
+        sm.forEach((arr) => {
+          arr.forEach((m) => {
+            const u = m.get('uid') as string | undefined
+            if (!u || typeof u !== 'string' || u.length < 5) {
+              m.set('uid', `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
+            }
+            // 협업용 타임 텍스트 필드 보정: 항상 아이템 고유 Y.Text
+            const start = m.get('start_time') as string
+            const off = m.get('offset_time') as string | null
+            const sT = m.get('start_hhmm_text')
+            const oT = m.get('offset_hhmm_text')
+            const sVal = hhmmFromIsoLocal(start)
+            const oVal = normalizeOffsetToHHMM(off ?? '00:00')
+            if (sT instanceof Y.Text) {
+              // OK
+            } else {
+              m.set('start_hhmm_text', new Y.Text(sVal))
+            }
+            if (oT instanceof Y.Text) {
+              // OK
+            } else {
+              m.set('offset_hhmm_text', new Y.Text(oVal))
+            }
+          })
+        })
+      }, 'init-uids') // 초기화 origin 지정
+    }
+    ensureUids()
+
     const budgetsObserver = () => setBudgetsByDate(snapshotBudgets(doc))
     const schedulesObserver = () => setSchedulesByDate(snapshotSchedules(doc))
     const tripObserver = () => {
@@ -278,37 +311,6 @@ export const useYTripDoc = (roomId: string) => {
     budgetsMap.observeDeep(budgetsObserver)
     schedulesMap.observeDeep(schedulesObserver)
     tripMap.observeDeep(tripObserver)
-
-    // uid 보정
-    const ensureUids = () => {
-      const sm = doc.getMap('schedules') as Y.Map<Y.Array<Y.Map<unknown>>>
-      sm.forEach((arr) => {
-        arr.forEach((m) => {
-          const u = m.get('uid') as string | undefined
-          if (!u || typeof u !== 'string' || u.length < 5) {
-            m.set('uid', `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
-          }
-          // 협업용 타임 텍스트 필드 보정: 항상 아이템 고유 Y.Text
-          const start = m.get('start_time') as string
-          const off = m.get('offset_time') as string | null
-          const sT = m.get('start_hhmm_text')
-          const oT = m.get('offset_hhmm_text')
-          const sVal = hhmmFromIsoLocal(start)
-          const oVal = normalizeOffsetToHHMM(off ?? '00:00')
-          if (sT instanceof Y.Text) {
-            // OK
-          } else {
-            m.set('start_hhmm_text', new Y.Text(sVal))
-          }
-          if (oT instanceof Y.Text) {
-            // OK
-          } else {
-            m.set('offset_hhmm_text', new Y.Text(oVal))
-          }
-        })
-      })
-    }
-    ensureUids()
 
     // 동기화 상태
     const handleSync = (synced: boolean) => {

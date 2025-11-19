@@ -263,7 +263,9 @@ const SignUpForm = ({
             }}
             placeholder="성별을 선택하세요"
           />
-          {errors.gender && <p className="mt-2 text-base font-semibold text-red-600">{errors.gender}</p>}
+          {errors.gender && (
+            <p className="mt-2 text-base font-semibold text-red-600">{errors.gender}</p>
+          )}
         </div>
 
         <Input
@@ -290,7 +292,9 @@ const SignUpForm = ({
             }}
             placeholder="은행을 선택하세요"
           />
-          {errors.bankCode && <p className="mt-2 text-base font-semibold text-red-600">{errors.bankCode}</p>}
+          {errors.bankCode && (
+            <p className="mt-2 text-base font-semibold text-red-600">{errors.bankCode}</p>
+          )}
         </div>
 
         <Input
