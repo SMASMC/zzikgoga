@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale-1.0">
+    <title>Yjs + Tiptap 테스트 (디버깅 모드)</title>
+    <style>
+        /* (스타일은 이전과 100% 동일) */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f4f4f9;
+        }
+
+        #status {
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 5px;
+            background: #eee;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        #status.connected {
+            background: #dfffea;
+            color: #006421;
+        }
+
+        #status.disconnected {
+            background: #fbeaea;
+            color: #c00;
+        }
+
+        h2 {
+            border-bottom: 2px solid #ccc;
+            padding-bottom: 5px;
+        }
+
+        h3 {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 3px;
+        }
+
+        .container {
+            background: #fff;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .item-card {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .item-card label {
+            display: block;
+            font-weight: bold;
+            margin-top: 8px;
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        .item-card input[type="text"],
+        .item-card input[type="number"],
+        .item-card input[type="datetime-local"],
+        .item-card input[type="date"],
+        .item-card select {
+            width: 95%;
+            padding: 6px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        .item-card input[type="checkbox"] {
+            margin-right: 5px;
+        }
+
+        .ProseMirror {
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            padding: 4px 8px;
+            min-height: 2.5em;
+        }
+
+        .ProseMirror:focus {
+            outline: 2px solid #007bff;
+            border-color: #007bff;
+        }
+
+        .btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .btn-add {
+            background: #007bff;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            font-size: 0.8em;
+            padding: 4px 8px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="status" class="disconnected">Connecting...</div>
+    <div class="container">
+        <h2>Trip Info (tripInfo)</h2>
+        <div id="tripInfo-container">
+            <label>ID:</label> <span data-field="id">...</span><br>
+            <label>Owner ID:</label> <span data-field="owner_id">...</span><br>
+            <label>Title (Tiptap):</label>
+            <div id="tiptap-title" class="tiptap-editor"></div>
+            <label>Start Date:</label> <input type="date" data-field="start_date"><br>
+            <label>End Date:</label> <input type="date" data-field="end_date"><br>
+            <label>Male Count:</label> <input type="number" data-field="male_count" min="0"><br>
+            <label>Female Count:</label> <input type="number" data-field="female_count" min="0"><br>
+            <label><input type="checkbox" data-field="is_cost_completed"> Cost Completed</label>
+        </div>
+    </div>
+    <div class="container">
+        <h2>Schedules (schedules)</h2>
+        <div id="schedules-container"></div>
+        <button id="add-schedule-btn" class="btn btn-add">Add Schedule to 2025-10-20</button>
+    </div>
+    <div class="container">
+        <h2>Budgets (budgets)</h2>
+        <div id="budgets-container"></div>
+        <button id="add-budget-btn" class="btn btn-add">Add Budget to 2025-10-20</button>
+    </div>
+
+
+    <script type="module">
+        // --- 1. 라이브러리 임포트 (esm.sh) ---
+        import * as Y from 'https://esm.sh/yjs';
+        import { WebsocketProvider } from 'https://esm.sh/y-websocket';
+        import { Editor } from 'https://esm.sh/@tiptap/core';
+        import StarterKit from 'https://esm.sh/@tiptap/starter-kit';
+
+        // --- 2. Yjs 설정 ---
+        const ydoc = new Y.Doc();
+
+        // --- [수정] 디버깅을 위해 ydoc을 전역(window)에 노출 ---
+        window.ydoc = ydoc;
+
+        // URL에서 tripId 파라미터 읽기 (예: test.html?tripId=2)
+        const urlParams = new URLSearchParams(window.location.search);
+        const tripId = urlParams.get('tripId') || '1';
+        const roomId = `trip-${tripId}`;
+
+        console.log(`[Test] Connecting to room: ${roomId}`);
+
+        const provider = new WebsocketProvider(
+            'ws://localhost:3100', roomId, ydoc
+        );
+
+        const statusEl = document.getElementById('status');
+        provider.on('status', ({ status }) => {
+            console.log(`[Debug] Status changed: ${status}`);
+            statusEl.textContent = `Status: ${status}`;
+            statusEl.className = status;
+        });
+
+        const tiptapEditors = new Map();
+
+        // --- 3. 헬퍼 함수들 (이전과 동일) ---
+        function bindTiptapEditor(element, yText, ydoc) {
+            if (typeof Editor === 'undefined' || typeof StarterKit === 'undefined') {
+                console.error('Tiptap libraries not loaded.');
+                element.textContent = '[Tiptap 로드 실패]';
+                return;
+            }
+            if (tiptapEditors.has(yText)) return tiptapEditors.get(yText);
+            try {
+                let isRemoteUpdate = false;
+                const editor = new Editor({
+                    element: element,
+                    extensions: [StarterKit.configure({ paragraph: { hardBreak: true }, heading: false, strike: false, blockquote: false, codeBlock: false, horizontalRule: false, listItem: false, orderedList: false, bulletList: false })],
+                    content: yText.toString(),
+                });
+                editor.on('update', ({ editor, transaction }) => {
+                    if (isRemoteUpdate || !transaction.docChanged) return;
+                    const newText = editor.getText({ blockSeparator: '\n' });
+                    ydoc.transact(() => {
+                        const currentText = yText.toString();
+                        if (currentText !== newText) {
+                            yText.delete(0, yText.length);
+                            yText.insert(0, newText);
+                        }
+                    }, 'client-tiptap-edit');
+                });
+                yText.observe(event => {
+                    if (event.transaction.origin === 'client-tiptap-edit') return;
+                    isRemoteUpdate = true;
+                    try {
+                        const newText = yText.toString();
+                        if (editor.getText({ blockSeparator: '\n' }) !== newText) {
+                            const { from, to } = editor.state.selection;
+                            editor.commands.setContent(newText, false);
+                            const docSize = editor.state.doc.content.size;
+                            editor.commands.setTextSelection({ from: Math.min(from, docSize), to: Math.min(to, docSize) });
+                        }
+                    } finally { isRemoteUpdate = false; }
+                });
+                tiptapEditors.set(yText, editor);
+                return editor;
+            } catch (e) {
+                console.error('Failed to initialize Tiptap editor:', e);
+                element.textContent = `[Tiptap 오류: ${e.message}]`;
+            }
+        }
+        function bindInput(input, yMap, field) {
+            const updateInput = () => {
+                let val = yMap.get(field);
+                if (val instanceof Date) {
+                    if (input.type === 'datetime-local') val = val.toISOString().slice(0, 16);
+                    else if (input.type === 'date') val = val.toISOString().split('T')[0];
+                    else val = val.toISOString();
+                }
+                val = val || '';
+                if (input.value !== val) input.value = val;
+            };
+            yMap.observe(event => { if (event.keysChanged.has(field)) updateInput(); });
+            updateInput();
+            input.addEventListener('input', () => {
+                let value = input.type === 'number' ? parseFloat(input.value) || 0 : input.value;
+                // amount 필드는 NUMERIC(12,0) 범위 검증
+                if (field === 'amount' && typeof value === 'number') {
+                    if (value < 0) value = 0;
+                    if (value > 999999999999) value = 999999999999;
+                    value = Math.floor(value); // 정수로 변환
+                }
+                yMap.set(field, value);
+            });
+        }
+        function bindCheckbox(checkbox, yMap, field) {
+            const updateCheckbox = () => {
+                const val = !!yMap.get(field);
+                if (checkbox.checked !== val) checkbox.checked = val;
+            };
+            yMap.observe(event => { if (event.keysChanged.has(field)) updateCheckbox(); });
+            updateCheckbox();
+            checkbox.addEventListener('change', () => { yMap.set(field, checkbox.checked); });
+        }
+
+        // --- 4. [수정] 데이터 바인딩 로직 (디버그 로그 추가) ---
+
+        let isTripInfoBound = false;
+        let isSchedulesBound = false;
+        let isBudgetsBound = false;
+
+        provider.on('sync', (isSynced) => {
+            console.log('🔄 [Debug] Sync event fired. isSynced:', isSynced);
+            if (isSynced) {
+                console.log('✅ [Debug] Yjs Synced. Checking Y.Doc contents...');
+                const yTripInfo = ydoc.getMap('tripInfo');
+                const ySchedulesMap = ydoc.getMap('schedules');
+                const yBudgetsMap = ydoc.getMap('budgets');
+                console.log('[Debug] Y.Doc contents:', {
+                    hasTripInfo: yTripInfo.size > 0,
+                    tripId: yTripInfo.get('id'),
+                    title: yTripInfo.get('title')?.toString(),
+                    scheduleDates: Array.from(ySchedulesMap.keys()),
+                    budgetDates: Array.from(yBudgetsMap.keys())
+                });
+                setupDocObserver();
+                setupAddButtons();
+            }
+        });
+
+        function checkAndBindData() {
+            console.log('[Debug] 🔍 checkAndBindData() called');
+
+            const yTripInfo = ydoc.getMap('tripInfo');
+            const ySchedulesMap = ydoc.getMap('schedules');
+            const yBudgetsMap = ydoc.getMap('budgets');
+
+            console.log('[Debug] Current binding status:', {
+                isTripInfoBound,
+                isSchedulesBound,
+                isBudgetsBound
+            });
+
+            console.log('[Debug] Current Y.Doc data:', {
+                hasTripInfoId: yTripInfo.has('id'),
+                tripInfoSize: yTripInfo.size,
+                schedulesSize: ySchedulesMap.size,
+                budgetsSize: yBudgetsMap.size,
+                tripId: yTripInfo.get('id'),
+                titleType: yTripInfo.get('title')?.constructor?.name
+            });
+
+            if (!isTripInfoBound && yTripInfo.has('id')) {
+                isTripInfoBound = true;
+                console.log('[Debug] ✅ Binding TripInfo UI...');
+                bindTripInfoUI(yTripInfo);
+            } else if (!isTripInfoBound) {
+                console.log('[Debug] ⏳ TripInfo not ready yet (no id)');
+            } else {
+                console.log('[Debug] ⏭️ TripInfo already bound');
+            }
+
+            if (!isSchedulesBound && ySchedulesMap.size > 0) {
+                isSchedulesBound = true;
+                console.log('[Debug] ✅ Rendering Schedules UI...');
+                renderSchedulesMap(ySchedulesMap);
+            } else if (!isSchedulesBound) {
+                console.log('[Debug] ⏳ Schedules not ready yet (empty map)');
+            } else {
+                console.log('[Debug] ⏭️ Schedules already bound');
+            }
+
+            console.log('[Debug] Budget Map status:', {
+                size: yBudgetsMap.size,
+                keys: Array.from(yBudgetsMap.keys()),
+                isBound: isBudgetsBound
+            });
+
+            if (!isBudgetsBound && yBudgetsMap.size > 0) {
+                isBudgetsBound = true;
+                console.log('[Debug] ✅ Rendering Budgets UI...');
+                // 각 날짜별 내용 확인
+                yBudgetsMap.forEach((yDayArray, dateKey) => {
+                    console.log(`[Debug] Budget ${dateKey}:`, {
+                        type: yDayArray?.constructor?.name,
+                        length: yDayArray?.length,
+                        isYArray: yDayArray instanceof Y.Array
+                    });
+                });
+                renderBudgetsMap(yBudgetsMap);
+            } else if (!isBudgetsBound) {
+                console.log('[Debug] ⏳ Budgets not ready yet (empty map)');
+            } else {
+                console.log('[Debug] ⏭️ Budgets already bound');
+            }
+        }
+
+        function setupDocObserver() {
+            console.log('[Debug] setupDocObserver() called.');
+
+            // Listen for future updates
+            ydoc.on('update', (update, origin, doc) => {
+                console.log(`[Debug] 📩 ydoc.on('update') FIRED. Origin: ${origin}`);
+                checkAndBindData();
+            });
+
+            // Check for data that already exists
+            console.log('[Debug] Checking for pre-existing data...');
+            checkAndBindData();
+        }
+
+        function bindTripInfoUI(yTripInfo) {
+            console.log('[Debug] 🎯 bindTripInfoUI() called');
+            console.log('[Debug] yTripInfo contents:', {
+                id: yTripInfo.get('id'),
+                title: yTripInfo.get('title'),
+                titleType: yTripInfo.get('title')?.constructor?.name,
+                start_date: yTripInfo.get('start_date'),
+                end_date: yTripInfo.get('end_date'),
+                allKeys: Array.from(yTripInfo.keys())
+            });
+
+            const container = document.getElementById('tripInfo-container');
+            if (!container) {
+                console.error('[Debug] ❌ tripInfo-container not found!');
+                return;
+            }
+
+            const idEl = container.querySelector('[data-field="id"]');
+            if (idEl) {
+                idEl.textContent = yTripInfo.get('id');
+                console.log('[Debug] ✅ Set trip ID:', yTripInfo.get('id'));
+            }
+
+            const ownerIdEl = container.querySelector('[data-field="owner_id"]');
+            if (ownerIdEl) {
+                ownerIdEl.textContent = yTripInfo.get('owner_id');
+                console.log('[Debug] ✅ Set owner ID:', yTripInfo.get('owner_id'));
+            }
+
+            const startDateInput = container.querySelector('[data-field="start_date"]');
+            const endDateInput = container.querySelector('[data-field="end_date"]');
+            const maleCountInput = container.querySelector('[data-field="male_count"]');
+            const femaleCountInput = container.querySelector('[data-field="female_count"]');
+            const isCostCompletedCheckbox = container.querySelector('[data-field="is_cost_completed"]');
+
+            if (startDateInput) {
+                bindInput(startDateInput, yTripInfo, 'start_date');
+                console.log('[Debug] ✅ Bound start_date input');
+            }
+            if (endDateInput) {
+                bindInput(endDateInput, yTripInfo, 'end_date');
+                console.log('[Debug] ✅ Bound end_date input');
+            }
+            if (maleCountInput) {
+                bindInput(maleCountInput, yTripInfo, 'male_count');
+                console.log('[Debug] ✅ Bound male_count input');
+            }
+            if (femaleCountInput) {
+                bindInput(femaleCountInput, yTripInfo, 'female_count');
+                console.log('[Debug] ✅ Bound female_count input');
+            }
+            if (isCostCompletedCheckbox) {
+                bindCheckbox(isCostCompletedCheckbox, yTripInfo, 'is_cost_completed');
+                console.log('[Debug] ✅ Bound is_cost_completed checkbox');
+            }
+
+            const yTitle = yTripInfo.get('title');
+            console.log('[Debug] Title object:', yTitle);
+            console.log('[Debug] Is Y.Text?', yTitle instanceof Y.Text);
+
+            if (yTitle instanceof Y.Text) {
+                console.log('[Debug] ✅ Title is Y.Text, binding Tiptap...');
+                const titleEl = document.getElementById('tiptap-title');
+                if (titleEl) {
+                    bindTiptapEditor(titleEl, yTitle, ydoc);
+                    console.log('[Debug] ✅ Tiptap editor bound for title');
+                } else {
+                    console.error('[Debug] ❌ tiptap-title element not found!');
+                }
+            } else {
+                console.error('[Debug] ❌ Title is NOT Y.Text!', {
+                    type: typeof yTitle,
+                    constructor: yTitle?.constructor?.name,
+                    value: yTitle
+                });
+                const titleEl = document.getElementById('tiptap-title');
+                if (titleEl) {
+                    titleEl.textContent = '[Error: title이 Y.Text가 아닙니다: ' + typeof yTitle + ']';
+                }
+            }
+
+            console.log('[Debug] ✅ bindTripInfoUI() completed');
+        }
+
+        function renderSchedulesMap(ySchedulesMap) {
+            console.log('[Debug] 📅 renderSchedulesMap() called');
+            console.log('[Debug] Schedules dates:', Array.from(ySchedulesMap.keys()));
+
+            const container = document.getElementById('schedules-container');
+            if (!container) {
+                console.error('[Debug] ❌ schedules-container not found!');
+                return;
+            }
+
+            ySchedulesMap.observe(event => {
+                if (event.keysChanged.size > 0) {
+                    console.log('[Debug] Schedules Map keys changed, re-rendering...');
+                    _renderSchedules();
+                }
+            });
+
+            function _renderSchedules() {
+                console.log('[Debug] 🔄 _renderSchedules() - clearing and rebuilding...');
+                container.innerHTML = '';
+                const entries = Array.from(ySchedulesMap.entries()).sort();
+                console.log('[Debug] Rendering', entries.length, 'schedule dates');
+
+                entries.forEach(([dateKey, yDayArray]) => {
+                    console.log('[Debug] Rendering schedule date:', dateKey, 'with', yDayArray.length, 'items');
+                    const dateHeader = document.createElement('h3');
+                    dateHeader.textContent = dateKey;
+                    container.appendChild(dateHeader);
+                    const dayContainer = document.createElement('div');
+                    container.appendChild(dayContainer);
+                    yDayArray.observe(() => {
+                        renderDayArray(dayContainer, yDayArray, createScheduleItemElement);
+                    });
+                    renderDayArray(dayContainer, yDayArray, createScheduleItemElement);
+                });
+                console.log('[Debug] ✅ Schedules rendering complete');
+            }
+            _renderSchedules();
+        }
+
+        function renderBudgetsMap(yBudgetsMap) {
+            console.log('[Debug] 💰 renderBudgetsMap() called');
+            console.log('[Debug] Budget dates:', Array.from(yBudgetsMap.keys()));
+
+            const container = document.getElementById('budgets-container');
+            if (!container) {
+                console.error('[Debug] ❌ budgets-container not found!');
+                return;
+            }
+
+            yBudgetsMap.observe(event => {
+                if (event.keysChanged.size > 0) {
+                    console.log('[Debug] Budgets Map keys changed, re-rendering...');
+                    _renderBudgets();
+                }
+            });
+
+            function _renderBudgets() {
+                console.log('[Debug] 🔄 _renderBudgets() - clearing and rebuilding...');
+                container.innerHTML = '';
+                const entries = Array.from(yBudgetsMap.entries()).sort();
+                console.log('[Debug] Rendering', entries.length, 'budget dates');
+
+                entries.forEach(([dateKey, yDayArray]) => {
+                    console.log('[Debug] Rendering budget date:', dateKey, 'with', yDayArray.length, 'items');
+                    const dateHeader = document.createElement('h3');
+                    dateHeader.textContent = dateKey;
+                    container.appendChild(dateHeader);
+                    const dayContainer = document.createElement('div');
+                    container.appendChild(dayContainer);
+                    yDayArray.observe(() => renderDayArray(dayContainer, yDayArray, createBudgetItemElement));
+                    renderDayArray(dayContainer, yDayArray, createBudgetItemElement);
+                });
+                console.log('[Debug] ✅ Budgets rendering complete');
+            }
+            _renderBudgets();
+        }
+
+        function renderDayArray(container, yDayArray, createElementFn) {
+            container.innerHTML = '';
+            yDayArray.forEach((yItem, index) => {
+                const itemEl = createElementFn(yItem, yDayArray, index);
+                container.appendChild(itemEl);
+            });
+        }
+
+        function createScheduleItemElement(yItem, yParentArray, index) {
+            const el = document.createElement('div');
+            el.className = 'item-card';
+            el.innerHTML = `
+                <div style="float: right;"><button class="btn btn-delete">Delete</button></div>
+                <div>ID: <span data-field="id">${yItem.get('id') || '...'}</span></div>
+                <label>Start Time:</label> <input type="datetime-local" data-field="start_time">
+                <label>Memo (Tiptap):</label> <div class="tiptap-editor" data-tiptap-field="memo"></div>
+                <label><input type="checkbox" data-field="has_location"> Has Location</label>
+                <div class="location-group" style="display: ${yItem.get('has_location') ? 'block' : 'none'};">
+                    <label>Location Name:</label> <input type="text" data-field="location.name">
+                    <label>Full Address:</label> <input type="text" data-field="location.full_address">
+                </div>
+            `;
+            bindInput(el.querySelector('[data-field="start_time"]'), yItem, 'start_time');
+            bindCheckbox(el.querySelector('[data-field="has_location"]'), yItem, 'has_location');
+            const yMemo = yItem.get('memo');
+            if (yMemo instanceof Y.Text) {
+                bindTiptapEditor(el.querySelector('[data-tiptap-field="memo"]'), yMemo, ydoc);
+            }
+            const locNameInput = el.querySelector('[data-field="location.name"]');
+            const locAddrInput = el.querySelector('[data-field="location.full_address"]');
+            const updateLocationInputs = () => {
+                const loc = yItem.get('location');
+                locNameInput.value = loc ? loc.name : '';
+                locAddrInput.value = loc ? loc.full_address : '';
+            };
+            updateLocationInputs();
+            const onLocChange = () => {
+                const oldLoc = yItem.get('location') || {};
+                yItem.set('location', { ...oldLoc, name: locNameInput.value, full_address: locAddrInput.value });
+            };
+            locNameInput.addEventListener('input', onLocChange);
+            locAddrInput.addEventListener('input', onLocChange);
+            yItem.observe(e => {
+                if (e.keysChanged.has('has_location') || e.keysChanged.has('location')) {
+                    el.querySelector('.location-group').style.display = yItem.get('has_location') ? 'block' : 'none';
+                    updateLocationInputs();
+                }
+                if (e.keysChanged.has('id')) {
+                    el.querySelector('[data-field="id"]').textContent = yItem.get('id');
+                }
+            });
+            el.querySelector('.btn-delete').addEventListener('click', () => {
+                console.log('[Client] Delete button clicked for schedule item:', yItem.get('id'));
+                const currentIndex = yParentArray.toArray().indexOf(yItem);
+                console.log('[Client] Current index in array:', currentIndex);
+                if (currentIndex !== -1) {
+                    console.log('[Client] Calling yParentArray.delete(' + currentIndex + ', 1)');
+                    yParentArray.delete(currentIndex, 1);
+                    console.log('[Client] Delete called successfully');
+                } else {
+                    console.warn('[Delete] Schedule item not found in array');
+                }
+            });
+            return el;
+        }
+
+        function createBudgetItemElement(yItem, yParentArray, index) {
+            const el = document.createElement('div');
+            el.className = 'item-card';
+            el.innerHTML = `
+                <div style="float: right;"><button class="btn btn-delete">Delete</button></div>
+                <div>ID: <span data-field="id">${yItem.get('id') || '...'}</span></div>
+                <label>Category:</label>
+                <select data-field="category">
+                    <option value="STAY">숙박 (STAY)</option>
+                    <option value="FOOD">식비 (FOOD)</option>
+                    <option value="TRANSPORT">교통 (TRANSPORT)</option>
+                    <option value="SHOPPING">쇼핑 (SHOPPING)</option>
+                    <option value="LEISURE">여가 (LEISURE)</option>
+                    <option value="ETC">기타 (ETC)</option>
+                </select>
+                <label>Amount:</label> <input type="number" data-field="amount" min="0" max="999999999999" step="1">
+                <label>Description (Tiptap):</label> <div class="tiptap-editor" data-tiptap-field="description"></div>
+            `;
+            bindInput(el.querySelector('[data-field="category"]'), yItem, 'category');
+            bindInput(el.querySelector('[data-field="amount"]'), yItem, 'amount');
+            const yDesc = yItem.get('description');
+            if (yDesc instanceof Y.Text) {
+                bindTiptapEditor(el.querySelector('[data-tiptap-field="description"]'), yDesc, ydoc);
+            }
+            yItem.observe(e => {
+                if (e.keysChanged.has('id')) {
+                    el.querySelector('[data-field="id"]').textContent = yItem.get('id');
+                }
+            });
+            el.querySelector('.btn-delete').addEventListener('click', () => {
+                console.log('[Client] Delete button clicked for budget item:', yItem.get('id'));
+                const currentIndex = yParentArray.toArray().indexOf(yItem);
+                console.log('[Client] Current index in array:', currentIndex);
+                if (currentIndex !== -1) {
+                    console.log('[Client] Calling yParentArray.delete(' + currentIndex + ', 1)');
+                    yParentArray.delete(currentIndex, 1);
+                    console.log('[Client] Delete called successfully');
+                } else {
+                    console.warn('[Delete] Budget item not found in array');
+                }
+            });
+            return el;
+        }
+
+        function setupAddButtons() {
+            const ySchedulesMap = ydoc.getMap('schedules');
+            const yBudgetsMap = ydoc.getMap('budgets');
+            const testDateKey = '2025-10-20';
+            document.getElementById('add-schedule-btn').addEventListener('click', () => {
+                let yDayArray = ySchedulesMap.get(testDateKey);
+                if (!yDayArray) {
+                    yDayArray = new Y.Array();
+                    ySchedulesMap.set(testDateKey, yDayArray);
+                }
+                const newItem = new Y.Map();
+                newItem.set('start_time', new Date().toISOString().slice(0, 16));
+                newItem.set('memo', new Y.Text('새 일정 메모'));
+                newItem.set('has_location', false);
+                newItem.set('location', null);
+                yDayArray.push([newItem]);
+            });
+            document.getElementById('add-budget-btn').addEventListener('click', () => {
+                let yDayArray = yBudgetsMap.get(testDateKey);
+                if (!yDayArray) {
+                    yDayArray = new Y.Array();
+                    yBudgetsMap.set(testDateKey, yDayArray);
+                }
+                const newItem = new Y.Map();
+                newItem.set('category', 'FOOD');
+                newItem.set('amount', 10000);
+                newItem.set('description', new Y.Text('새 예산 항목'));
+                yDayArray.push([newItem]);
+            });
+        }
+    </script>
+</body>
+
+</html>

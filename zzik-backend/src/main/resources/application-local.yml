@@ -1,0 +1,39 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/zzik
+    username: postgres
+    password: postgres
+  data.redis:
+    host: localhost
+    port: 6379
+    password: zzik
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+
+jwt:
+  secret-key:
+    access-token: zzikAccessAccessAccessTokenSecretKeyForzzik
+    refresh-token: zzikRefreshRefreshRefreshTokenSecretKeyForzzik
+    invite-token: zzikIInviteInviteInviteTokenSecretKeyForzzik
+
+invite:
+  base-url: http://localhost:5173/invite
+
+swagger:
+  server-url: "http://localhost:8081/api"
+  description: "Local 테스트용 서버"
+
+kakao:
+  redirect-uri: "http://localhost:5173/auth/callback"
+logging:
+  level:
+    com.zzik.backend.domain.cost.service.CostSettlementService: DEBUG
+
+nft:
+  node:
+    url: http://localhost:4000

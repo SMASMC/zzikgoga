@@ -1,0 +1,36 @@
+{
+  "name": "crdt",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon --watch src --exec ts-node src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/lodash.debounce": "^4.0.9",
+    "@types/node": "^24.9.1",
+    "@types/pg": "^8.15.5",
+    "@types/ws": "^8.18.1",
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@y/websocket-server": "^0.1.1",
+    "dotenv": "^17.2.3",
+    "jsonwebtoken": "^9.0.2",
+    "lib0": "^0.2.114",
+    "lodash.debounce": "^4.0.8",
+    "pg": "^8.16.3",
+    "ws": "^8.18.3",
+    "y-websocket": "^3.0.0",
+    "yjs": "^13.6.27",
+    "yjs-server": "^0.2.3"
+  },
+  "description": ""
+}
