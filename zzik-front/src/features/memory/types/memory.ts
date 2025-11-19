@@ -58,7 +58,8 @@ export type MemoryNftInfoResponse = {
 export type MemoryNftOwnershipResponse = {
   tripId: number
   walletAddress: string
-  verifyUrl: string
+  openseaUrl: string
+  polygonUrl: string
 }
 
 export type TripPhoto = {
