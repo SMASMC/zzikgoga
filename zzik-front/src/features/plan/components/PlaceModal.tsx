@@ -195,6 +195,7 @@ const PlaceModal = ({ onClose, place }: PlaceModalProps) => {
       const end = new Date(`${selectedDateKey}T${endDateTime}`)
       if (end.getTime() - start.getTime() < 0) {
         setToastMessage('종료 시간은 시작 시간보다 빠를 수 없습니다.')
+        setIsSubmitting(false)
         return
       }
     }
@@ -237,6 +238,7 @@ const PlaceModal = ({ onClose, place }: PlaceModalProps) => {
           setToastMessage(
             `선택한 시간이 기존 일정(${existingStartTime} ~ ${existingEndTime})과 겹칩니다. 다른 시간을 선택해주세요.`
           )
+          setIsSubmitting(false)
           return
         }
       }
@@ -246,6 +248,7 @@ const PlaceModal = ({ onClose, place }: PlaceModalProps) => {
     const locationName = place.name?.trim() || ''
     if (locationName.length === 0) {
       setToastMessage('장소 이름이 없습니다. 다른 장소를 선택해주세요.')
+      setIsSubmitting(false)
       return
     }
 

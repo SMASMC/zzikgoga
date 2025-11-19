@@ -11,6 +11,7 @@ interface HeaderProps {
   scrollOffset?: number // px
   showBackButton?: boolean
   whiteBackground?: boolean
+  backUrl?: string // 커스텀 뒤로가기 URL (지정하지 않으면 기본 동작)
 }
 
 const Header = ({
@@ -18,6 +19,7 @@ const Header = ({
   scrollOffset = 10,
   showBackButton = false,
   whiteBackground = false,
+  backUrl,
 }: HeaderProps) => {
   const headerRef = useRef<HTMLElement | null>(null)
   const [scrolled, setScrolled] = useState(false)
@@ -93,6 +95,10 @@ const Header = ({
   }
 
   const handleBack = () => {
+    if (backUrl) {
+      navigate(backUrl)
+      return
+    }
     if (window.history.length > 1) {
       navigate(-1)
       return

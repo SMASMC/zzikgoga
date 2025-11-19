@@ -20,7 +20,7 @@ const PlanPage = () => {
   return (
     <div className="flex flex-col h-screen">
       <PlanCollaborationLayer cursorSession={cursorSession}>
-        <Header showBackButton whiteBackground />
+        <Header showBackButton whiteBackground backUrl="/mypage" />
         <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-y-auto lg:overflow-y-hidden relative">
           <PlaceSearchPanel isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
           <PlaceBoard

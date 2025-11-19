@@ -158,4 +158,3 @@ const MemoryNftPage = () => {
 }
 
 export default MemoryNftPage
-
