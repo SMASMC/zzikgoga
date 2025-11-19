@@ -457,27 +457,29 @@ const PlaceBoard = ({ cursorSession, onOpenPlaceDrawer }: PlaceBoardProps) => {
       // 모든 업데이트를 하나의 transaction으로 처리 (observer 한 번만 실행)
       if (doc && updates.length > 0) {
         doc.transact(() => {
-          updates.forEach(({ nextItem, newStartTime, travelMinutes, travelSeconds, travelDistance }) => {
-            nextItem.set('start_time', newStartTime)
-            const startText = nextItem.get('start_hhmm_text')
-            if (startText instanceof Y.Text) {
-              const newHHMM = newStartTime.slice(11, 16)
-              startText.delete(0, startText.length)
-              startText.insert(0, newHHMM)
-            }
+          updates.forEach(
+            ({ nextItem, newStartTime, travelMinutes, travelSeconds, travelDistance }) => {
+              nextItem.set('start_time', newStartTime)
+              const startText = nextItem.get('start_hhmm_text')
+              if (startText instanceof Y.Text) {
+                const newHHMM = newStartTime.slice(11, 16)
+                startText.delete(0, startText.length)
+                startText.insert(0, newHHMM)
+              }
 
-            if (typeof travelMinutes === 'number') {
-              nextItem.set('travel_duration', travelMinutes)
-            }
+              if (typeof travelMinutes === 'number') {
+                nextItem.set('travel_duration', travelMinutes)
+              }
 
-            if (typeof travelSeconds === 'number') {
-              nextItem.set('travel_duration_seconds', travelSeconds)
-            }
+              if (typeof travelSeconds === 'number') {
+                nextItem.set('travel_duration_seconds', travelSeconds)
+              }
 
-            if (typeof travelDistance === 'number') {
-              nextItem.set('travel_distance', travelDistance)
+              if (typeof travelDistance === 'number') {
+                nextItem.set('travel_distance', travelDistance)
+              }
             }
-          })
+          )
         }, 'save-all-travel-times')
       }
 
