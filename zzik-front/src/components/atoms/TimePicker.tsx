@@ -84,6 +84,11 @@ const TimePicker = ({
           }
         }
 
+        // 적용 버튼 영역 고려 (빠른 선택 영역 + 적용 버튼 영역 + 여유 공간)
+        // 빠른 선택: 약 80px, 적용 버튼: 약 50px, 여유 공간: 약 20px
+        const reservedSpace = 150
+        const minDropdownHeight = 250 // 최소 드롭다운 높이
+
         // 모달 내부에서 공간이 충분한지 확인
         if (spaceBelowInModal >= preferredDropdownHeight) {
           // 아래 공간이 충분하면 아래로
@@ -97,12 +102,12 @@ const TimePicker = ({
           // 양쪽 모두 부족하면 더 넉넉한 쪽으로 선택하고 높이 제한
           if (spaceAboveInModal > spaceBelowInModal) {
             setDropdownPosition('top')
-            // 위쪽 공간에 맞춰 높이 제한 (여유 공간 10px)
-            setMaxDropdownHeight(Math.max(250, spaceAboveInModal - 10))
+            // 위쪽 공간에 맞춰 높이 제한 (적용 버튼 영역 고려)
+            setMaxDropdownHeight(Math.max(minDropdownHeight, spaceAboveInModal - reservedSpace))
           } else {
             setDropdownPosition('bottom')
-            // 아래쪽 공간에 맞춰 높이 제한 (여유 공간 10px)
-            setMaxDropdownHeight(Math.max(250, spaceBelowInModal - 10))
+            // 아래쪽 공간에 맞춰 높이 제한 (적용 버튼 영역 고려)
+            setMaxDropdownHeight(Math.max(minDropdownHeight, spaceBelowInModal - reservedSpace))
           }
         }
 
@@ -223,8 +228,8 @@ const TimePicker = ({
           </div>
 
           {/* 시간/분 선택 */}
-          <div className="p-3 flex-1 min-h-0">
-            <div className="grid grid-cols-2 gap-3 mb-3">
+          <div className="p-3 flex-1 min-h-0 flex flex-col">
+            <div className="grid grid-cols-2 gap-3 mb-3 flex-1 min-h-0">
               {/* 시간 */}
               <div className="flex flex-col min-h-0">
                 <div className="text-xs font-semibold text-slate-600 mb-2">시</div>
@@ -232,7 +237,7 @@ const TimePicker = ({
                   className="flex-1 overflow-y-auto custom-scrollbar border border-slate-200 rounded-lg"
                   style={
                     maxDropdownHeight
-                      ? { maxHeight: `${Math.max(150, (maxDropdownHeight - 180) / 2)}px` }
+                      ? { maxHeight: `${Math.max(120, (maxDropdownHeight - 200) / 2)}px` }
                       : { maxHeight: '192px' }
                   }
                 >
@@ -260,7 +265,7 @@ const TimePicker = ({
                   className="flex-1 overflow-y-auto custom-scrollbar border border-slate-200 rounded-lg"
                   style={
                     maxDropdownHeight
-                      ? { maxHeight: `${Math.max(150, (maxDropdownHeight - 180) / 2)}px` }
+                      ? { maxHeight: `${Math.max(120, (maxDropdownHeight - 200) / 2)}px` }
                       : { maxHeight: '192px' }
                   }
                 >
@@ -282,8 +287,8 @@ const TimePicker = ({
               </div>
             </div>
 
-            {/* 미리보기 및 적용 버튼 */}
-            <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+            {/* 미리보기 및 적용 버튼 - sticky로 고정하여 항상 보이도록 */}
+            <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 bg-white sticky bottom-0 z-10">
               <div className="text-sm font-semibold text-slate-700">
                 {tempHour}:{tempMinute}
               </div>
