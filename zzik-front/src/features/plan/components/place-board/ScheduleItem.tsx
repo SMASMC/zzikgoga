@@ -204,8 +204,8 @@ const ScheduleItem = ({
 
       // 다른 모든 일정과 겹치는지 확인
       for (const other of allSchedules) {
-        // 자기 자신은 제외
-        if (other.uid === schedule.uid) continue
+        // 자기 자신은 제외 (uid와 yArrayIndex 모두 확인)
+        if (other.uid === schedule.uid && other.yArrayIndex === schedule.yArrayIndex) continue
 
         const otherStartHHMM = toTimeFromAny(other.start_time)
         const otherOffsetHHMM = normalizeOffsetToHHMM(other.offset_time)
@@ -231,7 +231,7 @@ const ScheduleItem = ({
 
       return false
     },
-    [allSchedules, schedule.uid, selectedDateKey, onToast]
+    [allSchedules, schedule.uid, schedule.yArrayIndex, selectedDateKey, onToast]
   )
 
   /** 장소 라인(간결 표기) */
