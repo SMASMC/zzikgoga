@@ -86,6 +86,10 @@ const CreateTravelModal = ({ onClose }: { onClose: () => void }) => {
     //   setToast({ variant: 'warning', message: '여행 인원을 선택해주세요.' })
     //   return
     // }
+    if (!title) {
+      setToast({ variant: 'warning', message: '여행 제목을 입력해주세요.' })
+      return
+    }
     if (!startDate || !endDate) {
       setToast({ variant: 'warning', message: '여행 날짜를 선택해주세요.' })
       return
