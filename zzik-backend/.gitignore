@@ -1,0 +1,58 @@
+### JAVA, Gradle ###
+HELP.md
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+/src/main/generated/
+
+### Credentials ###
+application.properties
+.env
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+firebase
+env-local
+docker-env.txt
+
+src/main/resources/firebase/*
+docker-infra/db/*
+## docker DB local key ##
+**/docker-env.txt
+## FCM key ##
+**/local-env.txt
+## docker DB data ##
+mzwedding-backend/docker-infra/db
+
+### claude ###
+.claude/
