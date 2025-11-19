@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Input from '@components/atoms/Input'
 import SolidButton from '@components/atoms/SolidButton'
+import { DropdownSelect } from '@/components/blocks/DropdownSelect'
 import { SignupRequest } from '../types/auth'
 import { AuthService } from '../services/authService'
 import { useAuthStore } from '@/shared/stores/useAuthStore'
@@ -247,19 +248,22 @@ const SignUpForm = ({
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="w-full">
-          <label className="block text-sm font-medium text-gray-700 mb-1">성별</label>
-          <select
+          <label className="block text-lg font-bmjua font-bold text-slate-800 mb-3">성별</label>
+          <DropdownSelect
+            options={[
+              { value: 'MALE', label: '남성' },
+              { value: 'FEMALE', label: '여성' },
+            ]}
             value={formData.gender}
-            onChange={handleChange('gender')}
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              errors.gender ? 'border-red-500' : 'border-gray-300'
-            }`}
-          >
-            <option value="">성별을 선택하세요</option>
-            <option value="MALE">남성</option>
-            <option value="FEMALE">여성</option>
-          </select>
-          {errors.gender && <p className="mt-1 text-sm text-red-500">{errors.gender}</p>}
+            onChange={(value) => {
+              setFormData((prev) => ({ ...prev, gender: value }))
+              if (errors.gender) {
+                setErrors((prev) => ({ ...prev, gender: undefined }))
+              }
+            }}
+            placeholder="성별을 선택하세요"
+          />
+          {errors.gender && <p className="mt-2 text-base font-semibold text-red-600">{errors.gender}</p>}
         </div>
 
         <Input
@@ -274,22 +278,19 @@ const SignUpForm = ({
         />
 
         <div className="w-full">
-          <label className="block text-sm font-medium text-gray-700 mb-1">은행</label>
-          <select
+          <label className="block text-lg font-bmjua font-bold text-slate-800 mb-3">은행</label>
+          <DropdownSelect
+            options={banks.map((bank) => ({ value: bank.code, label: bank.name }))}
             value={formData.bankCode}
-            onChange={handleChange('bankCode')}
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              errors.bankCode ? 'border-red-500' : 'border-gray-300'
-            }`}
-          >
-            <option value="">은행을 선택하세요</option>
-            {banks.map((bank) => (
-              <option key={bank.code} value={bank.code}>
-                {bank.name}
-              </option>
-            ))}
-          </select>
-          {errors.bankCode && <p className="mt-1 text-sm text-red-500">{errors.bankCode}</p>}
+            onChange={(value) => {
+              setFormData((prev) => ({ ...prev, bankCode: value }))
+              if (errors.bankCode) {
+                setErrors((prev) => ({ ...prev, bankCode: undefined }))
+              }
+            }}
+            placeholder="은행을 선택하세요"
+          />
+          {errors.bankCode && <p className="mt-2 text-base font-semibold text-red-600">{errors.bankCode}</p>}
         </div>
 
         <Input
