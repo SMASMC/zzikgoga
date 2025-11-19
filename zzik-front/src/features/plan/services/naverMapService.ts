@@ -19,8 +19,9 @@ export async function calculateTravelTime(
   }
 
   try {
-    // 백엔드 API 호출
-    const url = `http://localhost:3100/api/naver-map/direction?start=${start.lng},${start.lat}&goal=${goal.lng},${goal.lat}&option=traoptimal`
+    // 백엔드 API 호출 (환경 변수 사용)
+    const baseUrl = import.meta.env.VITE_CRDT_URL || 'http://localhost:3100'
+    const url = `${baseUrl}/api/naver-map/direction?start=${start.lng},${start.lat}&goal=${goal.lng},${goal.lat}&option=traoptimal`
 
     const response = await fetch(url, {
       method: 'GET',
