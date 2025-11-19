@@ -22,9 +22,9 @@ const resolveServerUrl = () => {
   const fromEnv = import.meta.env.VITE_CRDT_URL
   if (fromEnv && fromEnv.trim().length > 0) {
     const url = fromEnv.trim()
-    // http:// -> ws://, https:// -> ws:// 변환
+    // http:// -> ws://, https:// -> wss:// 변환
     if (url.startsWith('https://')) {
-      return url.replace('https://', 'ws://')
+      return url.replace('https://', 'wss://')
     }
     if (url.startsWith('http://')) {
       return url.replace('http://', 'ws://')
