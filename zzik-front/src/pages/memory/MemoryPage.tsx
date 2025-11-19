@@ -6,11 +6,7 @@ import SolidButton from '@/components/atoms/SolidButton'
 import CloseButton from '@/components/atoms/CloseButton'
 import MarkdownEditor from '@/features/memory/components/MarkdownEditor'
 import MemoryPhotoGallery from '@/features/memory/components/MemoryPhotoGallery'
-import {
-  CreateMemoryRequest,
-  MemoryBlock,
-  MemoryEntity,
-} from '@/features/memory/types/memory'
+import { CreateMemoryRequest, MemoryBlock, MemoryEntity } from '@/features/memory/types/memory'
 import { MemoryService, MediaService } from '@/features/memory/services/memoryService'
 import { ToastDock } from '@/components/blocks/ToastDock'
 
@@ -526,4 +522,3 @@ const MemoryPage = () => {
 }
 
 export default MemoryPage
-
