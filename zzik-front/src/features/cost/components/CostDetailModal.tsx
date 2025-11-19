@@ -425,9 +425,47 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
     setError(null)
 
     try {
+      // paidAt 형식 변환: selectedDate와 selectedTime이 있으면 사용, 없으면 formData.paidAt 사용
+      let paidAtValue: string
+      if (selectedDate && selectedTime) {
+        const year = selectedDate.getFullYear()
+        const month = String(selectedDate.getMonth() + 1).padStart(2, '0')
+        const day = String(selectedDate.getDate()).padStart(2, '0')
+        paidAtValue = `${year}-${month}-${day} ${selectedTime}:00`
+      } else if (formData.paidAt) {
+        // formData.paidAt이 이미 올바른 형식인지 확인하고 변환
+        if (formData.paidAt.includes('T')) {
+          // ISO 형식인 경우
+          paidAtValue = formData.paidAt.replace('T', ' ').replace(/\.\d{3}Z?$/, '') + ':00'
+        } else if (formData.paidAt.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/)) {
+          // 이미 올바른 형식인 경우
+          paidAtValue = formData.paidAt.includes(':00') ? formData.paidAt : formData.paidAt + ':00'
+        } else {
+          // 파싱해서 변환
+          const parsed = parsePaidAt(formData.paidAt)
+          if (parsed.date && parsed.time) {
+            const year = parsed.date.getFullYear()
+            const month = String(parsed.date.getMonth() + 1).padStart(2, '0')
+            const day = String(parsed.date.getDate()).padStart(2, '0')
+            paidAtValue = `${year}-${month}-${day} ${parsed.time}:00`
+          } else {
+            paidAtValue = formData.paidAt
+          }
+        }
+      } else {
+        // 폴백: 현재 시간 사용
+        const now = new Date()
+        const year = now.getFullYear()
+        const month = String(now.getMonth() + 1).padStart(2, '0')
+        const day = String(now.getDate()).padStart(2, '0')
+        const hours = String(now.getHours()).padStart(2, '0')
+        const minutes = String(now.getMinutes()).padStart(2, '0')
+        paidAtValue = `${year}-${month}-${day} ${hours}:${minutes}:00`
+      }
+
       // CostModifyRequest 형식으로 변환
       const modifyRequest: CostModifyRequest = {
-        paidAt: formData.paidAt.replace('T', ' ') + ':00',
+        paidAt: paidAtValue,
         place: formData.place,
         payerId: formData.payerId,
         memo: formData.memo || null,
@@ -683,7 +721,9 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
                           <span>
                             {selectedDate && selectedTime
                               ? `${formatDateFromDate(selectedDate)} ${selectedTime}`
-                              : 'YYYY-MM-DD HH:MM'}
+                              : formData.paidAt
+                                ? formatDate(formData.paidAt)
+                                : 'YYYY-MM-DD HH:MM'}
                           </span>
                           <svg
                             className={`w-4 h-4 text-slate-400 transition-transform ${showCalendar ? 'rotate-180' : ''}`}
