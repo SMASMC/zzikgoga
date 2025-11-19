@@ -43,23 +43,45 @@ const TimePicker = ({
     }
   }, [value])
 
-  // 입력값 파싱 및 유효성 검사
-  const parseTimeInput = (input: string): string | null => {
-    const cleaned = input.replace(/[^\d:]/g, '')
+  // 입력값을 실시간으로 포맷팅 (HH:MM 형식)
+  const formatTimeInput = (input: string): string => {
+    const cleaned = input.replace(/\D/g, '') // 숫자만 추출
+    const limited = cleaned.slice(0, 4) // 최대 4자리
 
-    // HH:MM 형식
-    if (/^\d{1,2}:\d{1,2}$/.test(cleaned)) {
-      const [h, m] = cleaned.split(':').map(Number)
+    if (limited.length === 0) return ''
+    if (limited.length <= 2) return limited
+    // 3자리 이상이면 "HH:MM" 형식으로 표시
+    return `${limited.slice(0, 2)}:${limited.slice(2)}`
+  }
+
+  // 입력값 파싱 및 유효성 검사 (숫자만 입력 받음)
+  const parseTimeInput = (input: string): string | null => {
+    const cleaned = input.replace(/\D/g, '') // 숫자만 추출
+    if (!cleaned) return null
+
+    const num = cleaned
+
+    // 1-2자리: 시간으로 해석 (예: "9" → "09:00", "12" → "12:00")
+    if (num.length <= 2) {
+      const h = parseInt(num)
+      if (h >= 0 && h <= 23) {
+        return `${String(h).padStart(2, '0')}:00`
+      }
+    }
+
+    // 3자리: 앞 1자리=시간, 뒤 2자리=분 (예: "930" → "09:30")
+    else if (num.length === 3) {
+      const h = parseInt(num[0])
+      const m = parseInt(num.slice(1))
       if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
         return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
       }
     }
 
-    // HHMM 또는 HMM 형식 (예: 0900, 930)
-    if (/^\d{3,4}$/.test(cleaned)) {
-      const padded = cleaned.padStart(4, '0')
-      const h = parseInt(padded.slice(0, 2))
-      const m = parseInt(padded.slice(2, 4))
+    // 4자리: 앞 2자리=시간, 뒤 2자리=분 (예: "1230" → "12:30", "0900" → "09:00")
+    else if (num.length === 4) {
+      const h = parseInt(num.slice(0, 2))
+      const m = parseInt(num.slice(2, 4))
       if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
         return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
       }
@@ -69,7 +91,9 @@ const TimePicker = ({
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value)
+    // 숫자만 추출하고 최대 4자리로 제한한 후 포맷팅
+    const formatted = formatTimeInput(e.target.value)
+    setInputValue(formatted)
   }
 
   const handleInputBlur = () => {
@@ -230,6 +254,7 @@ const TimePicker = ({
         <input
           ref={inputRef}
           type="text"
+          inputMode="numeric"
           value={inputValue}
           onChange={handleInputChange}
           onBlur={handleInputBlur}
@@ -255,12 +280,7 @@ const TimePicker = ({
             stroke="currentColor"
             viewBox="0 0 24 24"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 9l-7 7-7-7"
-            />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </button>
       </div>
