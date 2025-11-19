@@ -21,7 +21,16 @@ const providers = new Map<string, ProviderEntry>()
 const resolveServerUrl = () => {
   const fromEnv = import.meta.env.VITE_CRDT_URL
   if (fromEnv && fromEnv.trim().length > 0) {
-    return fromEnv.trim()
+    const url = fromEnv.trim()
+    // http:// -> ws://, https:// -> wss:// 변환
+    if (url.startsWith('https://')) {
+      return url.replace('https://', 'wss://')
+    }
+    if (url.startsWith('http://')) {
+      return url.replace('http://', 'ws://')
+    }
+    // 이미 ws:// 또는 wss://로 시작하면 그대로 사용
+    return url
   }
 
   return 'ws://localhost:3100'

@@ -341,7 +341,8 @@ export const useYTripDoc = (roomId: string) => {
     provider.on('sync', syncCheckHandler)
     const timeout = setTimeout(() => {
       if (!syncedFlag) {
-        setConnectionError('서버 연결 시간 초과. CRDT 서버(ws://localhost:3100) 확인.')
+        const crdtUrl = import.meta.env.VITE_CRDT_URL || 'ws://localhost:3100'
+        setConnectionError(`서버 연결 시간 초과. CRDT 서버(${crdtUrl}) 확인.`)
         setIsLoading(false)
       }
     }, 5000)
