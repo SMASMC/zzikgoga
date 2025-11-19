@@ -73,9 +73,9 @@ public class MemoryNftService {
 		/** 3) metadata.json 생성 */
 		ObjectNode metadata = objectMapper.createObjectNode();
 		metadata.put("name", memory.getTitle());
-		metadata.put("description", "travel stroy with zzik");
+		metadata.put("description", "travel stroy with zzik : " + pdfUrl);
 		metadata.put("image", thumbnailUrl);
-		metadata.put("pdf_url", pdfUrl);                           // PDF는 animation_url
+		metadata.put("pdf_url", pdfUrl);
 		metadata.put("external_url", "https://zzik.kr");
 
 		// Attributes
@@ -165,8 +165,13 @@ public class MemoryNftService {
 		boolean isOwner = tripMemoryNftClient.checkOwnership(walletAddress, metadataUrl);
 
 		// PolygonScan에서 직접 확인할 수 있는 링크
-		String verifyUrl = String.format(
+		String polygonUrl = String.format(
 			"https://polygonscan.com/address/%s#tokentxns",
+			walletAddress
+		);
+
+		String openseaUrl = String.format(
+			"https://opensea.io/%s",
 			walletAddress
 		);
 
@@ -174,7 +179,8 @@ public class MemoryNftService {
 			"tripId", tripId,
 			"walletAddress", walletAddress,
 			"isOwner", isOwner,
-			"verifyUrl", verifyUrl
+			"polygonUrl", polygonUrl,
+			"openseaUrl", openseaUrl
 		);
 	}
 
