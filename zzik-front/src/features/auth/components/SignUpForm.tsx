@@ -12,6 +12,7 @@ interface SignupFormProps {
   initialEmail?: string
   initialName?: string
   initialPicture?: string
+  redirectUrl?: string | null
 }
 
 const SignUpForm = ({
@@ -19,6 +20,7 @@ const SignUpForm = ({
   initialEmail = '',
   initialName = '',
   initialPicture = '',
+  redirectUrl = null,
 }: SignupFormProps) => {
   const navigate = useNavigate()
   const [formData, setFormData] = useState<Omit<SignupRequest, 'signupSessionToken'>>({
@@ -120,12 +122,27 @@ const SignUpForm = ({
         message: '회원가입이 완료되었습니다!',
       })
 
-      // sessionStorage에서 초대 링크 확인 (비회원이 초대 링크를 통해 회원가입한 경우)
-      const redirectUrl = sessionStorage.getItem('redirectAfterLogin')
-      if (redirectUrl) {
+      // 초대 링크 확인 (props 또는 sessionStorage)
+      console.log('[SignUpForm] 회원가입 완료!')
+      console.log('[SignUpForm] props로 받은 redirectUrl:', redirectUrl)
+
+      const sessionRedirectUrl = sessionStorage.getItem('redirectAfterLogin')
+      console.log('[SignUpForm] sessionStorage의 redirectUrl:', sessionRedirectUrl)
+
+      // props 우선, 없으면 sessionStorage 확인
+      const finalRedirectUrl = redirectUrl || sessionRedirectUrl
+
+      console.log('[SignUpForm] 최종 redirectUrl:', finalRedirectUrl)
+
+      // 약간의 딜레이 후 navigate (인증 상태 안정화 대기)
+      await new Promise((resolve) => setTimeout(resolve, 300))
+
+      if (finalRedirectUrl) {
         sessionStorage.removeItem('redirectAfterLogin')
-        navigate(redirectUrl, { replace: true })
+        console.log('[SignUpForm] 초대 링크로 리다이렉트:', finalRedirectUrl)
+        navigate(finalRedirectUrl, { replace: true })
       } else {
+        console.log('[SignUpForm] mypage로 리다이렉트')
         navigate('/mypage', { replace: true })
       }
     } catch (error) {

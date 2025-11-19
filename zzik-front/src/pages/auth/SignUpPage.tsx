@@ -11,6 +11,8 @@ export function SignupPage() {
     return <Navigate to="/" replace />
   }
 
+  console.log('[SignupPage] state로 받은 redirectUrl:', data.redirectUrl)
+
   return (
     <div className="max-w-md mx-auto p-6 space-y-4">
       <SignUpForm
@@ -18,6 +20,7 @@ export function SignupPage() {
         initialName={data.name}
         initialEmail={data.email}
         initialPicture={data.picture}
+        redirectUrl={data.redirectUrl}
       />
     </div>
   )

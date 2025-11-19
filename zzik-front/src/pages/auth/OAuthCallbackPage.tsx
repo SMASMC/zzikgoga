@@ -67,9 +67,16 @@ export function OAuthCallbackPage() {
 
         // 4. 신규 회원 (회원가입 페이지 이동)
         if ('signupRequired' in data && data.signupRequired) {
+          // sessionStorage에서 초대 링크 정보 확인하여 state에 포함
+          const redirectUrl = sessionStorage.getItem('redirectAfterLogin')
+          console.log('[OAuthCallback] 신규 회원 - redirectUrl:', redirectUrl)
+
           navigate(`/auth/signup`, {
             replace: true,
-            state: data,
+            state: {
+              ...data,
+              redirectUrl: redirectUrl, // sessionStorage 값을 state에 포함
+            },
           })
           return
         }
