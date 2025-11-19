@@ -13,7 +13,7 @@ const NotFoundPage = () => {
             </h1>
           </div>
           <div className="mb-8">
-            <img src="crying.png" alt="" className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40" />
+            <img src="/crying.png" alt="" className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40" />
           </div>
 
           {/* 메시지 */}
