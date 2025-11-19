@@ -190,16 +190,11 @@ async function handleConnection(ws: WebSocket, req: http.IncomingMessage) {
 async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResponse) {
   const { url = '/', method } = req
 
-  // CORS 헤더 추가 (프록시에서 이미 추가한 경우 중복 방지)
-  if (!res.hasHeader('Access-Control-Allow-Origin')) {
-    res.setHeader('Access-Control-Allow-Origin', '*')
-  }
-  if (!res.hasHeader('Access-Control-Allow-Methods')) {
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-  }
-  if (!res.hasHeader('Access-Control-Allow-Headers')) {
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
-  }
+  // CORS 헤더는 프록시(Nginx)에서 처리하므로 여기서는 설정하지 않음
+  // 프록시 없이 직접 접근 시에만 아래 주석 해제
+  // res.setHeader('Access-Control-Allow-Origin', '*')
+  // res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+  // res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
 
   // OPTIONS 요청 처리
   if (method === 'OPTIONS') {
