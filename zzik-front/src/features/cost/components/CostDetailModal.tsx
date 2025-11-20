@@ -591,7 +591,8 @@ const CostDetailModal = ({ isOpen, onClose, tripId, costId, onRefresh }: CostDet
     settleInfo.totalMemberCount > 0
 
   // 수정/삭제 가능 여부 (정산 수락 완료되면 불가능, settleInfo가 로드되기 전에는 버튼 숨김)
-  const canModifyOrDelete = settleInfo !== null && canEdit && !isAllMembersAccepted
+  // canEdit은 버튼의 disabled 속성으로만 사용하고, 버튼 표시 여부에는 영향을 주지 않음
+  const canModifyOrDelete = settleInfo !== null && !isAllMembersAccepted
 
   if (!isOpen) return null
 
