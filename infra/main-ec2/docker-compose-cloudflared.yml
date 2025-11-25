@@ -10,12 +10,8 @@ services:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
     networks:
       - zzik-network
-    healthcheck:
-      test: ["CMD", "cloudflared", "tunnel", "info"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
 networks:
   zzik-network:
-    external: true
+    name: zzik-network
+    driver: bridge
