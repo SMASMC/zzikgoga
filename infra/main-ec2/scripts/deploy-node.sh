@@ -21,42 +21,9 @@ IMAGE_TAG="${IMAGE_TAG:-latest}"
 CURRENT_IMAGE="${IMAGE_NAME}:${IMAGE_TAG}"
 PREVIOUS_IMAGE="${IMAGE_NAME}:${IMAGE_TAG}-previous"
 
-#############################################
-# Nginx 설정 사전 정리 (SSL 문제 방지)
-#############################################
+# Cloudflare Tunnel 사용 - SSL은 Cloudflare가 처리
 echo ""
-echo "🔧 Nginx 설정 사전 점검 중..."
-
-# 기존 잘못된 HTTPS 설정이 있는지 확인
-if [ -f "${NGINX_SITES_ENABLED}/${NGINX_SITE_NAME}" ]; then
-    # SSL 인증서 확인
-    SSL_CERT="/etc/letsencrypt/live/crdt.zzik.kr/fullchain.pem"
-
-    if ! [ -f "$SSL_CERT" ]; then
-        # SSL 인증서가 없는데 설정이 활성화되어 있으면 문제 가능성 있음
-        echo "⚠️ SSL 인증서 없음 - 기존 nginx 설정 정리 중..."
-
-        # 기존 설정 백업 및 제거
-        sudo rm -f "${NGINX_SITES_ENABLED}/${NGINX_SITE_NAME}" 2>/dev/null || true
-
-        if [ -f "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}" ]; then
-            BACKUP_NAME="${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}.backup.$(date +%Y%m%d-%H%M%S)"
-            sudo mv "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}" "$BACKUP_NAME" 2>/dev/null || true
-            echo "  📦 기존 설정 백업: $BACKUP_NAME"
-        fi
-
-        # nginx 테스트 및 리로드
-        if sudo nginx -t 2>/dev/null; then
-            sudo systemctl reload nginx 2>/dev/null || true
-            echo "  ✅ 기존 설정 정리 완료"
-        fi
-    else
-        echo "  ✅ SSL 인증서 존재 - 설정 확인 통과"
-    fi
-else
-    echo "  ℹ️ 기존 설정 없음 - 새로 생성됩니다"
-fi
-
+echo "🔧 Nginx 설정 점검 중... (Cloudflare Tunnel 모드)"
 echo ""
 
 # 롤백 함수

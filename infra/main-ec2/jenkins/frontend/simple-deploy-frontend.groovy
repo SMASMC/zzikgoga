@@ -77,7 +77,7 @@ pipeline {
                 dir("${FE_DIR}") {
                     sh '''
                         SCRIPT_PATH="${WORKSPACE}/infra/main-ec2/scripts/deploy-frontend-static.sh"
-                        NGINX_CONF="${WORKSPACE}/infra/main-ec2/nginx/frontend-static.conf"
+                        NGINX_CONF="${WORKSPACE}/infra/main-ec2/nginx/frontend.conf"
 
                         sudo ${SCRIPT_PATH} "$(pwd)/dist" "${NGINX_CONF}"
                     '''

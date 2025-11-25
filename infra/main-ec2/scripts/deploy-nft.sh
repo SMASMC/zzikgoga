@@ -21,58 +21,9 @@ IMAGE_TAG="${IMAGE_TAG:-latest}"
 CURRENT_IMAGE="${IMAGE_NAME}:${IMAGE_TAG}"
 PREVIOUS_IMAGE="${IMAGE_NAME}:${IMAGE_TAG}-previous"
 
-#############################################
-# Nginx 설정 사전 정리 (SSL 문제 방지)
-#############################################
+# Cloudflare Tunnel 사용 - SSL은 Cloudflare가 처리
 echo ""
-echo "🔧 Nginx 설정 사전 점검 중..."
-
-# SSL 인증서 확인
-SSL_CERT="/etc/letsencrypt/live/nft.zzik.kr/fullchain.pem"
-
-# 환경 변수로 HTTPS 모드가 지정되어 있으면 우선 사용
-if [ "${USE_HTTPS}" = "true" ]; then
-    echo "✅ HTTPS 모드 지정됨 (환경 변수) - HTTPS로 배포됩니다"
-elif [ "${USE_HTTPS}" = "false" ]; then
-    echo "⚠️ HTTP 모드 지정됨 (환경 변수) - HTTP로 배포됩니다"
-else
-    # 환경 변수가 없으면 SSL 인증서 파일 확인
-    if sudo test -f "$SSL_CERT" 2>/dev/null; then
-        echo "✅ SSL 인증서 존재 - HTTPS 모드로 배포됩니다"
-        USE_HTTPS=true
-    else
-        echo "⚠️ SSL 인증서 없음 - HTTP 모드로 먼저 배포 후 HTTPS로 전환됩니다"
-        USE_HTTPS=false
-    fi
-fi
-
-# 기존 잘못된 HTTPS 설정이 있는지 확인
-if [ -f "${NGINX_SITES_ENABLED}/${NGINX_SITE_NAME}" ]; then
-    if [ "$USE_HTTPS" = false ]; then
-        # SSL 인증서가 없는데 HTTPS 설정이 있으면 정리
-        if grep -q "listen 443 ssl" "${NGINX_SITES_ENABLED}/${NGINX_SITE_NAME}" 2>/dev/null; then
-            echo "  ⚠️ HTTPS 설정 발견 - 기존 nginx 설정 정리 중..."
-
-            # 기존 설정 백업 및 제거
-            sudo rm -f "${NGINX_SITES_ENABLED}/${NGINX_SITE_NAME}" 2>/dev/null || true
-
-            if [ -f "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}" ]; then
-                BACKUP_NAME="${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}.backup.$(date +%Y%m%d-%H%M%S)"
-                sudo mv "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}" "$BACKUP_NAME" 2>/dev/null || true
-                echo "  📦 기존 설정 백업: $BACKUP_NAME"
-            fi
-
-            # nginx 테스트 및 리로드
-            if sudo nginx -t 2>/dev/null; then
-                sudo systemctl reload nginx 2>/dev/null || true
-                echo "  ✅ 기존 설정 정리 완료"
-            fi
-        fi
-    fi
-else
-    echo "  ℹ️ 기존 설정 없음 - 새로 생성됩니다"
-fi
-
+echo "🔧 Nginx 설정 점검 중... (Cloudflare Tunnel 모드)"
 echo ""
 
 # 롤백 함수
@@ -128,27 +79,14 @@ rollback_deployment() {
     fi
 
     # Nginx 설정도 이전 버전으로 복구
-    echo "  🔧 Nginx 설정 복구 중..."
-
-    # SSL 인증서 확인하여 적절한 설정 선택 (sudo로 확인)
-    ROLLBACK_CONFIG=""
-    if sudo test -f "$SSL_CERT"; then
-      ROLLBACK_CONFIG="$(pwd)/nginx/nft-${OLD_ENV}.conf"
-      echo "  📝 HTTPS 설정으로 복구: $ROLLBACK_CONFIG"
-    else
-      ROLLBACK_CONFIG="$(pwd)/nginx/nft-${OLD_ENV}-http.conf"
-      echo "  📝 HTTP 설정으로 복구: $ROLLBACK_CONFIG"
-    fi
-
-    if [ -f "$ROLLBACK_CONFIG" ]; then
-      sudo cp "$ROLLBACK_CONFIG" "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}"
+    if [ -f "$(pwd)/nginx/nft-${OLD_ENV}.conf" ]; then
+      echo "  🔧 Nginx 설정 복구 중..."
+      sudo cp "$(pwd)/nginx/nft-${OLD_ENV}.conf" "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}"
       sudo ln -sf "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}" "${NGINX_SITES_ENABLED}/${NGINX_SITE_NAME}"
       if sudo nginx -t 2>/dev/null; then
         sudo systemctl reload nginx
         echo "  ✅ Nginx 설정 복구 완료"
       fi
-    else
-      echo "  ⚠️ Nginx 설정 파일 없음: $ROLLBACK_CONFIG"
     fi
   else
     echo "  ⚠️ 이전 환경이 없었습니다. 새 환경만 제거합니다."
@@ -298,14 +236,7 @@ fi
 
 echo "🔧 nginx 설정 업데이트 중..."
 
-# HTTP 또는 HTTPS 설정 선택
-if [ "$USE_HTTPS" = true ]; then
-    NGINX_CONFIG_FILE="$(pwd)/nginx/nft-${NEW_ENV}.conf"
-    echo "📝 HTTPS 설정 사용: $NGINX_CONFIG_FILE"
-else
-    NGINX_CONFIG_FILE="$(pwd)/nginx/nft-${NEW_ENV}-http.conf"
-    echo "📝 HTTP 설정 사용: $NGINX_CONFIG_FILE"
-fi
+NGINX_CONFIG_FILE="$(pwd)/nginx/nft-${NEW_ENV}.conf"
 
 if [ -f "$NGINX_CONFIG_FILE" ]; then
     echo "✅ nginx 설정 파일 존재: $NGINX_CONFIG_FILE"
@@ -349,56 +280,6 @@ echo "✅ 배포 성공 확인 완료"
 
 # trap 해제 - 이제 롤백이 필요 없음
 trap - ERR
-
-#############################################
-# SSL 인증서 자동 발급 및 HTTPS 전환
-#############################################
-if [ "$USE_HTTPS" = false ]; then
-    echo ""
-    echo "🔒 SSL 인증서 자동 발급 시작..."
-
-    # certbot으로 SSL 인증서 발급
-    if sudo certbot certonly --nginx -d nft.zzik.kr --non-interactive --agree-tos --email admin@zzik.kr 2>&1 | tee /tmp/certbot-output.log; then
-        # 인증서 발급 성공 확인 (sudo로 확인)
-        if sudo test -f "/etc/letsencrypt/live/nft.zzik.kr/fullchain.pem"; then
-            echo "✅ SSL 인증서 발급 성공!"
-
-            # HTTPS nginx 설정으로 전환
-            echo "🔄 HTTPS 설정으로 전환 중..."
-            HTTPS_CONFIG="$(pwd)/nginx/nft-${NEW_ENV}.conf"
-
-            if [ -f "$HTTPS_CONFIG" ]; then
-                sudo cp "$HTTPS_CONFIG" "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}"
-                sudo ln -sf "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}" "${NGINX_SITES_ENABLED}/${NGINX_SITE_NAME}"
-
-                if sudo nginx -t 2>&1; then
-                    sudo systemctl reload nginx
-                    echo "✅ HTTPS 전환 완료!"
-                    echo "🌐 서비스 URL: https://nft.zzik.kr"
-                else
-                    echo "⚠️ HTTPS 설정 테스트 실패 - HTTP로 유지됩니다"
-                    echo "   수동으로 확인이 필요합니다"
-                fi
-            else
-                echo "⚠️ HTTPS 설정 파일 없음: $HTTPS_CONFIG"
-            fi
-        else
-            echo "⚠️ SSL 인증서 파일을 찾을 수 없습니다"
-            echo "   HTTP로 배포가 완료되었습니다"
-        fi
-    else
-        echo "⚠️ SSL 인증서 발급 실패"
-        echo "   HTTP로 배포가 완료되었습니다"
-        echo "   수동으로 발급: sudo certbot certonly --nginx -d nft.zzik.kr"
-
-        # certbot 로그 확인
-        if [ -f /tmp/certbot-output.log ]; then
-            echo "📋 Certbot 로그 (마지막 10줄):"
-            tail -10 /tmp/certbot-output.log
-        fi
-    fi
-    echo ""
-fi
 
 # 기존 환경 종료 (성공 시에만)
 if [ "$CURRENT_ENV" != "" ]; then
