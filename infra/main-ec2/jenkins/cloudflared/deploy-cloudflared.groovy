@@ -17,7 +17,7 @@ pipeline {
                         git config --global --add safe.directory ${ZZIK_DIR} 2>/dev/null || true
                         git fetch origin
                         git checkout infra/master
-                        git pull origin infra/master
+                        git reset --hard origin/infra/master
                         echo "✅ 저장소 업데이트 완료"
                     else
                         echo "❌ ${ZZIK_DIR} 디렉토리가 없습니다"
