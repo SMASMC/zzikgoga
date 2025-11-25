@@ -16,12 +16,3 @@ services:
       SPRING_DATA_REDIS_PASSWORD: "${REDIS_PASSWORD}"
       SPRING_DATA_REDIS_DATABASE: "${REDIS_DATABASE:-0}"
     restart: unless-stopped
-    networks:
-      - default
-      - main-ec2_default
-
-networks:
-  default:
-    name: main-ec2_default
-  main-ec2_default:
-    external: true
