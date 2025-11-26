@@ -8,8 +8,15 @@ SUDOERS_FILE="/etc/sudoers.d/jenkins"
 BINDIR="/usr/bin"
 SYSTEMCTL="${BINDIR}/systemctl"
 NGINX="/usr/sbin/nginx"
-BACKEND_SCRIPT="${BACKEND_SCRIPT:-/var/lib/jenkins/workspace/be3-nginx-backend-deploy@2/infra/main-ec2/scripts/deploy-backend.sh}"
-FRONTEND_SCRIPT="${FRONTEND_SCRIPT:-/var/lib/jenkins/workspace/fe1-nginx-zzik-frontend-ci-build/infra/main-ec2/scripts/deploy-frontend-static.sh}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INSTALL_PREFIX="/usr/local/bin"
+mkdir -p "${INSTALL_PREFIX}"
+
+install -m 755 "${SCRIPT_DIR}/deploy-backend.sh" "${INSTALL_PREFIX}/deploy-backend.sh"
+install -m 755 "${SCRIPT_DIR}/deploy-frontend-static.sh" "${INSTALL_PREFIX}/deploy-frontend-static.sh"
+
+BACKEND_SCRIPT="${BACKEND_SCRIPT:-${INSTALL_PREFIX}/deploy-backend.sh}"
+FRONTEND_SCRIPT="${FRONTEND_SCRIPT:-${INSTALL_PREFIX}/deploy-frontend-static.sh}"
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "이 스크립트는 root로 실행되어야 합니다."
