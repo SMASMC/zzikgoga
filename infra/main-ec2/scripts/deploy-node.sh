@@ -5,6 +5,17 @@ set -e
 echo "🚀 CRDT Node Server BLUE/GREEN 배포 시작"
 echo "⏰ 시작 시간: $(date '+%Y-%m-%d %H:%M:%S')"
 
+# 0) Docker 네트워크 사전 생성 (external: true 이므로 먼저 존재해야 함)
+NETWORK_NAME="zzik-network"
+echo "🔗 Docker 네트워크 확인: ${NETWORK_NAME}"
+if ! docker network inspect "${NETWORK_NAME}" >/dev/null 2>&1; then
+  echo "  ⚙️ 네트워크가 없습니다. 생성 중..."
+  docker network create "${NETWORK_NAME}"
+  echo "  ✅ 네트워크 생성 완료: ${NETWORK_NAME}"
+else
+  echo "  ✅ 네트워크가 이미 존재합니다: ${NETWORK_NAME}"
+fi
+
 # nginx 설정 파일 경로
 NGINX_SITES_AVAILABLE="/etc/nginx/sites-available"
 NGINX_SITES_ENABLED="/etc/nginx/sites-enabled"
