@@ -28,7 +28,8 @@ pipeline {
                         [$class: 'CleanBeforeCheckout'],
                         [$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [
                             [path: 'zzik-front/**'],
-                            [path: 'infra/main-ec2/nginx/**']
+                            [path: 'infra/main-ec2/nginx/**'],
+                            [path: 'infra/main-ec2/scripts/**']
                         ]]
                     ]
                 ])
