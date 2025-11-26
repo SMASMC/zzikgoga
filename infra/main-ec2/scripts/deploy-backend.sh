@@ -219,26 +219,32 @@ esac
 echo "🧩 Nginx 설정 적용"
 NGINX_SITES_AVAILABLE="/etc/nginx/sites-available"
 NGINX_SITES_ENABLED="/etc/nginx/sites-enabled"
-BACKEND_CONF_SRC="${ROOT_DIR}/nginx/backend-${NEW}.conf"
+ACTIVE_PORT=$(docker inspect -f '{{range $p,$conf := .NetworkSettings.Ports}}{{if eq $p "8080/tcp"}}{{(index $conf 0).HostPort}}{{end}}{{end}}' "${CONTAINER_NAME}" 2>/dev/null || echo "")
+case "$ACTIVE_PORT" in
+  8081) BACKEND_CONF_SRC="${ROOT_DIR}/nginx/backend-blue.conf" ;;
+  8082) BACKEND_CONF_SRC="${ROOT_DIR}/nginx/backend-green.conf" ;;
+  *) BACKEND_CONF_SRC="${ROOT_DIR}/nginx/backend-${NEW}.conf" ;;
+esac
+
 if [ -f "$BACKEND_CONF_SRC" ]; then
-  echo "  - backend conf: $BACKEND_CONF_SRC → api.zzik.kr"
+  echo "  - backend conf: $BACKEND_CONF_SRC → api.zzik.kr (port ${ACTIVE_PORT:-${NEW_PORT}})"
   sudo cp "$BACKEND_CONF_SRC" ${NGINX_SITES_AVAILABLE}/api.zzik.kr
   sudo ln -sf ${NGINX_SITES_AVAILABLE}/api.zzik.kr ${NGINX_SITES_ENABLED}/api.zzik.kr
-
-  # Also deploy split vhosts to avoid server_name duplication
-  if [ -f "${ROOT_DIR}/nginx/jenkins.conf" ]; then
-    echo "  - jenkins conf: ${ROOT_DIR}/nginx/jenkins.conf -> jenkins.zzik.kr"
-    sudo cp "${ROOT_DIR}/nginx/jenkins.conf" ${NGINX_SITES_AVAILABLE}/jenkins.zzik.kr
-    sudo ln -sf ${NGINX_SITES_AVAILABLE}/jenkins.zzik.kr ${NGINX_SITES_ENABLED}/jenkins.zzik.kr
-  fi
-  if [ -f "${ROOT_DIR}/nginx/monitoring.conf" ]; then
-    echo "  - monitoring conf: ${ROOT_DIR}/nginx/monitoring.conf -> monitoring.zzik.kr"
-    sudo cp "${ROOT_DIR}/nginx/monitoring.conf" ${NGINX_SITES_AVAILABLE}/monitoring.zzik.kr
-    sudo ln -sf ${NGINX_SITES_AVAILABLE}/monitoring.zzik.kr ${NGINX_SITES_ENABLED}/monitoring.zzik.kr
-  fi
 else
   echo "❌ backend conf 누락: $BACKEND_CONF_SRC" >&2
   exit 1
+fi
+
+# Also deploy split vhosts to avoid server_name duplication
+if [ -f "${ROOT_DIR}/nginx/jenkins.conf" ]; then
+  echo "  - jenkins conf: ${ROOT_DIR}/nginx/jenkins.conf -> jenkins.zzik.kr"
+  sudo cp "${ROOT_DIR}/nginx/jenkins.conf" ${NGINX_SITES_AVAILABLE}/jenkins.zzik.kr
+  sudo ln -sf ${NGINX_SITES_AVAILABLE}/jenkins.zzik.kr ${NGINX_SITES_ENABLED}/jenkins.zzik.kr
+fi
+if [ -f "${ROOT_DIR}/nginx/monitoring.conf" ]; then
+  echo "  - monitoring conf: ${ROOT_DIR}/nginx/monitoring.conf -> monitoring.zzik.kr"
+  sudo cp "${ROOT_DIR}/nginx/monitoring.conf" ${NGINX_SITES_AVAILABLE}/monitoring.zzik.kr
+  sudo ln -sf ${NGINX_SITES_AVAILABLE}/monitoring.zzik.kr ${NGINX_SITES_ENABLED}/monitoring.zzik.kr
 fi
 
 if sudo -n nginx -t; then
