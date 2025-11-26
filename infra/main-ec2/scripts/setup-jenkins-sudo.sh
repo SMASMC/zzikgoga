@@ -29,6 +29,11 @@ Defaults:jenkins !requiretty
 Defaults:jenkins secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 jenkins ALL=(ALL) NOPASSWD: ${BINDIR}/cp
 jenkins ALL=(ALL) NOPASSWD: /bin/ln
+jenkins ALL=(ALL) NOPASSWD: /bin/rm
+jenkins ALL=(ALL) NOPASSWD: /bin/mv
+jenkins ALL=(ALL) NOPASSWD: /bin/mkdir
+jenkins ALL=(ALL) NOPASSWD: /bin/chown
+jenkins ALL=(ALL) NOPASSWD: /bin/chmod
 jenkins ALL=(ALL) NOPASSWD: ${NGINX}
 jenkins ALL=(ALL) NOPASSWD: ${SYSTEMCTL} reload nginx
 jenkins ALL=(ALL) NOPASSWD: ${SYSTEMCTL} restart nginx
@@ -36,6 +41,9 @@ jenkins ALL=(ALL) NOPASSWD: ${SYSTEMCTL} start nginx
 jenkins ALL=(ALL) NOPASSWD: ${SYSTEMCTL} stop nginx
 jenkins ALL=(ALL) NOPASSWD: ${BACKEND_SCRIPT}
 jenkins ALL=(ALL) NOPASSWD: ${FRONTEND_SCRIPT}
+# Jenkins workspace에서 직접 실행하는 경우 (bash 스크립트)
+jenkins ALL=(ALL) NOPASSWD: /bin/bash /var/lib/jenkins/workspace/*/workspace-infra/infra/main-ec2/scripts/deploy-frontend-static.sh *
+jenkins ALL=(ALL) NOPASSWD: /usr/bin/bash /var/lib/jenkins/workspace/*/workspace-infra/infra/main-ec2/scripts/deploy-frontend-static.sh *
 EOF
 
 chmod 440 "$SUDOERS_FILE"
