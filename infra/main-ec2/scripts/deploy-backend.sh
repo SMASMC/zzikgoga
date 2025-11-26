@@ -148,6 +148,14 @@ if [ -n "${POSTGRES_CONTAINER}" ]; then
   fi
 
   if ! docker ps --format '{{.Names}}' | grep -qx "${POSTGRES_CONTAINER}"; then
+    if docker ps -a --format '{{.Names}}' | grep -qx "${POSTGRES_CONTAINER}"; then
+      echo "⚙️ PostgreSQL 컨테이너가 중지 상태라 재시작합니다"
+      docker start "${POSTGRES_CONTAINER}" >/dev/null || true
+      sleep 2
+    fi
+  fi
+
+  if ! docker ps --format '{{.Names}}' | grep -qx "${POSTGRES_CONTAINER}"; then
     echo "❌ PostgreSQL container '${POSTGRES_CONTAINER}' is not running"
     exit 1
   fi
