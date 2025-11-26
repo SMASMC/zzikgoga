@@ -136,6 +136,12 @@ sed -i 's/\r$//' "${DB_DIR}/.env" || true
 REDIS_NAME=$(sed -n 's/^REDIS_DB=\s*//p' "${DB_DIR}/.env" 2>/dev/null | tr -d '\r' | tail -n1)
 [ -n "${REDIS_NAME}" ] || REDIS_NAME=redis
 
+# PostgreSQL 사용자/DB명 (.env에서 읽기)
+POSTGRES_USER=$(sed -n 's/^POSTGRES_USER=\s*//p' "${DB_DIR}/.env" 2>/dev/null | tr -d '\r' | tail -n1)
+POSTGRES_DB=$(sed -n 's/^POSTGRES_DB=\s*//p' "${DB_DIR}/.env" 2>/dev/null | tr -d '\r' | tail -n1)
+[ -n "${POSTGRES_USER}" ] || POSTGRES_USER=postgres
+[ -n "${POSTGRES_DB}" ] || POSTGRES_DB=postgres
+
 # Datasource URL 파싱 (외부 DB 여부 판단용)
 SPRING_DATASOURCE_URL=$(sed -n 's/^SPRING_DATASOURCE_URL=\s*//p' "${DB_DIR}/.env" 2>/dev/null | tr -d '\r' | tail -n1)
 DATASOURCE_HOST=""
