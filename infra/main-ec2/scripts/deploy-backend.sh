@@ -17,6 +17,20 @@ else
   echo "  ✅ 네트워크가 이미 존재합니다: ${NETWORK_NAME}"
 fi
 
+# 0-1) 기존 DB/Redis 컨테이너가 zzik-network에 연결되어 있는지 확인하고 연결
+echo "🔗 기존 컨테이너 네트워크 연결 확인"
+for container in zzik-db zzik_redis redis; do
+  if docker ps --format '{{.Names}}' | grep -qx "${container}"; then
+    if ! docker inspect "${container}" --format '{{json .NetworkSettings.Networks}}' | grep -q "${NETWORK_NAME}"; then
+      echo "  ⚙️ ${container}를 ${NETWORK_NAME}에 연결 중..."
+      docker network connect "${NETWORK_NAME}" "${container}" 2>/dev/null || true
+      echo "  ✅ ${container} 연결 완료"
+    else
+      echo "  ✅ ${container}는 이미 ${NETWORK_NAME}에 연결되어 있습니다"
+    fi
+  fi
+done
+
 DB_DIR="${ROOT_DIR}/db"
 PROJECT="main-ec2"
 IMAGE_NAME="${IMAGE_NAME:-zzikgoga}"
