@@ -110,39 +110,69 @@ sed -i 's/\r$//' "${DB_DIR}/.env" || true
 REDIS_NAME=$(sed -n 's/^REDIS_DB=\s*//p' "${DB_DIR}/.env" 2>/dev/null | tr -d '\r' | tail -n1)
 [ -n "${REDIS_NAME}" ] || REDIS_NAME=redis
 
+# Datasource URL 파싱 (외부 DB 여부 판단용)
+SPRING_DATASOURCE_URL=$(sed -n 's/^SPRING_DATASOURCE_URL=\s*//p' "${DB_DIR}/.env" 2>/dev/null | tr -d '\r' | tail -n1)
+DATASOURCE_HOST=""
+if [ -n "${SPRING_DATASOURCE_URL}" ]; then
+  DATASOURCE_HOST=$(echo "${SPRING_DATASOURCE_URL}" | sed -E 's#^[a-zA-Z0-9_+.-]+://([^@]+@)?([^:/?]+).*#\2#')
+fi
+
+# PostgreSQL 컨테이너명(.env의 POSTGRES_CONTAINER_NAME) 또는 datasource host 추론
+POSTGRES_CONTAINER=$(sed -n 's/^POSTGRES_CONTAINER_NAME=\s*//p' "${DB_DIR}/.env" 2>/dev/null | tr -d '\r' | tail -n1)
+if [ -z "${POSTGRES_CONTAINER}" ] && [ -n "${DATASOURCE_HOST}" ]; then
+  case "${DATASOURCE_HOST}" in
+    localhost|127.0.0.1) POSTGRES_CONTAINER="my-postgres-db" ;;
+    *.*) : ;; # 외부 호스트로 간주
+    *) POSTGRES_CONTAINER="${DATASOURCE_HOST}" ;;
+  esac
+fi
+if [ -z "${POSTGRES_CONTAINER}" ] && docker ps --format '{{.Names}}' | grep -qx "my-postgres-db" 2>/dev/null; then
+  POSTGRES_CONTAINER="my-postgres-db"
+elif [ -z "${POSTGRES_CONTAINER}" ] && docker ps --format '{{.Names}}' | grep -qx "zzik-db" 2>/dev/null; then
+  POSTGRES_CONTAINER="zzik-db"
+fi
+
 # 2) Redis 존재 시 유지, 없을 때만 생성(up -d)
 echo "🗄️ Redis 존재 여부 확인 후 필요 시만 기동"
 if ! docker ps -a --format '{{.Names}}' | grep -qx "${REDIS_NAME}"; then
   ( cd "${DB_DIR}" && docker compose -p "${PROJECT}" -f docker-compose.redis.yml up -d )
 fi
 
-# PostgreSQL은 이미 my-postgres-db로 실행 중이라고 가정
-echo "🔎 PostgreSQL 컨테이너 확인 (my-postgres-db)"
-if ! docker ps --format '{{.Names}}' | grep -qx "my-postgres-db"; then
-  echo "❌ PostgreSQL container 'my-postgres-db' is not running"
-  exit 1
-fi
-echo "✅ PostgreSQL container 'my-postgres-db' is running"
-
-# 대상 DB 존재 보장(없으면 생성)
-echo "🛠️ 대상 데이터베이스 존재 보장(create-if-missing)"
-bash "${ROOT_DIR}/scripts/ensure-db-exists.sh" "${ROOT_DIR}/.env"
-
-echo "🔎 DB/Redis 준비 상태 확인"
-
-# PostgreSQL 준비 확인 (healthcheck가 없으므로 pg_isready 사용)
-echo "  📊 PostgreSQL 준비 대기 (my-postgres-db)"
-DB_READY=0
-for i in $(seq 1 30); do
-  if docker exec my-postgres-db pg_isready -U "${POSTGRES_USER:-postgres}" >/dev/null 2>&1; then
-    echo "  ✅ PostgreSQL is ready (attempt $i)"
-    DB_READY=1
-    break
+if [ -n "${POSTGRES_CONTAINER}" ]; then
+  echo "🔎 PostgreSQL 컨테이너 확인 (${POSTGRES_CONTAINER})"
+  if ! docker ps -a --format '{{.Names}}' | grep -qx "${POSTGRES_CONTAINER}"; then
+    echo "⚙️ PostgreSQL 컨테이너가 없어 docker-compose로 기동합니다"
+    ( cd "${DB_DIR}" && docker compose -p "${PROJECT}" -f docker-compose.psql.yml up -d )
   fi
-  echo "  ⏳ PostgreSQL not ready yet (attempt $i)"
-  sleep 2
-done
-[ $DB_READY -eq 1 ] || { echo "❌ PostgreSQL is not ready after 60 seconds"; docker logs my-postgres-db --tail=50 || true; exit 1; }
+
+  if ! docker ps --format '{{.Names}}' | grep -qx "${POSTGRES_CONTAINER}"; then
+    echo "❌ PostgreSQL container '${POSTGRES_CONTAINER}' is not running"
+    exit 1
+  fi
+  echo "✅ PostgreSQL container '${POSTGRES_CONTAINER}' is running"
+
+  echo "🛠️ 대상 데이터베이스 존재 보장(create-if-missing)"
+  POSTGRES_CONTAINER_NAME="${POSTGRES_CONTAINER}" bash "${ROOT_DIR}/scripts/ensure-db-exists.sh" "${ROOT_DIR}/.env"
+
+  echo "🔎 DB/Redis 준비 상태 확인"
+
+  echo "  📊 PostgreSQL 준비 대기 (${POSTGRES_CONTAINER})"
+  DB_READY=0
+  for i in $(seq 1 30); do
+    if docker exec "${POSTGRES_CONTAINER}" pg_isready -U "${POSTGRES_USER:-postgres}" >/dev/null 2>&1; then
+      echo "  ✅ PostgreSQL is ready (attempt $i)"
+      DB_READY=1
+      break
+    fi
+    echo "  ⏳ PostgreSQL not ready yet (attempt $i)"
+    sleep 2
+  done
+  [ $DB_READY -eq 1 ] || { echo "❌ PostgreSQL is not ready after 60 seconds"; docker logs "${POSTGRES_CONTAINER}" --tail=50 || true; exit 1; }
+else
+  echo "🔎 PostgreSQL 컨테이너 확인 SKIP (외부 DB 사용: ${DATASOURCE_HOST:-unknown})"
+  echo "🛠️ 대상 데이터베이스 존재 보장 SKIP (외부 DB 가정)"
+  echo "🔎 DB/Redis 준비 상태 확인 - Redis만 검사"
+fi
 
 # Redis 헬스 확인
 echo "  📊 Redis 헬스 대기 (${REDIS_NAME})"
