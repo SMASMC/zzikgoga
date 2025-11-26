@@ -122,6 +122,7 @@ POSTGRES_CONTAINER=$(sed -n 's/^POSTGRES_CONTAINER_NAME=\s*//p' "${DB_DIR}/.env"
 if [ -z "${POSTGRES_CONTAINER}" ] && [ -n "${DATASOURCE_HOST}" ]; then
   case "${DATASOURCE_HOST}" in
     localhost|127.0.0.1) POSTGRES_CONTAINER="my-postgres-db" ;;
+    *.internal|*.local|*.lan) POSTGRES_CONTAINER="my-postgres-db" ;;
     *.*) : ;; # 외부 호스트로 간주
     *) POSTGRES_CONTAINER="${DATASOURCE_HOST}" ;;
   esac
@@ -131,6 +132,7 @@ if [ -z "${POSTGRES_CONTAINER}" ] && docker ps --format '{{.Names}}' | grep -qx 
 elif [ -z "${POSTGRES_CONTAINER}" ] && docker ps --format '{{.Names}}' | grep -qx "zzik-db" 2>/dev/null; then
   POSTGRES_CONTAINER="zzik-db"
 fi
+[ -n "${POSTGRES_CONTAINER}" ] || POSTGRES_CONTAINER="zzik-db"
 
 # 2) Redis 존재 시 유지, 없을 때만 생성(up -d)
 echo "🗄️ Redis 존재 여부 확인 후 필요 시만 기동"
