@@ -18,13 +18,11 @@ services:
       retries: 5
       start_period: 10s
     networks:
-      - default
-      - main-ec2_default
+      - zzik-network
 
 networks:
-  default:
-    name: main-ec2_default
-  main-ec2_default:
+  zzik-network:
+    name: zzik-network
     external: true
 
 volumes:

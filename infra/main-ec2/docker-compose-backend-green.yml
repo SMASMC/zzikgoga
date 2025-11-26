@@ -8,7 +8,7 @@ services:
       - .env
     environment:
       SERVER_PORT: "8080"
-      SPRING_DATASOURCE_URL: "jdbc:postgresql://zzik.kr:5432/${POSTGRES_DB:-zzik}"
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://${POSTGRES_HOST:-zzik-db}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-zzik}"
       SPRING_DATASOURCE_USERNAME: "${POSTGRES_USER}"
       SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD}"
       SPRING_DATA_REDIS_HOST: "${REDIS_HOST}"
@@ -17,11 +17,9 @@ services:
       SPRING_DATA_REDIS_DATABASE: "${REDIS_DATABASE:-0}"
     restart: unless-stopped
     networks:
-      - default
-      - main-ec2_default
+      - zzik-network
 
 networks:
-  default:
-    name: main-ec2_default
-  main-ec2_default:
+  zzik-network:
+    name: zzik-network
     external: true
