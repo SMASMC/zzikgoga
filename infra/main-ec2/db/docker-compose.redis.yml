@@ -17,6 +17,15 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    networks:
+      - default
+      - main-ec2_default
+
+networks:
+  default:
+    name: main-ec2_default
+  main-ec2_default:
+    external: true
 
 volumes:
   redis-data:

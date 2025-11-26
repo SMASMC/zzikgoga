@@ -22,3 +22,12 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+    networks:
+      - default
+      - main-ec2_default
+
+networks:
+  default:
+    name: main-ec2_default
+  main-ec2_default:
+    external: true

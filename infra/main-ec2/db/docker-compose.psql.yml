@@ -21,5 +21,15 @@ services:
       interval: 10s
       timeout: 3s
       retries: 10
+    networks:
+      - default
+      - main-ec2_default
+
+networks:
+  default:
+    name: main-ec2_default
+  main-ec2_default:
+    external: true
+
 volumes:
   pgdata:
