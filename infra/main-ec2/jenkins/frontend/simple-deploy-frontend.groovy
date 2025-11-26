@@ -3,10 +3,13 @@ pipeline {
 
     parameters {
         string(name: 'BRANCH_NAME', defaultValue: 'fe/master', description: '빌드할 브랜치')
+        string(name: 'INFRA_BRANCH', defaultValue: 'infra/master', description: 'infra 브랜치')
     }
 
     environment {
         FE_DIR = 'zzik-front'
+        FE_CHECKOUT_DIR = 'workspace-frontend'
+        INFRA_CHECKOUT_DIR = 'workspace-infra'
         DEPLOY_DIR = '/var/www/zzik-frontend'
     }
 
@@ -17,30 +20,48 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout([
-                    $class: 'GitSCM',
-                    branches: [[name: "origin/${params.BRANCH_NAME}"]],
-                    userRemoteConfigs: [[
-                        url: 'https://lab.ssafy.com/s13-final/S13P31A102.git',
-                        credentialsId: 'gitlab_username_with_pw'
-                    ]],
-                    extensions: [
-                        [$class: 'CleanBeforeCheckout'],
-                        [$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [
-                            [path: 'zzik-front/**'],
-                            [path: 'infra/main-ec2/nginx/**'],
-                            [path: 'infra/main-ec2/scripts/**']
-                        ]]
-                    ]
-                ])
-                sh 'test -f zzik-front/package.json || { echo "❌ package.json 없음"; exit 1; }'
+                dir("${INFRA_CHECKOUT_DIR}") {
+                    deleteDir()
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: "origin/${params.INFRA_BRANCH}"]],
+                        userRemoteConfigs: [[
+                            url: 'https://lab.ssafy.com/s13-final/S13P31A102.git',
+                            credentialsId: 'gitlab_username_with_pw'
+                        ]],
+                        extensions: [
+                            [$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [
+                                [path: 'infra/**']
+                            ]]
+                        ]
+                    ])
+                }
+
+                dir("${FE_CHECKOUT_DIR}") {
+                    deleteDir()
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: "origin/${params.BRANCH_NAME}"]],
+                        userRemoteConfigs: [[
+                            url: 'https://lab.ssafy.com/s13-final/S13P31A102.git',
+                            credentialsId: 'gitlab_username_with_pw'
+                        ]],
+                        extensions: [
+                            [$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [
+                                [path: 'zzik-front/**']
+                            ]]
+                        ]
+                    ])
+                }
+
+                sh 'test -f ${FE_CHECKOUT_DIR}/${FE_DIR}/package.json || { echo "❌ package.json 없음"; exit 1; }'
             }
         }
 
         stage('Setup .env') {
             steps {
                 withCredentials([file(credentialsId: "fe-prod-env-file", variable: 'ENV_FILE')]) {
-                    dir("${FE_DIR}") {
+                    dir("${FE_CHECKOUT_DIR}/${FE_DIR}") {
                         sh '''
                             cp "${ENV_FILE}" .env
                             chmod 600 .env
@@ -54,7 +75,7 @@ pipeline {
 
         stage('Install & Build') {
             steps {
-                dir("${FE_DIR}") {
+                dir("${FE_CHECKOUT_DIR}/${FE_DIR}") {
                     nodejs(nodeJSInstallationName: "NodeJS-22") {
                         sh '''
                             echo "📦 의존성 설치..."
@@ -75,12 +96,20 @@ pipeline {
 
         stage('Deploy to Nginx') {
             steps {
-                dir("${FE_DIR}") {
+                dir("${FE_CHECKOUT_DIR}/${FE_DIR}") {
                     sh '''
-                        SCRIPT_PATH="${WORKSPACE}/infra/main-ec2/scripts/deploy-frontend-static.sh"
-                        NGINX_CONF="${WORKSPACE}/infra/main-ec2/nginx/frontend.conf"
+                        SCRIPT_PATH="${WORKSPACE}/${INFRA_CHECKOUT_DIR}/infra/main-ec2/scripts/deploy-frontend-static.sh"
+                        NGINX_CONF="${WORKSPACE}/${INFRA_CHECKOUT_DIR}/infra/main-ec2/nginx/frontend.conf"
 
-                        sudo ${SCRIPT_PATH} "$(pwd)/dist" "${NGINX_CONF}"
+                        if [ ! -f "${SCRIPT_PATH}" ]; then
+                            echo "[Deploy] Script not found: ${SCRIPT_PATH}"
+                            exit 1
+                        fi
+
+                        command -v dos2unix >/dev/null 2>&1 && dos2unix "${SCRIPT_PATH}" || true
+                        chmod +x "${SCRIPT_PATH}"
+
+                        sudo bash "${SCRIPT_PATH}" "$(pwd)/dist" "${NGINX_CONF}"
                     '''
                 }
             }
@@ -120,7 +149,7 @@ pipeline {
             '''
         }
         always {
-            sh 'rm -f ${FE_DIR}/.env || true'
+            sh 'rm -f ${FE_CHECKOUT_DIR}/${FE_DIR}/.env || true'
             cleanWs()
         }
     }
