@@ -31,6 +31,16 @@ for container in zzik-db zzik_redis redis; do
   fi
 done
 
+# 0-2) Redis 컨테이너에 'redis' 별칭 추가 (zzik_redis -> redis alias)
+REDIS_CONTAINER=$(docker ps --format '{{.Names}}' | grep -i redis | head -1)
+if [ -n "${REDIS_CONTAINER}" ] && [ "${REDIS_CONTAINER}" != "redis" ]; then
+  echo "🔗 Redis 별칭(alias) 설정: ${REDIS_CONTAINER} -> redis"
+  # 기존 연결 해제 후 별칭과 함께 재연결
+  docker network disconnect "${NETWORK_NAME}" "${REDIS_CONTAINER}" 2>/dev/null || true
+  docker network connect --alias redis "${NETWORK_NAME}" "${REDIS_CONTAINER}" 2>/dev/null || true
+  echo "  ✅ Redis alias 설정 완료"
+fi
+
 DB_DIR="${ROOT_DIR}/db"
 PROJECT="main-ec2"
 IMAGE_NAME="${IMAGE_NAME:-zzikgoga}"
