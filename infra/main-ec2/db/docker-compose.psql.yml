@@ -13,7 +13,7 @@ services:
       TZ: Asia/Seoul
       PGTZ: Asia/Seoul
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5433}:5432"  # 기존 nanuri-postgres(5432) 충돌 방지
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

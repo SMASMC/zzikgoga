@@ -14,9 +14,11 @@ mkdir -p "${INSTALL_PREFIX}"
 
 install -m 755 "${SCRIPT_DIR}/deploy-backend.sh" "${INSTALL_PREFIX}/deploy-backend.sh"
 install -m 755 "${SCRIPT_DIR}/deploy-frontend-static.sh" "${INSTALL_PREFIX}/deploy-frontend-static.sh"
+install -m 755 "${SCRIPT_DIR}/deploy-jenkins.sh" "${INSTALL_PREFIX}/deploy-jenkins.sh"
 
 BACKEND_SCRIPT="${BACKEND_SCRIPT:-${INSTALL_PREFIX}/deploy-backend.sh}"
 FRONTEND_SCRIPT="${FRONTEND_SCRIPT:-${INSTALL_PREFIX}/deploy-frontend-static.sh}"
+JENKINS_SCRIPT="${JENKINS_SCRIPT:-${INSTALL_PREFIX}/deploy-jenkins.sh}"
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "이 스크립트는 root로 실행되어야 합니다."
@@ -41,6 +43,7 @@ jenkins ALL=(ALL) NOPASSWD: ${SYSTEMCTL} start nginx
 jenkins ALL=(ALL) NOPASSWD: ${SYSTEMCTL} stop nginx
 jenkins ALL=(ALL) NOPASSWD: ${BACKEND_SCRIPT}
 jenkins ALL=(ALL) NOPASSWD: ${FRONTEND_SCRIPT}
+jenkins ALL=(ALL) NOPASSWD: ${JENKINS_SCRIPT}
 # Jenkins workspace에서 직접 실행하는 경우 (bash 스크립트)
 jenkins ALL=(ALL) NOPASSWD: /bin/bash /var/lib/jenkins/workspace/*/workspace-infra/infra/main-ec2/scripts/deploy-frontend-static.sh *
 jenkins ALL=(ALL) NOPASSWD: /usr/bin/bash /var/lib/jenkins/workspace/*/workspace-infra/infra/main-ec2/scripts/deploy-frontend-static.sh *

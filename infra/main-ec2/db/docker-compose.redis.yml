@@ -8,6 +8,8 @@ services:
       REDIS_PORT: ${REDIS_PORT:-6379}
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       TZ: Asia/Seoul
+    ports:
+      - "${REDIS_PORT:-6380}:6379"  # 기존 nanuri-redis(6379) 충돌 방지
     restart: unless-stopped
     volumes:
       - redis-data:/data

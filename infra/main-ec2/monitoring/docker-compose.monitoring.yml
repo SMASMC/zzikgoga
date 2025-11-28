@@ -2,7 +2,7 @@
 services:
   prometheus:
     image: prom/prometheus:latest
-    container_name: prometheus
+    container_name: zzik-prometheus
     ports:
       - "19090:9090"
     volumes:
@@ -20,9 +20,9 @@ services:
 
   grafana:
     image: grafana/grafana:latest
-    container_name: grafana
+    container_name: zzik-grafana
     ports:
-      - "3000:3000"
+      - "3001:3000"  # 기존 nanuri-back-blue(3000) 충돌 방지
     env_file:
       - ./.env.monitoring
     environment:
@@ -37,7 +37,7 @@ services:
 
   loki:
     image: grafana/loki:latest
-    container_name: loki
+    container_name: zzik-loki
     command: ["-config.file=/etc/loki/config.yml"]
     volumes:
       - ./loki.yml:/etc/loki/config.yml:ro
@@ -46,7 +46,7 @@ services:
 
   promtail:
     image: grafana/promtail:latest
-    container_name: promtail
+    container_name: zzik-promtail
     command: ["-config.file=/etc/promtail/config.yml"]
     volumes:
       - /var/log:/var/log:ro
