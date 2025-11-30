@@ -114,6 +114,15 @@ rollback_deployment() {
     if [ -f "${ROOT_DIR}/nginx/backend-${OLD}.conf" ]; then
       echo "  🔧 Nginx 설정 복구 중..."
       docker cp "${ROOT_DIR}/nginx/backend-${OLD}.conf" shared-nginx:/etc/nginx/conf.d/api.zzik.kr.conf
+
+      # 프론트엔드 설정도 이전 백엔드로 복구
+      if [ -f "${ROOT_DIR}/nginx/frontend.conf" ]; then
+        TEMP_FRONTEND_CONF="/tmp/frontend-nginx-rollback-$$.conf"
+        sed "s/zzikgoga-blue/zzikgoga-${OLD}/g; s/zzikgoga-green/zzikgoga-${OLD}/g" "${ROOT_DIR}/nginx/frontend.conf" > "${TEMP_FRONTEND_CONF}"
+        docker cp "${TEMP_FRONTEND_CONF}" shared-nginx:/etc/nginx/conf.d/zzik.kr.conf
+        rm -f "${TEMP_FRONTEND_CONF}"
+      fi
+
       if docker exec shared-nginx nginx -t 2>/dev/null; then
         docker exec shared-nginx nginx -s reload
         echo "  ✅ Nginx 설정 복구 완료"
@@ -325,6 +334,15 @@ fi
 if [ -f "${ROOT_DIR}/nginx/monitoring.conf" ]; then
   echo "  - monitoring conf: ${ROOT_DIR}/nginx/monitoring.conf -> monitoring.zzik.kr.conf"
   docker cp "${ROOT_DIR}/nginx/monitoring.conf" ${NGINX_CONTAINER}:${NGINX_CONF_DIR}/monitoring.zzik.kr.conf
+fi
+
+# 프론트엔드 nginx 설정도 현재 활성 백엔드로 업데이트
+if [ -f "${ROOT_DIR}/nginx/frontend.conf" ]; then
+  echo "  - frontend conf: ${ROOT_DIR}/nginx/frontend.conf -> zzik.kr.conf (backend: zzikgoga-${NEW})"
+  TEMP_FRONTEND_CONF="/tmp/frontend-nginx-$$.conf"
+  sed "s/zzikgoga-blue/zzikgoga-${NEW}/g; s/zzikgoga-green/zzikgoga-${NEW}/g" "${ROOT_DIR}/nginx/frontend.conf" > "${TEMP_FRONTEND_CONF}"
+  docker cp "${TEMP_FRONTEND_CONF}" ${NGINX_CONTAINER}:${NGINX_CONF_DIR}/zzik.kr.conf
+  rm -f "${TEMP_FRONTEND_CONF}"
 fi
 
 if docker exec ${NGINX_CONTAINER} nginx -t; then

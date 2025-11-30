@@ -63,7 +63,53 @@ echo "✅ 파일 배포 완료"
 # Nginx 설정 업데이트 (선택)
 if [ -n "$NGINX_CONF" ] && [ -f "$NGINX_CONF" ]; then
     echo "🔧 Nginx 설정 업데이트 중..."
-    docker cp "$NGINX_CONF" ${NGINX_CONTAINER}:${NGINX_CONF_DIR}/zzik.kr.conf
+
+    # 현재 활성화된 백엔드 컨테이너 감지
+    ACTIVE_BACKEND=""
+    if docker ps --format '{{.Names}}' | grep -qx 'zzikgoga-blue'; then
+        ACTIVE_BACKEND="zzikgoga-blue"
+    elif docker ps --format '{{.Names}}' | grep -qx 'zzikgoga-green'; then
+        ACTIVE_BACKEND="zzikgoga-green"
+    fi
+
+    if [ -n "$ACTIVE_BACKEND" ]; then
+        echo "  ✅ 활성 백엔드: ${ACTIVE_BACKEND}"
+        # 백엔드가 zzik-network에 연결되어 있는지 확인
+        docker network connect "${NETWORK_NAME}" "${ACTIVE_BACKEND}" 2>/dev/null || true
+
+        # nginx 설정 파일에서 백엔드 주소 동적으로 변경
+        TEMP_CONF="/tmp/frontend-nginx-$$.conf"
+        sed "s/zzikgoga-blue/${ACTIVE_BACKEND}/g; s/zzikgoga-green/${ACTIVE_BACKEND}/g" "$NGINX_CONF" > "${TEMP_CONF}"
+        docker cp "${TEMP_CONF}" ${NGINX_CONTAINER}:${NGINX_CONF_DIR}/zzik.kr.conf
+        rm -f "${TEMP_CONF}"
+    else
+        echo "  ⚠️ 활성 백엔드 없음 - API 프록시 없이 정적 파일만 서빙"
+        # 백엔드 없이 정적 파일만 서빙하는 설정 생성
+        cat > /tmp/frontend-static-only.conf << 'STATICEOF'
+server {
+    listen 80;
+    server_name zzik.kr;
+
+    root /usr/share/nginx/zzik-frontend;
+    index index.html;
+
+    access_log /var/log/nginx/zzik.kr.access.log;
+    error_log  /var/log/nginx/zzik.kr.error.log;
+
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_proxied any;
+    gzip_types text/plain text/css text/xml text/javascript application/javascript application/json application/xml;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+STATICEOF
+        docker cp /tmp/frontend-static-only.conf ${NGINX_CONTAINER}:${NGINX_CONF_DIR}/zzik.kr.conf
+        rm -f /tmp/frontend-static-only.conf
+    fi
 
     if docker exec ${NGINX_CONTAINER} nginx -t; then
         docker exec ${NGINX_CONTAINER} nginx -s reload
