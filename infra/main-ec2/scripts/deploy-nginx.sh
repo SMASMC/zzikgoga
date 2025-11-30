@@ -40,19 +40,55 @@ echo "  ⏳ 컨테이너 시작 대기 중..."
 sleep 5
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 3) 기본 nginx 설정 파일 배포
+# 3) 현재 활성 환경 감지 (blue/green)
+# ─────────────────────────────────────────────────────────────────────────────
+echo "🔍 현재 활성 환경 감지 중..."
+
+# Backend 환경 감지
+if docker ps --format '{{.Names}}' | grep -qx "zzikgoga-green"; then
+  BACKEND_ENV="green"
+elif docker ps --format '{{.Names}}' | grep -qx "zzikgoga-blue"; then
+  BACKEND_ENV="blue"
+else
+  BACKEND_ENV="blue"  # 기본값
+  echo "  ⚠️ 활성 백엔드 컨테이너 없음. 기본값 blue 사용"
+fi
+echo "  📦 Backend 환경: ${BACKEND_ENV}"
+
+# CRDT 환경 감지
+if docker ps --format '{{.Names}}' | grep -qx "zzikgoga-node-green"; then
+  CRDT_ENV="green"
+elif docker ps --format '{{.Names}}' | grep -qx "zzikgoga-node-blue"; then
+  CRDT_ENV="blue"
+else
+  CRDT_ENV="blue"  # 기본값
+fi
+echo "  📦 CRDT 환경: ${CRDT_ENV}"
+
+# NFT 환경 감지
+if docker ps --format '{{.Names}}' | grep -qx "zzikgoga-nft-green"; then
+  NFT_ENV="green"
+elif docker ps --format '{{.Names}}' | grep -qx "zzikgoga-nft-blue"; then
+  NFT_ENV="blue"
+else
+  NFT_ENV="blue"  # 기본값
+fi
+echo "  📦 NFT 환경: ${NFT_ENV}"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 4) nginx 설정 파일 배포
 # ─────────────────────────────────────────────────────────────────────────────
 echo "📁 Nginx 설정 파일 배포"
 
 NGINX_CONF_DIR="/etc/nginx/conf.d"
 
-# 기본 설정 파일 배포
+# 활성 환경에 맞는 설정 파일 배포
 declare -A CONF_FILES=(
-  ["${ROOT_DIR}/nginx/backend-blue.conf"]="api.zzik.kr.conf"
+  ["${ROOT_DIR}/nginx/backend-${BACKEND_ENV}.conf"]="api.zzik.kr.conf"
   ["${ROOT_DIR}/nginx/frontend.conf"]="zzik.kr.conf"
   ["${ROOT_DIR}/nginx/jenkins.conf"]="jenkins.zzik.kr.conf"
-  ["${ROOT_DIR}/nginx/crdt-blue.conf"]="crdt.zzik.kr.conf"
-  ["${ROOT_DIR}/nginx/nft-blue.conf"]="nft.zzik.kr.conf"
+  ["${ROOT_DIR}/nginx/crdt-${CRDT_ENV}.conf"]="crdt.zzik.kr.conf"
+  ["${ROOT_DIR}/nginx/nft-${NFT_ENV}.conf"]="nft.zzik.kr.conf"
   ["${ROOT_DIR}/nginx/monitoring.conf"]="monitoring.zzik.kr.conf"
 )
 
@@ -70,7 +106,7 @@ done
 docker exec ${NGINX_CONTAINER} rm -f /etc/nginx/conf.d/default.conf 2>/dev/null || true
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 4) 헬스체크
+# 5) 헬스체크
 # ─────────────────────────────────────────────────────────────────────────────
 echo "🏥 Nginx 설정 테스트 및 재로드"
 
@@ -84,7 +120,7 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 5) cloudflared 네트워크 연결 확인
+# 6) cloudflared 네트워크 연결 확인
 # ─────────────────────────────────────────────────────────────────────────────
 if docker ps --format '{{.Names}}' | grep -qx "cloudflared"; then
   if ! docker inspect "cloudflared" --format '{{json .NetworkSettings.Networks}}' | grep -q "${NETWORK_NAME}"; then
@@ -97,7 +133,7 @@ if docker ps --format '{{.Names}}' | grep -qx "cloudflared"; then
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 6) 완료 메시지
+# 7) 완료 메시지
 # ─────────────────────────────────────────────────────────────────────────────
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
