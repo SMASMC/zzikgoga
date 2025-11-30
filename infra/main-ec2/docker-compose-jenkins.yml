@@ -1,6 +1,9 @@
 services:
   jenkins:
-    image: jenkins/jenkins:lts
+    build:
+      context: ./dockerfiles
+      dockerfile: jenkins.dockerfile
+    image: zzik-jenkins:latest
     container_name: zzik-jenkins
     user: root
     restart: unless-stopped
@@ -13,8 +16,6 @@ services:
     volumes:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
-      - /usr/bin/docker:/usr/bin/docker
-      - /usr/local/bin/docker:/usr/local/bin/docker
       - /tmp/shared-workspace:/tmp/shared-workspace
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/login"]
