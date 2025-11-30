@@ -66,10 +66,10 @@ rollback_deployment() {
         docker start "zzikgoga-node-${OLD_ENV}" 2>/dev/null || true
         sleep 5
 
-        # 이전 컨테이너 헬스 체크
+        # 이전 컨테이너 헬스 체크 (WebSocket 서버용)
         echo "  ⏳ 이전 컨테이너 헬스 체크 대기..."
         for i in $(seq 1 30); do
-          if curl -s -o /dev/null -w "%{http_code}" "http://localhost:${OLD_PORT}/health" | grep -q "^[234]"; then
+          if docker logs "zzikgoga-node-${OLD_ENV}" 2>&1 | grep -q "y-websocket compatible server running"; then
             echo "  ✅ 이전 환경이 정상적으로 복구되었습니다 (시도 $i/30)"
             break
           fi
@@ -181,17 +181,17 @@ docker compose -p node-${NEW_ENV} -f docker-compose-node-${NEW_ENV}.yml up -d
 echo "⏳ 컨테이너 시작 대기중..."
 sleep 5
 
-# Health check
-echo "🏥 헬스 체크 시작..."
+# Health check (WebSocket 서버용 - 로그 메시지 기반)
+echo "🏥 헬스 체크 시작... (WebSocket 서버)"
 MAX_ATTEMPTS=30
 ATTEMPT=0
 SUCCESS=false
+CONTAINER_NAME="zzikgoga-node-${NEW_ENV}"
 
 while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
     ATTEMPT=$((ATTEMPT + 1))
 
     # Container status check
-    CONTAINER_NAME="zzikgoga-node-${NEW_ENV}"
     CONTAINER_STATUS=$(docker inspect --format='{{.State.Status}}' "$CONTAINER_NAME" 2>/dev/null || echo "unknown")
 
     if [ "$CONTAINER_STATUS" != "running" ]; then
@@ -200,32 +200,20 @@ while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
         continue
     fi
 
-    # Health check: try /health then fallback to /
-    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:${NEW_PORT}/health 2>/dev/null || echo "000")
-    if [ "$HTTP_CODE" = "000" ] || [ "$HTTP_CODE" = "404" ]; then
-        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:${NEW_PORT}/ 2>/dev/null || echo "000")
-    fi
-
-    if [ "$HTTP_CODE" = "200" ]; then
-        echo "✅ $NEW_ENV 환경이 정상 상태입니다!"
+    # WebSocket 서버 시작 로그 메시지 확인
+    if docker logs "$CONTAINER_NAME" 2>&1 | grep -q "y-websocket compatible server running"; then
+        echo "✅ $NEW_ENV 환경이 정상 상태입니다! (WebSocket 서버 시작 확인)"
         SUCCESS=true
 
-        # 추가 확인
-        echo "🔍 엔드포인트 확인:"
-        HEALTH_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:${NEW_PORT}/health 2>/dev/null || echo "000")
-        STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:${NEW_PORT}/status 2>/dev/null || echo "000")
-        echo "   /health 상태 코드: $HEALTH_CODE"
-        echo "   /status 상태 코드: $STATUS_CODE"
-
-        # Health check 응답 내용 확인
-        echo "🔍 Health check 응답:"
-        curl -s http://localhost:${NEW_PORT}/health | jq '.' || true
+        # 서버 정보 출력
+        echo "🔍 WebSocket 서버 정보:"
+        docker logs "$CONTAINER_NAME" 2>&1 | grep -E "(server running|listening|started)" | tail -5 || true
         echo ""
 
         break
     fi
 
-    echo "⏳ 헬스 체크 대기 중... (시도 $ATTEMPT/$MAX_ATTEMPTS, HTTP 상태: $HTTP_CODE)"
+    echo "⏳ WebSocket 서버 시작 대기 중... (시도 $ATTEMPT/$MAX_ATTEMPTS)"
 
     if [ $((ATTEMPT % 5)) -eq 0 ]; then
         echo "📋 진행 상황: $ATTEMPT/$MAX_ATTEMPTS 시도 완료"
@@ -276,21 +264,18 @@ else
     rollback_deployment
 fi
 
-# 최종 확인
+# 최종 확인 (WebSocket 서버용 - 로그 메시지 및 컨테이너 상태 확인)
 echo "🔍 새 환경 최종 확인..."
-FINAL_CHECK=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:${NEW_PORT}/health)
-if [ "$FINAL_CHECK" != "200" ]; then
-    FINAL_CHECK=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:${NEW_PORT}/)
-fi
+FINAL_CONTAINER_STATUS=$(docker inspect --format='{{.State.Status}}' "$CONTAINER_NAME" 2>/dev/null || echo "unknown")
+FINAL_LOG_CHECK=$(docker logs "$CONTAINER_NAME" 2>&1 | grep -c "y-websocket compatible server running" || echo "0")
 
-case "$FINAL_CHECK" in
-  2*|3*) : ;; # ok
-  *)
-    echo "❌ 최종 확인 실패!"
+if [ "$FINAL_CONTAINER_STATUS" = "running" ] && [ "$FINAL_LOG_CHECK" -gt 0 ]; then
+    echo "✅ 최종 확인 완료 (컨테이너 실행 중, WebSocket 서버 정상)"
+else
+    echo "❌ 최종 확인 실패! (상태: $FINAL_CONTAINER_STATUS, 로그 확인: $FINAL_LOG_CHECK)"
     NEED_ROLLBACK=1
     rollback_deployment
-    ;;
-esac
+fi
 
 # 배포 성공 확인
 echo "✅ 배포 성공 확인 완료"
