@@ -279,9 +279,10 @@ fi
 
 echo "🌐 Backend HTTP 준비 확인 :${NEW_PORT}"
 for i in $(seq 1 40); do
-  code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:${NEW_PORT}/health-check" || echo 000)
+  # /api context path 포함하여 헬스체크
+  code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:${NEW_PORT}/api/health-check" || echo 000)
   if [ "$code" = 000 ] || [ "$code" = 404 ]; then
-    code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:${NEW_PORT}/" || echo 000)
+    code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:${NEW_PORT}/api/" || echo 000)
   fi
   echo "  attempt $i: ${NEW_PORT} -> $code"
   case "$code" in 2*|3*|4*) break;; esac
