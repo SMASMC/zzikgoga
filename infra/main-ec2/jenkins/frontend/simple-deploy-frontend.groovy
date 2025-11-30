@@ -20,38 +20,40 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                dir("${INFRA_CHECKOUT_DIR}") {
-                    deleteDir()
-                    checkout([
-                        $class: 'GitSCM',
-                        branches: [[name: "origin/${params.INFRA_BRANCH}"]],
-                        userRemoteConfigs: [[
-                            url: 'https://lab.ssafy.com/s13-final/S13P31A102.git',
-                            credentialsId: 'gitlab_username_with_pw'
-                        ]],
-                        extensions: [
-                            [$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [
-                                [path: 'infra/**']
-                            ]]
-                        ]
-                    ])
-                }
+                withCredentials([string(credentialsId: 'zzikgoga-github-url', variable: 'GIT_REPO_URL')]) {
+                    dir("${INFRA_CHECKOUT_DIR}") {
+                        deleteDir()
+                        checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: "origin/${params.INFRA_BRANCH}"]],
+                            userRemoteConfigs: [[
+                                url: env.GIT_REPO_URL,
+                                credentialsId: 'github-smasmc-token'
+                            ]],
+                            extensions: [
+                                [$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [
+                                    [path: 'infra/**']
+                                ]]
+                            ]
+                        ])
+                    }
 
-                dir("${FE_CHECKOUT_DIR}") {
-                    deleteDir()
-                    checkout([
-                        $class: 'GitSCM',
-                        branches: [[name: "origin/${params.BRANCH_NAME}"]],
-                        userRemoteConfigs: [[
-                            url: 'https://lab.ssafy.com/s13-final/S13P31A102.git',
-                            credentialsId: 'gitlab_username_with_pw'
-                        ]],
-                        extensions: [
-                            [$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [
-                                [path: 'zzik-front/**']
-                            ]]
-                        ]
-                    ])
+                    dir("${FE_CHECKOUT_DIR}") {
+                        deleteDir()
+                        checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: "origin/${params.BRANCH_NAME}"]],
+                            userRemoteConfigs: [[
+                                url: env.GIT_REPO_URL,
+                                credentialsId: 'github-smasmc-token'
+                            ]],
+                            extensions: [
+                                [$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [
+                                    [path: 'zzik-front/**']
+                                ]]
+                            ]
+                        ])
+                    }
                 }
 
                 sh 'test -f ${FE_CHECKOUT_DIR}/${FE_DIR}/package.json || { echo "❌ package.json 없음"; exit 1; }'

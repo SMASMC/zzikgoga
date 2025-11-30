@@ -15,18 +15,20 @@ pipeline {
     stages {
         stage('Checkout Backend') {
             steps {
-                checkout([
-                    $class: 'GitSCM',
-                    branches: [[name: "origin/${params.BRANCH_NAME}"]],
-                    userRemoteConfigs: [[
-                        url: 'https://lab.ssafy.com/s13-final/S13P31A102.git',
-                        credentialsId: 'gitlab_username_with_pw'
-                    ]],
-                    extensions: [
-                        [$class: 'CleanBeforeCheckout'],
-                        [$class: 'RelativeTargetDirectory', relativeTargetDir: '.']
-                    ]
-                ])
+                withCredentials([string(credentialsId: 'zzikgoga-github-url', variable: 'GIT_REPO_URL')]) {
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: "origin/${params.BRANCH_NAME}"]],
+                        userRemoteConfigs: [[
+                            url: env.GIT_REPO_URL,
+                            credentialsId: 'github-smasmc-token'
+                        ]],
+                        extensions: [
+                            [$class: 'CleanBeforeCheckout'],
+                            [$class: 'RelativeTargetDirectory', relativeTargetDir: '.']
+                        ]
+                    ])
+                }
                 sh 'echo "Checked out ${BRANCH_NAME}" && ls -al'
             }
         }

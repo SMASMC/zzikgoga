@@ -29,24 +29,26 @@ pipeline {
 
     stage('Checkout NFT Server') {
       steps {
-        checkout([
-          $class: 'GitSCM',
-          branches: [[name: "origin/${params.BRANCH_NAME}"]],
-          userRemoteConfigs: [[
-            url: 'https://lab.ssafy.com/s13-final/S13P31A102.git',
-            credentialsId: 'gitlab_username_with_pw'
-          ]],
-          extensions: [
-            [$class: 'CleanBeforeCheckout'],
-            [$class: 'RelativeTargetDirectory', relativeTargetDir: '.'],
-            [$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [
-              [path: 'nft/**'],
-              [path: 'infra/main-ec2/dockerfiles/**'],
-              [path: 'infra/main-ec2/jenkins/**'],
-              [path: 'infra/main-ec2/nginx/**']
-            ]]
-          ]
-        ])
+        withCredentials([string(credentialsId: 'zzikgoga-github-url', variable: 'GIT_REPO_URL')]) {
+          checkout([
+            $class: 'GitSCM',
+            branches: [[name: "origin/${params.BRANCH_NAME}"]],
+            userRemoteConfigs: [[
+              url: env.GIT_REPO_URL,
+              credentialsId: 'github-smasmc-token'
+            ]],
+            extensions: [
+              [$class: 'CleanBeforeCheckout'],
+              [$class: 'RelativeTargetDirectory', relativeTargetDir: '.'],
+              [$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [
+                [path: 'nft/**'],
+                [path: 'infra/main-ec2/dockerfiles/**'],
+                [path: 'infra/main-ec2/jenkins/**'],
+                [path: 'infra/main-ec2/nginx/**']
+              ]]
+            ]
+          ])
+        }
         sh '''
           set -e
           echo "[INFO] Syncing infra branch artifacts from ${INFRA_BRANCH}"
