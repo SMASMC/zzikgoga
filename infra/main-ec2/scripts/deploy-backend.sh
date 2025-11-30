@@ -17,9 +17,9 @@ else
   echo "  ✅ 네트워크가 이미 존재합니다: ${NETWORK_NAME}"
 fi
 
-# 0-1) 기존 DB/Redis 컨테이너가 zzik-network에 연결되어 있는지 확인하고 연결
+# 0-1) 기존 DB/Redis/Nginx 컨테이너가 zzik-network에 연결되어 있는지 확인하고 연결
 echo "🔗 기존 컨테이너 네트워크 연결 확인"
-for container in zzik-db zzik_redis redis; do
+for container in zzik-db zzik_redis redis shared-nginx; do
   if docker ps --format '{{.Names}}' | grep -qx "${container}"; then
     if ! docker inspect "${container}" --format '{{json .NetworkSettings.Networks}}' | grep -q "${NETWORK_NAME}"; then
       echo "  ⚙️ ${container}를 ${NETWORK_NAME}에 연결 중..."
@@ -113,10 +113,9 @@ rollback_deployment() {
     # Nginx 설정도 이전 버전으로 복구
     if [ -f "${ROOT_DIR}/nginx/backend-${OLD}.conf" ]; then
       echo "  🔧 Nginx 설정 복구 중..."
-      sudo cp "${ROOT_DIR}/nginx/backend-${OLD}.conf" /etc/nginx/sites-available/api.zzik.kr
-      sudo ln -sf /etc/nginx/sites-available/api.zzik.kr /etc/nginx/sites-enabled/api.zzik.kr
-      if sudo nginx -t 2>/dev/null; then
-        sudo systemctl reload nginx
+      docker cp "${ROOT_DIR}/nginx/backend-${OLD}.conf" shared-nginx:/etc/nginx/conf.d/api.zzik.kr.conf
+      if docker exec shared-nginx nginx -t 2>/dev/null; then
+        docker exec shared-nginx nginx -s reload
         echo "  ✅ Nginx 설정 복구 완료"
       fi
     fi
@@ -299,9 +298,10 @@ case "$code" in
 esac
 
 # 6) Nginx 설정 적용(backend-<color>.conf → api.zzik.kr) 후 reload
-echo "🧩 Nginx 설정 적용"
-NGINX_SITES_AVAILABLE="/etc/nginx/sites-available"
-NGINX_SITES_ENABLED="/etc/nginx/sites-enabled"
+echo "🧩 Nginx 설정 적용 (shared-nginx 컨테이너)"
+NGINX_CONTAINER="shared-nginx"
+NGINX_CONF_DIR="/etc/nginx/conf.d"
+
 ACTIVE_PORT=$(docker inspect -f '{{range $p,$conf := .NetworkSettings.Ports}}{{if eq $p "8080/tcp"}}{{(index $conf 0).HostPort}}{{end}}{{end}}' "${CONTAINER_NAME}" 2>/dev/null || echo "")
 case "$ACTIVE_PORT" in
   8081) BACKEND_CONF_SRC="${ROOT_DIR}/nginx/backend-blue.conf" ;;
@@ -310,9 +310,8 @@ case "$ACTIVE_PORT" in
 esac
 
 if [ -f "$BACKEND_CONF_SRC" ]; then
-  echo "  - backend conf: $BACKEND_CONF_SRC → api.zzik.kr (port ${ACTIVE_PORT:-${NEW_PORT}})"
-  sudo cp "$BACKEND_CONF_SRC" ${NGINX_SITES_AVAILABLE}/api.zzik.kr
-  sudo ln -sf ${NGINX_SITES_AVAILABLE}/api.zzik.kr ${NGINX_SITES_ENABLED}/api.zzik.kr
+  echo "  - backend conf: $BACKEND_CONF_SRC → api.zzik.kr.conf (port ${ACTIVE_PORT:-${NEW_PORT}})"
+  docker cp "$BACKEND_CONF_SRC" ${NGINX_CONTAINER}:${NGINX_CONF_DIR}/api.zzik.kr.conf
 else
   echo "❌ backend conf 누락: $BACKEND_CONF_SRC" >&2
   exit 1
@@ -320,18 +319,16 @@ fi
 
 # Also deploy split vhosts to avoid server_name duplication
 if [ -f "${ROOT_DIR}/nginx/jenkins.conf" ]; then
-  echo "  - jenkins conf: ${ROOT_DIR}/nginx/jenkins.conf -> jenkins.zzik.kr"
-  sudo cp "${ROOT_DIR}/nginx/jenkins.conf" ${NGINX_SITES_AVAILABLE}/jenkins.zzik.kr
-  sudo ln -sf ${NGINX_SITES_AVAILABLE}/jenkins.zzik.kr ${NGINX_SITES_ENABLED}/jenkins.zzik.kr
+  echo "  - jenkins conf: ${ROOT_DIR}/nginx/jenkins.conf -> jenkins.zzik.kr.conf"
+  docker cp "${ROOT_DIR}/nginx/jenkins.conf" ${NGINX_CONTAINER}:${NGINX_CONF_DIR}/jenkins.zzik.kr.conf
 fi
 if [ -f "${ROOT_DIR}/nginx/monitoring.conf" ]; then
-  echo "  - monitoring conf: ${ROOT_DIR}/nginx/monitoring.conf -> monitoring.zzik.kr"
-  sudo cp "${ROOT_DIR}/nginx/monitoring.conf" ${NGINX_SITES_AVAILABLE}/monitoring.zzik.kr
-  sudo ln -sf ${NGINX_SITES_AVAILABLE}/monitoring.zzik.kr ${NGINX_SITES_ENABLED}/monitoring.zzik.kr
+  echo "  - monitoring conf: ${ROOT_DIR}/nginx/monitoring.conf -> monitoring.zzik.kr.conf"
+  docker cp "${ROOT_DIR}/nginx/monitoring.conf" ${NGINX_CONTAINER}:${NGINX_CONF_DIR}/monitoring.zzik.kr.conf
 fi
 
-if sudo -n nginx -t; then
-  sudo -n systemctl reload nginx
+if docker exec ${NGINX_CONTAINER} nginx -t; then
+  docker exec ${NGINX_CONTAINER} nginx -s reload
   echo "✅ nginx reloaded"
 else
   echo "❌ nginx config test failed" >&2

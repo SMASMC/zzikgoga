@@ -87,8 +87,8 @@ pipeline {
                 }
             }
             sh '''
-              sudo ln -sf /etc/nginx/sites-available/monitoring.zzik.kr /etc/nginx/sites-enabled/monitoring.zzik.kr
-              sudo nginx -t && sudo systemctl reload nginx
+              docker cp infra/main-ec2/monitoring/nginx/monitoring.conf shared-nginx:/etc/nginx/conf.d/monitoring.zzik.kr.conf || true
+              docker exec shared-nginx nginx -t && docker exec shared-nginx nginx -s reload
             '''
         }
     }
