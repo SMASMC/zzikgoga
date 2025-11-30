@@ -8,3 +8,10 @@ services:
     command: tunnel run
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - zzik-network
+
+networks:
+  zzik-network:
+    name: zzik-network
+    external: true
