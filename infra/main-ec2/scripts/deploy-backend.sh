@@ -277,21 +277,21 @@ if [ "$hs" != "healthy" ] && [ "$hs" != "none" ]; then
   rollback_deployment
 fi
 
-echo "🌐 Backend HTTP 준비 확인 :${NEW_PORT}"
+echo "🌐 Backend HTTP 준비 확인 (컨테이너: ${CONTAINER_NAME}:8080)"
 for i in $(seq 1 40); do
-  # /api context path 포함하여 헬스체크
-  code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:${NEW_PORT}/api/health-check" || echo 000)
-  if [ "$code" = 000 ] || [ "$code" = 404 ]; then
-    code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:${NEW_PORT}/api/" || echo 000)
+  # Docker 네트워크 내 컨테이너 이름으로 헬스체크 (내부 포트 8080 사용)
+  code=$(curl -s -o /dev/null -w "%{http_code}" "http://${CONTAINER_NAME}:8080/api/health-check" 2>/dev/null || echo 000)
+  if [ "$code" = "000" ] || [ "$code" = "404" ]; then
+    code=$(curl -s -o /dev/null -w "%{http_code}" "http://${CONTAINER_NAME}:8080/api/" 2>/dev/null || echo 000)
   fi
-  echo "  attempt $i: ${NEW_PORT} -> $code"
+  echo "  attempt $i: ${CONTAINER_NAME}:8080 -> $code"
   case "$code" in 2*|3*|4*) break;; esac
   sleep 3
 done
 case "$code" in
   2*|3*|4*) : ;;
   *)
-    echo "❌ backend HTTP check failed on :${NEW_PORT}"
+    echo "❌ backend HTTP check failed on ${CONTAINER_NAME}:8080"
     docker logs "${CONTAINER_NAME}" --tail=200 || true
     NEED_ROLLBACK=1
     rollback_deployment
