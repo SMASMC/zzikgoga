@@ -59,20 +59,27 @@ if [ $WAITED -ge $MAX_WAIT ]; then
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 4) Nginx 설정 배포
+# 4) Nginx 설정 배포 (shared-nginx 컨테이너)
 # ─────────────────────────────────────────────────────────────────────────────
 NGINX_CONF="${ROOT_DIR}/nginx/jenkins.conf"
-NGINX_AVAILABLE="/etc/nginx/sites-available/jenkins.zzik.kr.conf"
-NGINX_ENABLED="/etc/nginx/sites-enabled/jenkins.zzik.kr.conf"
+NGINX_CONTAINER="shared-nginx"
+NGINX_CONF_DIR="/etc/nginx/conf.d"
 
-echo "🌐 Nginx 설정 배포"
+echo "🌐 Nginx 설정 배포 (shared-nginx 컨테이너)"
+
+# shared-nginx가 zzik-network에 연결되어 있는지 확인
+if docker ps --format '{{.Names}}' | grep -qx "${NGINX_CONTAINER}"; then
+    if ! docker inspect "${NGINX_CONTAINER}" --format '{{json .NetworkSettings.Networks}}' | grep -q "${NETWORK_NAME}"; then
+        echo "  ⚙️ ${NGINX_CONTAINER}를 ${NETWORK_NAME}에 연결 중..."
+        docker network connect "${NETWORK_NAME}" "${NGINX_CONTAINER}" 2>/dev/null || true
+    fi
+fi
 
 if [ -f "${NGINX_CONF}" ]; then
-  sudo cp "${NGINX_CONF}" "${NGINX_AVAILABLE}"
-  sudo ln -sf "${NGINX_AVAILABLE}" "${NGINX_ENABLED}"
+  docker cp "${NGINX_CONF}" ${NGINX_CONTAINER}:${NGINX_CONF_DIR}/jenkins.zzik.kr.conf
 
-  if sudo nginx -t 2>/dev/null; then
-    sudo systemctl reload nginx
+  if docker exec ${NGINX_CONTAINER} nginx -t 2>/dev/null; then
+    docker exec ${NGINX_CONTAINER} nginx -s reload
     echo "  ✅ Nginx 설정 적용 완료"
   else
     echo "  ❌ Nginx 설정 오류. 설정을 확인하세요."

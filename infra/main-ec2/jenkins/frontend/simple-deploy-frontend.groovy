@@ -111,7 +111,7 @@ pipeline {
                         command -v dos2unix >/dev/null 2>&1 && dos2unix "${SCRIPT_PATH}" || true
                         chmod +x "${SCRIPT_PATH}"
 
-                        sudo bash "${SCRIPT_PATH}" "$(pwd)/dist" "${NGINX_CONF}"
+                        bash "${SCRIPT_PATH}" "$(pwd)/dist" "${NGINX_CONF}"
                     '''
                 }
             }
@@ -121,10 +121,12 @@ pipeline {
             steps {
                 sh '''
                     echo "🔍 배포 검증..."
+                    NGINX_CONTAINER="shared-nginx"
+                    DEPLOY_PATH="/usr/share/nginx/zzik-frontend"
 
-                    if [ -f "${DEPLOY_DIR}/current/index.html" ]; then
+                    if docker exec ${NGINX_CONTAINER} test -f "${DEPLOY_PATH}/index.html"; then
                         echo "✅ index.html 확인됨"
-                        FILE_COUNT=$(find ${DEPLOY_DIR}/current -type f | wc -l)
+                        FILE_COUNT=$(docker exec ${NGINX_CONTAINER} find ${DEPLOY_PATH} -type f | wc -l)
                         echo "📊 배포된 파일 수: ${FILE_COUNT}"
                     else
                         echo "❌ index.html 없음!"
@@ -142,12 +144,17 @@ pipeline {
         failure {
             echo "❌ 배포 실패! 롤백 시도..."
             sh '''
-                if [ -d "${DEPLOY_DIR}/previous" ]; then
-                    sudo rm -rf ${DEPLOY_DIR}/current
-                    sudo mv ${DEPLOY_DIR}/previous ${DEPLOY_DIR}/current
-                    sudo systemctl reload nginx
-                    echo "🔄 롤백 완료"
-                fi
+                NGINX_CONTAINER="shared-nginx"
+                DEPLOY_PATH="/usr/share/nginx/zzik-frontend"
+
+                docker exec ${NGINX_CONTAINER} sh -c "
+                    if [ -d '${DEPLOY_PATH}.previous' ]; then
+                        rm -rf ${DEPLOY_PATH}
+                        mv ${DEPLOY_PATH}.previous ${DEPLOY_PATH}
+                    fi
+                " || true
+                docker exec ${NGINX_CONTAINER} nginx -s reload || true
+                echo "🔄 롤백 완료"
             '''
         }
         always {

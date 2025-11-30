@@ -16,9 +16,9 @@ else
   echo "  ✅ 네트워크가 이미 존재합니다: ${NETWORK_NAME}"
 fi
 
-# nginx 설정 파일 경로
-NGINX_SITES_AVAILABLE="/etc/nginx/sites-available"
-NGINX_SITES_ENABLED="/etc/nginx/sites-enabled"
+# nginx 설정 (shared-nginx 컨테이너)
+NGINX_CONTAINER="shared-nginx"
+NGINX_CONF_DIR="/etc/nginx/conf.d"
 NGINX_SITE_NAME="nft.zzik.kr"
 
 # 디버그 모드 설정
@@ -92,10 +92,9 @@ rollback_deployment() {
     # Nginx 설정도 이전 버전으로 복구
     if [ -f "$(pwd)/nginx/nft-${OLD_ENV}.conf" ]; then
       echo "  🔧 Nginx 설정 복구 중..."
-      sudo cp "$(pwd)/nginx/nft-${OLD_ENV}.conf" "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}"
-      sudo ln -sf "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}" "${NGINX_SITES_ENABLED}/${NGINX_SITE_NAME}"
-      if sudo nginx -t 2>/dev/null; then
-        sudo systemctl reload nginx
+      docker cp "$(pwd)/nginx/nft-${OLD_ENV}.conf" ${NGINX_CONTAINER}:${NGINX_CONF_DIR}/${NGINX_SITE_NAME}.conf
+      if docker exec ${NGINX_CONTAINER} nginx -t 2>/dev/null; then
+        docker exec ${NGINX_CONTAINER} nginx -s reload
         echo "  ✅ Nginx 설정 복구 완료"
       fi
     fi
@@ -245,19 +244,26 @@ if [ "$SUCCESS" = false ]; then
     rollback_deployment
 fi
 
-echo "🔧 nginx 설정 업데이트 중..."
+echo "🔧 nginx 설정 업데이트 중... (shared-nginx 컨테이너)"
+
+# shared-nginx가 zzik-network에 연결되어 있는지 확인
+if docker ps --format '{{.Names}}' | grep -qx "${NGINX_CONTAINER}"; then
+    if ! docker inspect "${NGINX_CONTAINER}" --format '{{json .NetworkSettings.Networks}}' | grep -q "${NETWORK_NAME}"; then
+        echo "  ⚙️ ${NGINX_CONTAINER}를 ${NETWORK_NAME}에 연결 중..."
+        docker network connect "${NETWORK_NAME}" "${NGINX_CONTAINER}" 2>/dev/null || true
+    fi
+fi
 
 NGINX_CONFIG_FILE="$(pwd)/nginx/nft-${NEW_ENV}.conf"
 
 if [ -f "$NGINX_CONFIG_FILE" ]; then
     echo "✅ nginx 설정 파일 존재: $NGINX_CONFIG_FILE"
 
-    # sudo 권한으로 nginx 설정 업데이트
-    sudo cp "$NGINX_CONFIG_FILE" "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}"
-    sudo ln -sf "${NGINX_SITES_AVAILABLE}/${NGINX_SITE_NAME}" "${NGINX_SITES_ENABLED}/${NGINX_SITE_NAME}"
+    # docker cp로 nginx 설정 업데이트
+    docker cp "$NGINX_CONFIG_FILE" ${NGINX_CONTAINER}:${NGINX_CONF_DIR}/${NGINX_SITE_NAME}.conf
 
-    if sudo nginx -t; then
-        sudo systemctl reload nginx
+    if docker exec ${NGINX_CONTAINER} nginx -t; then
+        docker exec ${NGINX_CONTAINER} nginx -s reload
         echo "✅ nginx 재로드 완료"
     else
         echo "❌ nginx 설정 테스트 실패"
