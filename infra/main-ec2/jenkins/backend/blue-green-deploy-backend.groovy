@@ -47,21 +47,32 @@ pipeline {
                 echo "🔍 Final deployment status:"
                 docker ps --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}" | grep zzikgoga
 
-                # 활성 포트 확인
-                ACTIVE_PORT=$(grep -E "^\\s*server\\s+localhost:" /etc/nginx/sites-enabled/api.zzik.kr | awk -F: '{print $2}' | tr -d ';' | head -n1)
-                echo "✅ Active port: $ACTIVE_PORT"
+                # 활성 컨테이너 확인 (blue 또는 green)
+                if docker ps --format '{{.Names}}' | grep -qx 'zzikgoga-blue'; then
+                    ACTIVE_CONTAINER="zzikgoga-blue"
+                elif docker ps --format '{{.Names}}' | grep -qx 'zzikgoga-green'; then
+                    ACTIVE_CONTAINER="zzikgoga-green"
+                else
+                    echo "❌ No active backend container found"
+                    exit 1
+                fi
+                echo "✅ Active container: $ACTIVE_CONTAINER"
 
-                # 헬스 체크
+                # shared-nginx 컨테이너 내부에서 헬스 체크 (Docker 네트워크 사용)
                 OK=1
-                for p in /health-check /api/health-check /; do
-                  code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:${ACTIVE_PORT}${p}" || echo 000)
+                for p in /api/health-check /health-check /api/; do
+                  code=$(docker exec shared-nginx wget -qO- --timeout=5 -S "http://${ACTIVE_CONTAINER}:8080${p}" 2>&1 | grep -o "HTTP/[0-9.]* [0-9]*" | head -1 | awk '{print $2}' || echo 000)
+                  if [ -z "$code" ]; then
+                    code=$(curl -s -o /dev/null -w '%{http_code}' "http://${ACTIVE_CONTAINER}:8080${p}" 2>/dev/null || echo 000)
+                  fi
                   echo "probe ${p} -> ${code}"
                   case "$code" in 2*|3*|4*) OK=0; break;; esac
                 done
                 if [ $OK -ne 0 ]; then
-                  echo "Backend not responding on ${ACTIVE_PORT}"
+                  echo "Backend not responding on ${ACTIVE_CONTAINER}:8080"
                   exit 1
                 fi
+                echo "✅ Backend health check passed"
             '''
         }
     }
