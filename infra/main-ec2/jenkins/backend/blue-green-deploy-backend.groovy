@@ -58,10 +58,10 @@ pipeline {
                 fi
                 echo "✅ Active container: $ACTIVE_CONTAINER"
 
-                # shared-nginx 컨테이너 내부에서 헬스 체크 (Docker 네트워크 사용)
+                # zzik-nginx 컨테이너 내부에서 헬스 체크 (Docker 네트워크 사용)
                 OK=1
                 for p in /api/health-check /health-check /api/; do
-                  code=$(docker exec shared-nginx wget -qO- --timeout=5 -S "http://${ACTIVE_CONTAINER}:8080${p}" 2>&1 | grep -o "HTTP/[0-9.]* [0-9]*" | head -1 | awk '{print $2}' || echo 000)
+                  code=$(docker exec zzik-nginx wget -qO- --timeout=5 -S "http://${ACTIVE_CONTAINER}:8080${p}" 2>&1 | grep -o "HTTP/[0-9.]* [0-9]*" | head -1 | awk '{print $2}' || echo 000)
                   if [ -z "$code" ]; then
                     code=$(curl -s -o /dev/null -w '%{http_code}' "http://${ACTIVE_CONTAINER}:8080${p}" 2>/dev/null || echo 000)
                   fi
@@ -98,8 +98,8 @@ pipeline {
                 }
             }
             sh '''
-              docker cp infra/main-ec2/monitoring/nginx/monitoring.conf shared-nginx:/etc/nginx/conf.d/monitoring.zzik.kr.conf || true
-              docker exec shared-nginx nginx -t && docker exec shared-nginx nginx -s reload
+              docker cp infra/main-ec2/monitoring/nginx/monitoring.conf zzik-nginx:/etc/nginx/conf.d/monitoring.zzik.kr.conf || true
+              docker exec zzik-nginx nginx -t && docker exec zzik-nginx nginx -s reload
             '''
         }
     }

@@ -16,8 +16,8 @@ else
   echo "  ✅ 네트워크가 이미 존재합니다: ${NETWORK_NAME}"
 fi
 
-# nginx 설정 (shared-nginx 컨테이너)
-NGINX_CONTAINER="shared-nginx"
+# nginx 설정 (zzik-nginx 컨테이너)
+NGINX_CONTAINER="zzik-nginx"
 NGINX_CONF_DIR="/etc/nginx/conf.d"
 NGINX_SITE_NAME="nft.zzik.kr"
 
@@ -244,9 +244,9 @@ if [ "$SUCCESS" = false ]; then
     rollback_deployment
 fi
 
-echo "🔧 nginx 설정 업데이트 중... (shared-nginx 컨테이너)"
+echo "🔧 nginx 설정 업데이트 중... (zzik-nginx 컨테이너)"
 
-# shared-nginx가 zzik-network에 연결되어 있는지 확인
+# zzik-nginx가 zzik-network에 연결되어 있는지 확인
 if docker ps --format '{{.Names}}' | grep -qx "${NGINX_CONTAINER}"; then
     if ! docker inspect "${NGINX_CONTAINER}" --format '{{json .NetworkSettings.Networks}}' | grep -q "${NETWORK_NAME}"; then
         echo "  ⚙️ ${NGINX_CONTAINER}를 ${NETWORK_NAME}에 연결 중..."

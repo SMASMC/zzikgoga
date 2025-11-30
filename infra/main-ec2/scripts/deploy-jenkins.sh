@@ -59,15 +59,15 @@ if [ $WAITED -ge $MAX_WAIT ]; then
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 4) Nginx 설정 배포 (shared-nginx 컨테이너)
+# 4) Nginx 설정 배포 (zzik-nginx 컨테이너)
 # ─────────────────────────────────────────────────────────────────────────────
 NGINX_CONF="${ROOT_DIR}/nginx/jenkins.conf"
-NGINX_CONTAINER="shared-nginx"
+NGINX_CONTAINER="zzik-nginx"
 NGINX_CONF_DIR="/etc/nginx/conf.d"
 
-echo "🌐 Nginx 설정 배포 (shared-nginx 컨테이너)"
+echo "🌐 Nginx 설정 배포 (zzik-nginx 컨테이너)"
 
-# shared-nginx가 zzik-network에 연결되어 있는지 확인
+# zzik-nginx가 zzik-network에 연결되어 있는지 확인
 if docker ps --format '{{.Names}}' | grep -qx "${NGINX_CONTAINER}"; then
     if ! docker inspect "${NGINX_CONTAINER}" --format '{{json .NetworkSettings.Networks}}' | grep -q "${NETWORK_NAME}"; then
         echo "  ⚙️ ${NGINX_CONTAINER}를 ${NETWORK_NAME}에 연결 중..."

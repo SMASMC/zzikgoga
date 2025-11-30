@@ -1,0 +1,29 @@
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: zzik-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - nginx-conf:/etc/nginx/conf.d
+      - nginx-frontend:/usr/share/nginx/zzik-frontend
+      - nginx-logs:/var/log/nginx
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - zzik-network
+
+networks:
+  zzik-network:
+    name: zzik-network
+    external: true
+
+volumes:
+  nginx-conf:
+  nginx-frontend:
+  nginx-logs:

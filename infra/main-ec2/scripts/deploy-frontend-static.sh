@@ -1,12 +1,12 @@
 #!/bin/bash
 # 프론트엔드 정적 파일 배포 스크립트
-# shared-nginx 컨테이너에 정적 파일 배포
+# zzik-nginx 컨테이너에 정적 파일 배포
 
 set -e
 
 DIST_DIR="$1"
 NGINX_CONF="$2"
-NGINX_CONTAINER="shared-nginx"
+NGINX_CONTAINER="zzik-nginx"
 NGINX_CONF_DIR="/etc/nginx/conf.d"
 DEPLOY_PATH="/usr/share/nginx/zzik-frontend"
 NETWORK_NAME="zzik-network"
@@ -18,13 +18,13 @@ fi
 
 echo "🚀 프론트엔드 배포 시작..."
 
-# shared-nginx 컨테이너 확인
+# zzik-nginx 컨테이너 확인
 if ! docker ps --format '{{.Names}}' | grep -qx "${NGINX_CONTAINER}"; then
     echo "❌ ${NGINX_CONTAINER} 컨테이너가 실행 중이지 않습니다"
     exit 1
 fi
 
-# shared-nginx가 zzik-network에 연결되어 있는지 확인
+# zzik-nginx가 zzik-network에 연결되어 있는지 확인
 if ! docker inspect "${NGINX_CONTAINER}" --format '{{json .NetworkSettings.Networks}}' | grep -q "${NETWORK_NAME}"; then
     echo "  ⚙️ ${NGINX_CONTAINER}를 ${NETWORK_NAME}에 연결 중..."
     docker network connect "${NETWORK_NAME}" "${NGINX_CONTAINER}" 2>/dev/null || true

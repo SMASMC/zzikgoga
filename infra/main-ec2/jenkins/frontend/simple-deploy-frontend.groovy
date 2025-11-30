@@ -121,7 +121,7 @@ pipeline {
             steps {
                 sh '''
                     echo "🔍 배포 검증..."
-                    NGINX_CONTAINER="shared-nginx"
+                    NGINX_CONTAINER="zzik-nginx"
                     DEPLOY_PATH="/usr/share/nginx/zzik-frontend"
 
                     if docker exec ${NGINX_CONTAINER} test -f "${DEPLOY_PATH}/index.html"; then
@@ -144,7 +144,7 @@ pipeline {
         failure {
             echo "❌ 배포 실패! 롤백 시도..."
             sh '''
-                NGINX_CONTAINER="shared-nginx"
+                NGINX_CONTAINER="zzik-nginx"
                 DEPLOY_PATH="/usr/share/nginx/zzik-frontend"
 
                 docker exec ${NGINX_CONTAINER} sh -c "

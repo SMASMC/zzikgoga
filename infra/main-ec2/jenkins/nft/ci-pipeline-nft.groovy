@@ -29,7 +29,10 @@ pipeline {
 
     stage('Checkout NFT Server') {
       steps {
-        withCredentials([string(credentialsId: 'zzikgoga-github-url', variable: 'GIT_REPO_URL')]) {
+        withCredentials([
+          string(credentialsId: 'zzikgoga-github-url', variable: 'GIT_REPO_URL'),
+          usernamePassword(credentialsId: 'github-smasmc-token', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')
+        ]) {
           checkout([
             $class: 'GitSCM',
             branches: [[name: "origin/${params.BRANCH_NAME}"]],
@@ -48,26 +51,26 @@ pipeline {
               ]]
             ]
           ])
+          sh '''
+            set -e
+            echo "[INFO] Syncing infra branch artifacts from ${INFRA_BRANCH}"
+            git config --global --add safe.directory "$(pwd)"
+            git fetch origin "${INFRA_BRANCH}"
+            INFRA_BRANCH_REF="origin/${INFRA_BRANCH}"
+            git checkout "${INFRA_BRANCH_REF}" -- infra/main-ec2/dockerfiles
+            git checkout "${INFRA_BRANCH_REF}" -- infra/main-ec2/jenkins
+            git checkout "${INFRA_BRANCH_REF}" -- infra/main-ec2/nginx
+            echo "[INFO] Infra artifacts synced from ${INFRA_BRANCH}"
+            echo "== workspace tree (top) =="
+            ls -al
+            echo ""
+            echo "== nft directory =="
+            ls -al nft
+            test -d nft || { echo "❌ nft directory not found"; exit 1; }
+            test -f nft/package.json || { echo "❌ package.json not found in nft/"; exit 1; }
+            echo "✅ NFT directory verified"
+          '''
         }
-        sh '''
-          set -e
-          echo "[INFO] Syncing infra branch artifacts from ${INFRA_BRANCH}"
-          git config --global --add safe.directory "$(pwd)"
-          git fetch origin "${INFRA_BRANCH}"
-          INFRA_BRANCH_REF="origin/${INFRA_BRANCH}"
-          git checkout "${INFRA_BRANCH_REF}" -- infra/main-ec2/dockerfiles
-          git checkout "${INFRA_BRANCH_REF}" -- infra/main-ec2/jenkins
-          git checkout "${INFRA_BRANCH_REF}" -- infra/main-ec2/nginx
-          echo "[INFO] Infra artifacts synced from ${INFRA_BRANCH}"
-          echo "== workspace tree (top) =="
-          ls -al
-          echo ""
-          echo "== nft directory =="
-          ls -al nft
-          test -d nft || { echo "❌ nft directory not found"; exit 1; }
-          test -f nft/package.json || { echo "❌ package.json not found in nft/"; exit 1; }
-          echo "✅ NFT directory verified"
-        '''
       }
     }
 

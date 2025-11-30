@@ -19,7 +19,7 @@ fi
 
 # 0-1) 기존 DB/Redis/Nginx 컨테이너가 zzik-network에 연결되어 있는지 확인하고 연결
 echo "🔗 기존 컨테이너 네트워크 연결 확인"
-for container in zzik-db zzik_redis redis shared-nginx; do
+for container in zzik-db zzik_redis redis zzik-nginx; do
   if docker ps --format '{{.Names}}' | grep -qx "${container}"; then
     if ! docker inspect "${container}" --format '{{json .NetworkSettings.Networks}}' | grep -q "${NETWORK_NAME}"; then
       echo "  ⚙️ ${container}를 ${NETWORK_NAME}에 연결 중..."
@@ -113,18 +113,18 @@ rollback_deployment() {
     # Nginx 설정도 이전 버전으로 복구
     if [ -f "${ROOT_DIR}/nginx/backend-${OLD}.conf" ]; then
       echo "  🔧 Nginx 설정 복구 중..."
-      docker cp "${ROOT_DIR}/nginx/backend-${OLD}.conf" shared-nginx:/etc/nginx/conf.d/api.zzik.kr.conf
+      docker cp "${ROOT_DIR}/nginx/backend-${OLD}.conf" zzik-nginx:/etc/nginx/conf.d/api.zzik.kr.conf
 
       # 프론트엔드 설정도 이전 백엔드로 복구
       if [ -f "${ROOT_DIR}/nginx/frontend.conf" ]; then
         TEMP_FRONTEND_CONF="/tmp/frontend-nginx-rollback-$$.conf"
         sed "s/zzikgoga-blue/zzikgoga-${OLD}/g; s/zzikgoga-green/zzikgoga-${OLD}/g" "${ROOT_DIR}/nginx/frontend.conf" > "${TEMP_FRONTEND_CONF}"
-        docker cp "${TEMP_FRONTEND_CONF}" shared-nginx:/etc/nginx/conf.d/zzik.kr.conf
+        docker cp "${TEMP_FRONTEND_CONF}" zzik-nginx:/etc/nginx/conf.d/zzik.kr.conf
         rm -f "${TEMP_FRONTEND_CONF}"
       fi
 
-      if docker exec shared-nginx nginx -t 2>/dev/null; then
-        docker exec shared-nginx nginx -s reload
+      if docker exec zzik-nginx nginx -t 2>/dev/null; then
+        docker exec zzik-nginx nginx -s reload
         echo "  ✅ Nginx 설정 복구 완료"
       fi
     fi
@@ -307,8 +307,8 @@ case "$code" in
 esac
 
 # 6) Nginx 설정 적용(backend-<color>.conf → api.zzik.kr) 후 reload
-echo "🧩 Nginx 설정 적용 (shared-nginx 컨테이너)"
-NGINX_CONTAINER="shared-nginx"
+echo "🧩 Nginx 설정 적용 (zzik-nginx 컨테이너)"
+NGINX_CONTAINER="zzik-nginx"
 NGINX_CONF_DIR="/etc/nginx/conf.d"
 
 ACTIVE_PORT=$(docker inspect -f '{{range $p,$conf := .NetworkSettings.Ports}}{{if eq $p "8080/tcp"}}{{(index $conf 0).HostPort}}{{end}}{{end}}' "${CONTAINER_NAME}" 2>/dev/null || echo "")
