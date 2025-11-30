@@ -244,6 +244,16 @@ if docker ps --format '{{.Names}}' | grep -qx "${NGINX_CONTAINER}"; then
     fi
 fi
 
+# 실행되지 않는 서비스의 nginx 설정 제거 (nginx -t 실패 방지)
+echo "🧹 미실행 서비스 nginx 설정 정리..."
+if ! docker ps --format '{{.Names}}' | grep -q "zzikgoga-nft-"; then
+    echo "  - NFT 컨테이너 미실행: nft.zzik.kr.conf 제거"
+    docker exec ${NGINX_CONTAINER} rm -f ${NGINX_CONF_DIR}/nft.zzik.kr.conf 2>/dev/null || true
+fi
+if ! docker ps --format '{{.Names}}' | grep -qE "(prometheus|grafana)"; then
+    docker exec ${NGINX_CONTAINER} rm -f ${NGINX_CONF_DIR}/monitoring.zzik.kr.conf 2>/dev/null || true
+fi
+
 if [ -f "$(pwd)/nginx/crdt-${NEW_ENV}.conf" ]; then
     echo "✅ nginx 설정 파일 존재: $(pwd)/nginx/crdt-${NEW_ENV}.conf"
 
