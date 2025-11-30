@@ -81,26 +81,64 @@ echo "  📦 NFT 환경: ${NFT_ENV}"
 echo "📁 Nginx 설정 파일 배포"
 
 NGINX_CONF_DIR="/etc/nginx/conf.d"
+TMP_CONF="/tmp/nginx-conf-tmp"
+mkdir -p "${TMP_CONF}"
 
-# 활성 환경에 맞는 설정 파일 배포
-declare -A CONF_FILES=(
-  ["${ROOT_DIR}/nginx/backend-${BACKEND_ENV}.conf"]="api.zzik.kr.conf"
-  ["${ROOT_DIR}/nginx/frontend.conf"]="zzik.kr.conf"
-  ["${ROOT_DIR}/nginx/jenkins.conf"]="jenkins.zzik.kr.conf"
-  ["${ROOT_DIR}/nginx/crdt-${CRDT_ENV}.conf"]="crdt.zzik.kr.conf"
-  ["${ROOT_DIR}/nginx/nft-${NFT_ENV}.conf"]="nft.zzik.kr.conf"
-  ["${ROOT_DIR}/nginx/monitoring.conf"]="monitoring.zzik.kr.conf"
-)
+# Backend API 설정 (항상 배포)
+if [ -f "${ROOT_DIR}/nginx/backend-${BACKEND_ENV}.conf" ]; then
+  echo "  - backend-${BACKEND_ENV}.conf -> api.zzik.kr.conf"
+  docker cp "${ROOT_DIR}/nginx/backend-${BACKEND_ENV}.conf" ${NGINX_CONTAINER}:${NGINX_CONF_DIR}/api.zzik.kr.conf
+fi
 
-for src_file in "${!CONF_FILES[@]}"; do
-  dst_file="${CONF_FILES[$src_file]}"
-  if [ -f "$src_file" ]; then
-    echo "  - ${src_file##*/} -> ${dst_file}"
-    docker cp "$src_file" ${NGINX_CONTAINER}:${NGINX_CONF_DIR}/${dst_file}
-  else
-    echo "  ⚠️ 파일 없음: $src_file"
+# Frontend 설정 (활성 backend 환경에 맞게 치환)
+if [ -f "${ROOT_DIR}/nginx/frontend.conf" ]; then
+  echo "  - frontend.conf -> zzik.kr.conf (backend: zzikgoga-${BACKEND_ENV})"
+  sed "s/zzikgoga-blue/zzikgoga-${BACKEND_ENV}/g; s/zzikgoga-green/zzikgoga-${BACKEND_ENV}/g" \
+    "${ROOT_DIR}/nginx/frontend.conf" > "${TMP_CONF}/frontend.conf"
+  docker cp "${TMP_CONF}/frontend.conf" ${NGINX_CONTAINER}:${NGINX_CONF_DIR}/zzik.kr.conf
+fi
+
+# Jenkins 설정 (항상 배포)
+if [ -f "${ROOT_DIR}/nginx/jenkins.conf" ]; then
+  echo "  - jenkins.conf -> jenkins.zzik.kr.conf"
+  docker cp "${ROOT_DIR}/nginx/jenkins.conf" ${NGINX_CONTAINER}:${NGINX_CONF_DIR}/jenkins.zzik.kr.conf
+fi
+
+# CRDT 설정 (컨테이너가 실행 중일 때만)
+if docker ps --format '{{.Names}}' | grep -q "zzikgoga-node-"; then
+  if [ -f "${ROOT_DIR}/nginx/crdt-${CRDT_ENV}.conf" ]; then
+    echo "  - crdt-${CRDT_ENV}.conf -> crdt.zzik.kr.conf"
+    docker cp "${ROOT_DIR}/nginx/crdt-${CRDT_ENV}.conf" ${NGINX_CONTAINER}:${NGINX_CONF_DIR}/crdt.zzik.kr.conf
   fi
-done
+else
+  echo "  ⏭️ CRDT 컨테이너 미실행 - 설정 건너뜀"
+  docker exec ${NGINX_CONTAINER} rm -f ${NGINX_CONF_DIR}/crdt.zzik.kr.conf 2>/dev/null || true
+fi
+
+# NFT 설정 (컨테이너가 실행 중일 때만)
+if docker ps --format '{{.Names}}' | grep -q "zzikgoga-nft-"; then
+  if [ -f "${ROOT_DIR}/nginx/nft-${NFT_ENV}.conf" ]; then
+    echo "  - nft-${NFT_ENV}.conf -> nft.zzik.kr.conf"
+    docker cp "${ROOT_DIR}/nginx/nft-${NFT_ENV}.conf" ${NGINX_CONTAINER}:${NGINX_CONF_DIR}/nft.zzik.kr.conf
+  fi
+else
+  echo "  ⏭️ NFT 컨테이너 미실행 - 설정 건너뜀"
+  docker exec ${NGINX_CONTAINER} rm -f ${NGINX_CONF_DIR}/nft.zzik.kr.conf 2>/dev/null || true
+fi
+
+# Monitoring 설정 (Prometheus/Grafana 컨테이너가 실행 중일 때만)
+if docker ps --format '{{.Names}}' | grep -qE "(prometheus|grafana)"; then
+  if [ -f "${ROOT_DIR}/nginx/monitoring.conf" ]; then
+    echo "  - monitoring.conf -> monitoring.zzik.kr.conf"
+    docker cp "${ROOT_DIR}/nginx/monitoring.conf" ${NGINX_CONTAINER}:${NGINX_CONF_DIR}/monitoring.zzik.kr.conf
+  fi
+else
+  echo "  ⏭️ Monitoring 컨테이너 미실행 - 설정 건너뜀"
+  docker exec ${NGINX_CONTAINER} rm -f ${NGINX_CONF_DIR}/monitoring.zzik.kr.conf 2>/dev/null || true
+fi
+
+# 임시 파일 정리
+rm -rf "${TMP_CONF}"
 
 # 기본 default.conf 제거 (충돌 방지)
 docker exec ${NGINX_CONTAINER} rm -f /etc/nginx/conf.d/default.conf 2>/dev/null || true

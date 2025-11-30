@@ -55,7 +55,16 @@ pipeline {
             set -e
             echo "[INFO] Syncing infra branch artifacts from ${INFRA_BRANCH}"
             git config --global --add safe.directory "$(pwd)"
+
+            # Git credential 설정 (임시 .netrc 파일 사용)
+            echo "machine github.com login ${GIT_USERNAME} password ${GIT_PASSWORD}" > ~/.netrc
+            chmod 600 ~/.netrc
+
             git fetch origin "${INFRA_BRANCH}"
+
+            # 임시 credential 파일 삭제
+            rm -f ~/.netrc
+
             INFRA_BRANCH_REF="origin/${INFRA_BRANCH}"
             git checkout "${INFRA_BRANCH_REF}" -- infra/main-ec2/dockerfiles
             git checkout "${INFRA_BRANCH_REF}" -- infra/main-ec2/jenkins
