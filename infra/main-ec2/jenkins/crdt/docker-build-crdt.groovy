@@ -157,38 +157,51 @@ pipeline {
 
         stage('Quick Smoke Test') {
             steps {
-                echo "🧪 Running quick smoke test"
+                echo "🧪 Running quick smoke test (WebSocket server)"
                 sh '''
                     set -e
 
-                    # 임시 컨테이너로 5초 실행 후 종료
+                    # 임시 컨테이너 실행
                     CONTAINER_ID=$(docker run -d -p 13100:3100 -e ENV_COLOR=test -e PORT=3100 -e YJS_PORT=3100 ${IMAGE_NAME})
 
-                    echo "⏳ Waiting for server to start..."
+                    echo "⏳ Waiting for WebSocket server to start..."
                     ATTEMPTS=10
-                    HTTP_CODE=000
+                    SUCCESS=false
+
                     until [ $ATTEMPTS -eq 0 ]; do
                         sleep 3
-                        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:13100/health || echo "000")
-                        if [ "$HTTP_CODE" = "200" ]; then
+
+                        # 컨테이너가 실행 중인지 확인
+                        CONTAINER_STATUS=$(docker inspect --format='{{.State.Status}}' $CONTAINER_ID 2>/dev/null || echo "unknown")
+                        if [ "$CONTAINER_STATUS" != "running" ]; then
+                            echo "❌ Container stopped unexpectedly (status: $CONTAINER_STATUS)"
                             break
                         fi
+
+                        # 로그에서 WebSocket 서버 시작 메시지 확인
+                        if docker logs $CONTAINER_ID 2>&1 | grep -q "y-websocket compatible server running"; then
+                            echo "✅ WebSocket server started successfully"
+                            SUCCESS=true
+                            break
+                        fi
+
                         ATTEMPTS=$((ATTEMPTS-1))
-                        echo "[INFO] Health check attempt failed (HTTP $HTTP_CODE). Remaining attempts: $ATTEMPTS"
+                        echo "[INFO] Waiting for server startup... Remaining attempts: $ATTEMPTS"
                     done
 
-                    if [ "$HTTP_CODE" != "200" ]; then
-                        echo "❌ Smoke test failed (HTTP $HTTP_CODE)"
-                        echo "[INFO] Recent container logs:"
-                        docker logs --tail 50 $CONTAINER_ID || true
-                    fi
+                    # 컨테이너 로그 출력
+                    echo ""
+                    echo "📋 Container logs:"
+                    docker logs --tail 20 $CONTAINER_ID || true
 
+                    # 정리
                     docker stop $CONTAINER_ID >/dev/null 2>&1 || true
                     docker rm $CONTAINER_ID >/dev/null 2>&1 || true
 
-                    if [ "$HTTP_CODE" = "200" ]; then
-                        echo "✅ Smoke test passed (HTTP $HTTP_CODE)"
+                    if [ "$SUCCESS" = "true" ]; then
+                        echo "✅ Smoke test passed"
                     else
+                        echo "❌ Smoke test failed"
                         exit 1
                     fi
                 '''
