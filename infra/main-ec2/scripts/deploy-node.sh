@@ -254,6 +254,35 @@ if ! docker ps --format '{{.Names}}' | grep -qE "(prometheus|grafana)"; then
     docker exec ${NGINX_CONTAINER} rm -f ${NGINX_CONF_DIR}/monitoring.zzik.kr.conf 2>/dev/null || true
 fi
 
+# 백엔드 컨테이너 상태 확인 및 프론트엔드 설정 정리
+BACKEND_RUNNING=""
+if docker ps --format '{{.Names}}' | grep -qx "zzikgoga-green"; then
+    BACKEND_RUNNING="green"
+elif docker ps --format '{{.Names}}' | grep -qx "zzikgoga-blue"; then
+    BACKEND_RUNNING="blue"
+fi
+
+if [ -z "$BACKEND_RUNNING" ]; then
+    echo "  - 백엔드 컨테이너 미실행: zzik.kr.conf, api.zzik.kr.conf 제거"
+    docker exec ${NGINX_CONTAINER} rm -f ${NGINX_CONF_DIR}/zzik.kr.conf 2>/dev/null || true
+    docker exec ${NGINX_CONTAINER} rm -f ${NGINX_CONF_DIR}/api.zzik.kr.conf 2>/dev/null || true
+else
+    echo "  - 백엔드 활성 환경: $BACKEND_RUNNING"
+    # 프론트엔드 설정이 잘못된 백엔드를 참조하는 경우 업데이트
+    if [ -f "$(pwd)/nginx/frontend.conf" ]; then
+        sed "s/zzikgoga-blue/zzikgoga-${BACKEND_RUNNING}/g; s/zzikgoga-green/zzikgoga-${BACKEND_RUNNING}/g" \
+            "$(pwd)/nginx/frontend.conf" > /tmp/frontend-fixed.conf
+        docker cp /tmp/frontend-fixed.conf ${NGINX_CONTAINER}:${NGINX_CONF_DIR}/zzik.kr.conf
+        rm -f /tmp/frontend-fixed.conf
+        echo "  - zzik.kr.conf 업데이트 (backend: zzikgoga-${BACKEND_RUNNING})"
+    fi
+    # 백엔드 API 설정도 업데이트
+    if [ -f "$(pwd)/nginx/backend-${BACKEND_RUNNING}.conf" ]; then
+        docker cp "$(pwd)/nginx/backend-${BACKEND_RUNNING}.conf" ${NGINX_CONTAINER}:${NGINX_CONF_DIR}/api.zzik.kr.conf
+        echo "  - api.zzik.kr.conf 업데이트 (backend-${BACKEND_RUNNING}.conf)"
+    fi
+fi
+
 if [ -f "$(pwd)/nginx/crdt-${NEW_ENV}.conf" ]; then
     echo "✅ nginx 설정 파일 존재: $(pwd)/nginx/crdt-${NEW_ENV}.conf"
 
