@@ -26,7 +26,8 @@ const CostList = ({ tripId, onRefresh, onSettleAccepted }: CostListProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedCostId, setSelectedCostId] = useState<number | null>(null)
   const [deletingCostId, setDeletingCostId] = useState<number | null>(null)
-  const [isSettling, setIsSettling] = useState(false)
+  // 정산 기능 비활성화로 인해 주석 처리 - 추후 활성화 시 사용
+  // const [isSettling, setIsSettling] = useState(false)
   const [settleInfo, setSettleInfo] = useState<SettleResponse | null>(null)
   const [showSettleTooltip, setShowSettleTooltip] = useState(false)
   const [toast, setToast] = useState<{
@@ -35,10 +36,12 @@ const CostList = ({ tripId, onRefresh, onSettleAccepted }: CostListProps) => {
     message: string
   }>({ open: false, variant: 'success', message: '' })
 
-  // 현재 사용자가 이미 수락했는지 확인
-  const isAlreadyAccepted = settleInfo
-    ? settleInfo.acceptedMembers.some((member) => member.memberId === Number(user?.id))
-    : false
+  // 정산 기능 비활성화로 인해 주석 처리 - 추후 활성화 시 사용
+  // const isAlreadyAccepted = settleInfo
+  //   ? settleInfo.acceptedMembers.some((member) => member.memberId === Number(user?.id))
+  //   : false
+  void user // ESLint unused 경고 방지
+  void onSettleAccepted // ESLint unused 경고 방지
 
   const loadCostList = async () => {
     setIsLoading(true)
@@ -136,28 +139,29 @@ const CostList = ({ tripId, onRefresh, onSettleAccepted }: CostListProps) => {
   // 총 결제 금액 계산 (각 항목의 합계)
   const calculatedTotalAmount = costs.reduce((sum, cost) => sum + cost.totalAmount, 0)
 
-  const handleSettle = async () => {
-    setIsSettling(true)
-    try {
-      await CostSettleService.acceptSettle(Number(tripId), { accept: true })
-      // 정산 상태 다시 조회
-      await loadSettleInfo()
-      setToast({ open: true, variant: 'success', message: '정산 수락이 완료되었습니다.' })
-
-      // 정산 수락 완료 시 부모 컴포넌트에 알림
-      if (onSettleAccepted) {
-        onSettleAccepted()
-      }
-    } catch (error) {
-      console.error('정산 수락 실패:', error)
-      setToast({
-        open: true,
-        variant: 'error',
-        message: '정산 수락에 실패했습니다. 다시 시도해주세요.',
-      })
-    } finally {
-      setIsSettling(false)
-    }
+  // 정산 기능 비활성화로 인해 주석 처리 - 추후 활성화 시 사용
+  // const handleSettle = async () => {
+  //   setIsSettling(true)
+  //   try {
+  //     await CostSettleService.acceptSettle(Number(tripId), { accept: true })
+  //     await loadSettleInfo()
+  //     setToast({ open: true, variant: 'success', message: '정산 수락이 완료되었습니다.' })
+  //     if (onSettleAccepted) {
+  //       onSettleAccepted()
+  //     }
+  //   } catch (error) {
+  //     console.error('정산 수락 실패:', error)
+  //     setToast({
+  //       open: true,
+  //       variant: 'error',
+  //       message: '정산 수락에 실패했습니다. 다시 시도해주세요.',
+  //     })
+  //   } finally {
+  //     setIsSettling(false)
+  //   }
+  // }
+  const handleSettle = () => {
+    // 정산 기능 준비중
   }
 
   const handleViewFinal = () => {
