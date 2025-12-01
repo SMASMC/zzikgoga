@@ -1,5 +1,9 @@
 pipeline {
     agent any
+    triggers {
+        githubPush()  // GitHub webhook으로 자동 트리거
+    }
+
 
     parameters {
         string(name: 'BRANCH_NAME', defaultValue: 'fe/master', description: '빌드할 브랜치')

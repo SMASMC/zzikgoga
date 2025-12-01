@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    triggers {
+        githubPush()  // GitHub webhook으로 자동 트리거
+    }
+
     parameters {
         string(name: 'BRANCH_NAME', defaultValue: 'be/master', description: '빌드용 브랜치')
         string(name: 'SHARED_WORKSPACE', defaultValue: '/tmp/shared-workspace', description: '공유 작업 공간 디렉터리')
@@ -88,12 +92,12 @@ pipeline {
                         cp infra/main-ec2/dockerfiles/be.dockerfile ${SHARED_DIR}/Dockerfile
                     fi
 
-                    cat > ${SHARED_DIR}/build-info.txt << EOF
+                    cat > ${SHARED_DIR}/build-info.txt << BUILDEOF
 BUILD_DATE=$(date)
 BRANCH_NAME=${BRANCH_NAME}
 BUILD_NUMBER=${BUILD_NUMBER}
 GIT_COMMIT=${GIT_COMMIT}
-EOF
+BUILDEOF
                 '''
             }
         }
@@ -105,4 +109,3 @@ EOF
         always { cleanWs() }
     }
 }
-
