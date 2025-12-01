@@ -21,6 +21,8 @@ import com.zzik.backend.domain.plan.entity.Trip;
 import com.zzik.backend.domain.plan.entity.TripMember;
 import com.zzik.backend.domain.plan.repository.TripRepository;
 import com.zzik.backend.domain.plan.service.TripMemberService;
+import com.zzik.backend.global.exception.BusinessException;
+import com.zzik.backend.global.exception.ExceptionCode;
 import com.zzik.backend.global.external.bank.BankApiClient;
 import com.zzik.backend.global.external.bank.BankApiType;
 import com.zzik.backend.global.external.bank.config.BankApiConfig;
@@ -386,8 +388,12 @@ public class CostSettlementService {
 	 * @param sender 송금자 (출금 계좌)
 	 * @param amount 이체 금액
 	 * @throws BankApiException 이체 실패 시 (잔액 부족, 계좌 오류 등)
+	 * @throws BusinessException 계좌 정보 미등록 시
 	 */
 	private void transferToService(Member sender, Long amount) {
+		// 계좌 정보 검증
+		validateBankAccount(sender);
+
 		BankTransferRequest request = BankTransferRequest.builder()
 			.header(BankHeaderDto.of(BankApiType.TRANSFER))
 			.depositAccountNo(BankApiType.getAccount().getNumber())  // 서비스 계좌 (입금받는 곳)
@@ -406,8 +412,12 @@ public class CostSettlementService {
 	 * @param receiver 수신자 (입금 계좌)
 	 * @param amount 이체 금액
 	 * @throws BankApiException 이체 실패 시
+	 * @throws BusinessException 계좌 정보 미등록 시
 	 */
 	private void transferFromService(Member receiver, Long amount) {
+		// 계좌 정보 검증
+		validateBankAccount(receiver);
+
 		BankTransferRequest request = BankTransferRequest.builder()
 			.header(BankHeaderDto.of(BankApiType.TRANSFER))
 			.depositAccountNo(receiver.getAccountNum())              // 회원 계좌 (입금받는 곳)
@@ -419,5 +429,16 @@ public class CostSettlementService {
 
 		// 외부 API 호출 - 실패 시 BankApiException 발생
 		bankApiClient.transfer(request);
+	}
+
+	/**
+	 * 회원의 계좌 정보 유효성 검증
+	 * @param member 검증할 회원
+	 * @throws BusinessException 계좌 정보가 없는 경우
+	 */
+	private void validateBankAccount(Member member) {
+		if (member.getAccountNum() == null || member.getAccountNum().isBlank()) {
+			throw BusinessException.from(ExceptionCode.BANK_ACCOUNT_REQUIRED);
+		}
 	}
 }

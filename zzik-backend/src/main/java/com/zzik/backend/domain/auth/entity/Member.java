@@ -58,10 +58,11 @@ public class Member extends BaseEntity {
 	@Column(name = "birth_year", nullable = false)
 	private Short birthYear; // 출생년도 (카카오 OAuth로부터 받아옴)
 
-	@Column(name = "bank_code", nullable = false, length = 50)
+	// 계좌 정보는 회원가입 시 선택사항 (추후 정산 시 필요)
+	@Column(name = "bank_code", nullable = true, length = 50)
 	private String bankCode; // 은행 코드 (노션의 mapping 페이지 참고)
 
-	@Column(name = "account_num", nullable = false, length = 50)
+	@Column(name = "account_num", nullable = true, length = 50)
 	private String accountNum; // 계좌번호
 
 	@Column(name = "thumbnail_url", length = 1024)

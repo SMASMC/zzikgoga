@@ -65,6 +65,7 @@ public enum ExceptionCode {
 	COST_PAYER_IDS_EMPTY(HttpStatus.BAD_REQUEST, 40315, "메뉴 분담자가 지정되지 않았습니다.", "cost - payerIds 빈 리스트"),
 	/* 4032x - cost - accept */
 	ALREADY_ACCEPTED_COST(HttpStatus.CONFLICT, 40320, "이미 정산에 수락 하셨습니다.", "cost - approval 이미 정산을 수락함"),
+	BANK_ACCOUNT_REQUIRED(HttpStatus.BAD_REQUEST, 40321, "정산을 위해 계좌 정보가 필요합니다. 마이페이지에서 계좌 정보를 등록해주세요.", "cost - 계좌 정보 미등록"),
 
 	/* 404xx - plan */
 	INVALID_COMPANION(HttpStatus.NOT_FOUND, 40401, "존재하지 않는 동반자 ID입니다.", "plan - companion not found"),
