@@ -331,10 +331,6 @@ if [ -f "${ROOT_DIR}/nginx/jenkins.conf" ]; then
   echo "  - jenkins conf: ${ROOT_DIR}/nginx/jenkins.conf -> jenkins.zzik.kr.conf"
   docker cp "${ROOT_DIR}/nginx/jenkins.conf" ${NGINX_CONTAINER}:${NGINX_CONF_DIR}/jenkins.zzik.kr.conf
 fi
-if [ -f "${ROOT_DIR}/nginx/monitoring.conf" ]; then
-  echo "  - monitoring conf: ${ROOT_DIR}/nginx/monitoring.conf -> monitoring.zzik.kr.conf"
-  docker cp "${ROOT_DIR}/nginx/monitoring.conf" ${NGINX_CONTAINER}:${NGINX_CONF_DIR}/monitoring.zzik.kr.conf
-fi
 
 # 프론트엔드 nginx 설정도 현재 활성 백엔드로 업데이트
 if [ -f "${ROOT_DIR}/nginx/frontend.conf" ]; then
@@ -368,36 +364,5 @@ if [ -n "$CURRENT" ]; then
   docker rm -f "zzikgoga-${OLD}" 2>/dev/null || true
 fi
 
-# 6.5) monitoring stack (Grafana/Prometheus)
-MON_DIR="${ROOT_DIR}/monitoring"
-MON_COMPOSE="${MON_DIR}/docker-compose.monitoring.yml"
-
-if [ -f "$MON_COMPOSE" ]; then
-  if [ -f "${MON_DIR}/.env.monitoring" ]; then
-    echo "[monitoring] checking existing containers"
-    HAVE_GRAFANA=$(docker ps -a --format '{{.Names}}' | grep -x 'grafana' || true)
-    HAVE_PROM=$(docker ps -a --format '{{.Names}}' | grep -x 'prometheus' || true)
-
-    # Grafana 강제 재생성 (환경 변수 업데이트 보장)
-    if [ -n "$HAVE_GRAFANA" ]; then
-      echo "[monitoring] recreating grafana to apply latest configuration"
-      ( cd "$MON_DIR" && docker compose -p main-ec2-monitoring -f "$MON_COMPOSE" up -d --force-recreate grafana )
-    else
-      echo "[monitoring] creating grafana"
-      ( cd "$MON_DIR" && docker compose -p main-ec2-monitoring -f "$MON_COMPOSE" up -d grafana )
-    fi
-
-    # Prometheus는 존재 여부만 확인하여 생성
-    if [ -z "$HAVE_PROM" ]; then
-      echo "[monitoring] creating prometheus"
-      ( cd "$MON_DIR" && docker compose -p main-ec2-monitoring -f "$MON_COMPOSE" up -d prometheus )
-    else
-      echo "[monitoring] prometheus exists; ensuring running state"
-      docker start prometheus 2>/dev/null || true
-    fi
-  else
-    echo "[monitoring] ${MON_DIR}/.env.monitoring missing; skip starting stack"
-  fi
-fi
 
 echo "🎉 배포 완료: ${CURRENT:-none} → ${NEW} (:${NEW_PORT})"

@@ -3,8 +3,6 @@ pipeline {
 
   parameters {
     string(name: 'BE_ENV_CRED_ID', defaultValue: 'be-prod-env-file', description: 'Jenkins Credentials ID (file) for backend env')
-    string(name: 'MONITORING_ENV_CRED_ID', defaultValue: 'monitoring-prod-env-file', description: 'Monitoring .env.monitoring credential ID')
-    booleanParam(name: 'ENABLE_MONITORING_DEPLOY', defaultValue: true, description: 'Deploy monitoring (grafana/prometheus) if true')
   }
 
   environment {
@@ -45,7 +43,7 @@ pipeline {
         steps {
             sh '''
                 echo "🔍 Final deployment status:"
-                docker ps --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}" | grep zzikgoga
+                docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep zzikgoga
 
                 # 활성 컨테이너 확인 (blue 또는 green)
                 if docker ps --format '{{.Names}}' | grep -qx 'zzikgoga-blue'; then
@@ -76,44 +74,17 @@ pipeline {
             '''
         }
     }
-
-    stage('Monitoring Deploy (optional)') {
-        when { expression { return params.ENABLE_MONITORING_DEPLOY } }
-        steps {
-            dir('infra/main-ec2/monitoring') {
-                withCredentials([file(credentialsId: params.MONITORING_ENV_CRED_ID, variable: 'ENV_FILE')]) {
-                    sh '''
-                        # copy monitoring env only if not present or content differs
-                        if [ ! -f .env.monitoring ] || ! cmp -s "${ENV_FILE}" .env.monitoring; then
-                          cp "${ENV_FILE}" .env.monitoring
-                          chmod 600 .env.monitoring || true
-                          echo "[monitoring] env prepared"
-                        else
-                          echo "[monitoring] env already up to date"
-                        fi
-                        # deploy-backend.sh already handles grafana/prometheus
-                        # Only deploy loki/promtail here
-                        docker compose -p main-ec2-monitoring -f docker-compose.monitoring.yml up -d loki promtail
-                    '''
-                }
-            }
-            sh '''
-              docker cp infra/main-ec2/monitoring/nginx/monitoring.conf zzik-nginx:/etc/nginx/conf.d/monitoring.zzik.kr.conf || true
-              docker exec zzik-nginx nginx -t && docker exec zzik-nginx nginx -s reload
-            '''
-        }
-    }
   }
 
-    post {
-        success {
-            echo "🎉 Deployment completed successfully!"
-        }
-        failure {
-            echo "❌ Deployment failed!"
-        }
-        always {
-            sh 'rm -f infra/main-ec2/.env || true'
-        }
-    }
+  post {
+      success {
+          echo "🎉 Deployment completed successfully!"
+      }
+      failure {
+          echo "❌ Deployment failed!"
+      }
+      always {
+          sh 'rm -f infra/main-ec2/.env || true'
+      }
+  }
 }
