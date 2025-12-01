@@ -36,6 +36,8 @@ public class SecurityConfig {
 		"/", "/error",
 		// --- Actuator ---
 		"/actuator/**",
+		// --- Health Check ---
+		"/health-check",
 		// --- 공개 API (인증 불필요) ---
 		"/auth/kakao",
 		"/auth/callback",
