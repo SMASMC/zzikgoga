@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Input from '@components/atoms/Input'
 import SolidButton from '@components/atoms/SolidButton'
-import { DropdownSelect } from '@/components/blocks/DropdownSelect'
+import { DropdownSelect } from '@/components/blocks/DropdownSelect' // 성별 선택용
 import { SignupRequest } from '../types/auth'
 import { AuthService } from '../services/authService'
 import { useAuthStore } from '@/shared/stores/useAuthStore'
@@ -30,8 +30,7 @@ const SignUpForm = ({
     picture: initialPicture,
     gender: '',
     birthYear: new Date().getFullYear() - 20,
-    bankCode: '',
-    accountNum: '',
+    // 은행/계좌 정보는 정산 기능 구현 시 마이페이지에서 입력 예정
   })
 
   const [errors, setErrors] = useState<Partial<Record<keyof typeof formData, string>>>({})
@@ -66,15 +65,7 @@ const SignUpForm = ({
       newErrors.birthYear = `출생년도를 확인해주세요 (1900-${currentYear})`
     }
 
-    if (!formData.bankCode) {
-      newErrors.bankCode = '은행을 선택해주세요'
-    }
-
-    if (!formData.accountNum.trim()) {
-      newErrors.accountNum = '계좌번호를 입력해주세요'
-    } else if (!/^\d+$/.test(formData.accountNum)) {
-      newErrors.accountNum = '계좌번호는 숫자만 입력 가능합니다'
-    }
+    // 은행/계좌 정보 검증 제거 (선택사항으로 변경)
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -157,81 +148,7 @@ const SignUpForm = ({
     }
   }
 
-  // 한국 주요 은행 목록
-  const banks = [
-    {
-      code: '001',
-      name: '한국은행',
-    },
-    {
-      code: '002',
-      name: '산업은행',
-    },
-    {
-      code: '003',
-      name: '기업은행',
-    },
-    {
-      code: '004',
-      name: '국민은행',
-    },
-    {
-      code: '011',
-      name: '농협은행',
-    },
-    {
-      code: '020',
-      name: '우리은행',
-    },
-    {
-      code: '023',
-      name: 'SC제일은행',
-    },
-    {
-      code: '027',
-      name: '시티은행',
-    },
-    {
-      code: '032',
-      name: '대구은행',
-    },
-    {
-      code: '034',
-      name: '광주은행',
-    },
-    {
-      code: '035',
-      name: '제주은행',
-    },
-    {
-      code: '037',
-      name: '전북은행',
-    },
-    {
-      code: '039',
-      name: '경남은행',
-    },
-    {
-      code: '045',
-      name: '새마을금고',
-    },
-    {
-      code: '081',
-      name: 'KEB하나은행',
-    },
-    {
-      code: '088',
-      name: '신한은행',
-    },
-    {
-      code: '090',
-      name: '카카오뱅크',
-    },
-    {
-      code: '999',
-      name: '싸피은행',
-    },
-  ]
+  // 은행 목록은 정산 기능 구현 시 마이페이지에서 사용 예정
 
   return (
     <div className="w-full max-w-md space-y-4">
@@ -279,37 +196,7 @@ const SignUpForm = ({
           max={new Date().getFullYear()}
         />
 
-        <div className="w-full">
-          <label className="block text-lg font-bmjua font-bold text-slate-800 mb-3">은행</label>
-          <DropdownSelect
-            options={banks.map((bank) => ({ value: bank.code, label: bank.name }))}
-            value={formData.bankCode}
-            onChange={(value) => {
-              setFormData((prev) => ({ ...prev, bankCode: value }))
-              if (errors.bankCode) {
-                setErrors((prev) => ({ ...prev, bankCode: undefined }))
-              }
-            }}
-            placeholder="은행을 선택하세요"
-          />
-          {errors.bankCode && (
-            <p className="mt-2 text-base font-semibold text-red-600">{errors.bankCode}</p>
-          )}
-        </div>
-
-        <Input
-          //label="계좌번호"
-          //TODO: 추후 실제 금융망 사용시 label 복원 예정
-          label={
-            <>
-              계좌번호 <span className="text-red-600">(SSAFY 금융망 전용 계좌)</span>
-            </>
-          }
-          placeholder="숫자만 입력하세요 (- 제외)"
-          value={formData.accountNum}
-          onChange={handleChange('accountNum')}
-          error={errors.accountNum}
-        />
+        {/* 은행/계좌 정보는 정산 기능 구현 시 마이페이지에서 입력 예정 */}
 
         <SolidButton type="submit" variant="main" size="lg" className="w-full mt-6">
           회원가입 완료

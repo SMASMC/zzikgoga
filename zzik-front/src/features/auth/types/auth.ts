@@ -15,8 +15,8 @@ export interface User {
 export interface SignupRequest {
   gender: string
   birthYear: number
-  bankCode: string
-  accountNum: string
+  bankCode?: string // 선택사항 (정산 기능 사용 시 필요)
+  accountNum?: string // 선택사항 (정산 기능 사용 시 필요)
   signupSessionToken: string
   picture: string
   name: string

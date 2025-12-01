@@ -170,8 +170,8 @@ const CostList = ({ tripId, onRefresh, onSettleAccepted }: CostListProps) => {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-text-500 font-bmjua">정산 내역</h2>
           {costs.length > 0 && (
-            <SolidButton onClick={handleViewFinal} size="sm" className="flex-shrink-0">
-              정산 결과 확인하기
+            <SolidButton onClick={handleViewFinal} size="sm" className="flex-shrink-0" disabled>
+              정산 결과 확인하기 (준비중)
             </SolidButton>
           )}
         </div>
@@ -353,22 +353,15 @@ const CostList = ({ tripId, onRefresh, onSettleAccepted }: CostListProps) => {
               )}
 
               {/* 모든 인원이 수락했으면 정산 결과 확인하기 버튼, 아니면 정산 수락하기 버튼 */}
-              {settleInfo &&
-              settleInfo.acceptedCount === settleInfo.totalMemberCount &&
-              settleInfo.totalMemberCount > 0 ? (
-                <div className="bg-blue-50 px-4 py-3 rounded-lg text-center sm:text-left">
-                  <span className="text-text-600 text-sm">정산이 완료되었습니다</span>
-                </div>
-              ) : (
-                <SolidButton
-                  onClick={handleSettle}
-                  disabled={isSettling || costs.length === 0 || isAlreadyAccepted}
-                  size="lg"
-                  className="w-full sm:w-auto"
-                >
-                  {isAlreadyAccepted ? '수락 완료' : isSettling ? '정산 중...' : '정산 수락하기'}
-                </SolidButton>
-              )}
+              {/* 정산 기능 준비중 - 추후 활성화 예정 */}
+              <SolidButton
+                onClick={handleSettle}
+                disabled={true}
+                size="lg"
+                className="w-full sm:w-auto"
+              >
+                정산 수락하기 (준비중)
+              </SolidButton>
             </div>
           </div>
         </>
