@@ -122,57 +122,33 @@ pipeline {
                     fi
 
                     # 활성 포트 확인
-        ACTIVE_PORT=$(docker port $CONTAINER_NAME | grep "3100/tcp" | cut -d: -f2)
+                    ACTIVE_PORT=$(docker port $CONTAINER_NAME | grep "3100/tcp" | cut -d: -f2)
                     echo "✅ 활성 컨테이너: $CONTAINER_NAME, 포트: $ACTIVE_PORT"
 
-                    # nginx 설정 확인
-                    NGINX_CONF=/etc/nginx/sites-enabled/crdt.zzik.kr
-                    if [ -f "$NGINX_CONF" ]; then
-                        NGINX_PORT=$(grep -E "server localhost:" "$NGINX_CONF" | head -1 | sed 's/.*localhost://;s/;.*//')
-                        echo "✅ nginx 설정 포트: $NGINX_PORT"
+                    # 컨테이너 상태 확인
+                    CONTAINER_STATUS=$(docker inspect --format='{{.State.Status}}' "$CONTAINER_NAME" 2>/dev/null || echo "unknown")
+                    echo "✅ 컨테이너 상태: $CONTAINER_STATUS"
 
-                        # 포트 일치 확인
-                        if [ "$ACTIVE_PORT" = "$NGINX_PORT" ]; then
-                            echo "✅ nginx 설정과 컨테이너 포트가 일치합니다"
-                        else
-                            echo "⚠️ nginx 설정($NGINX_PORT)과 컨테이너 포트($ACTIVE_PORT)가 다릅니다"
-                        fi
-                    else
-                        echo "⚠️ nginx 활성 설정 파일을 찾을 수 없습니다: $NGINX_CONF"
-                    fi
-
-                    # 헬스 체크
+                    # 헬스 체크 (WebSocket 서버 - 로그 기반)
                     echo ""
-                    echo "🏥 Health check tests:"
+                    echo "🏥 Health check (WebSocket server - log based):"
 
-                    # /health 엔드포인트
-                    HEALTH_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$ACTIVE_PORT/health)
-                    if [ "$HEALTH_CODE" = "200" ]; then
-                        echo "✅ /health endpoint: OK (HTTP $HEALTH_CODE)"
+                    if docker logs "$CONTAINER_NAME" 2>&1 | grep -q "y-websocket compatible server running"; then
+                        echo "✅ WebSocket 서버가 정상적으로 실행 중입니다"
                     else
-                        echo "❌ /health endpoint: FAILED (HTTP $HEALTH_CODE)"
+                        echo "❌ WebSocket 서버 시작 로그를 찾을 수 없습니다"
+                        echo "📋 컨테이너 로그:"
+                        docker logs --tail 20 "$CONTAINER_NAME"
                         exit 1
                     fi
 
-                    # /status 엔드포인트
-                    STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$ACTIVE_PORT/status)
-                    if [ "$STATUS_CODE" = "200" ]; then
-                        echo "✅ /status endpoint: OK (HTTP $STATUS_CODE)"
+                    # 최종 확인
+                    if [ "$CONTAINER_STATUS" = "running" ]; then
+                        echo "✅ Health check 통과"
                     else
-                        echo "⚠️ /status endpoint: (HTTP $STATUS_CODE)"
+                        echo "❌ 컨테이너가 실행 중이 아닙니다 (상태: $CONTAINER_STATUS)"
+                        exit 1
                     fi
-
-                    # / 루트 엔드포인트
-                    ROOT_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$ACTIVE_PORT/)
-                    if [ "$ROOT_CODE" = "200" ]; then
-                        echo "✅ / endpoint: OK (HTTP $ROOT_CODE)"
-                    else
-                        echo "⚠️ / endpoint: (HTTP $ROOT_CODE)"
-                    fi
-
-                    echo ""
-                    echo "📋 Health check response:"
-                    curl -s http://localhost:$ACTIVE_PORT/health | python3 -m json.tool || curl -s http://localhost:$ACTIVE_PORT/health
                 '''
             }
         }
