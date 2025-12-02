@@ -322,10 +322,10 @@ const MemoryPage = () => {
                   </SolidButton>
                   <SolidButton
                     onClick={handleMintClick}
-                    disabled={!hasPdf || mintLoading}
+                    disabled={true}
                     className="flex-1 sm:flex-none"
                   >
-                    {mintLoading ? '영구 저장 중...' : '영구 저장'}
+                    영구 저장 (준비중)
                   </SolidButton>
                 </div>
               </div>
