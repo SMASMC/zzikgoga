@@ -14,9 +14,25 @@ pipeline {
 
     environment {
         SHARED_DIR = "${params.SHARED_WORKSPACE}/${params.SERVICE_NAME}"
+        TARGET_BRANCH = 'be/master'
     }
 
     stages {
+        stage('Branch Filter') {
+            steps {
+                script {
+                    def pushedRef = env.GIT_BRANCH ?: ''
+                    def pushedBranch = pushedRef.replaceAll('refs/heads/', '').replaceAll('origin/', '')
+                    if (pushedBranch && pushedBranch != env.TARGET_BRANCH) {
+                        echo "⏭️ Skipping: branch '${pushedBranch}' != '${env.TARGET_BRANCH}'"
+                        currentBuild.result = 'NOT_BUILT'
+                        error("Branch mismatch")
+                    }
+                    echo "✅ Branch filter passed"
+                }
+            }
+        }
+
         stage('Checkout Backend') {
             steps {
                 withCredentials([string(credentialsId: 'zzikgoga-github-url', variable: 'GIT_REPO_URL')]) {

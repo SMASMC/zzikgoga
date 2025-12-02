@@ -4,7 +4,6 @@ pipeline {
         githubPush()  // GitHub webhook으로 자동 트리거
     }
 
-
     parameters {
         string(name: 'BRANCH_NAME', defaultValue: 'fe/master', description: '빌드할 브랜치')
         string(name: 'INFRA_BRANCH', defaultValue: 'infra/master', description: 'infra 브랜치')
@@ -15,6 +14,7 @@ pipeline {
         FE_CHECKOUT_DIR = 'workspace-frontend'
         INFRA_CHECKOUT_DIR = 'workspace-infra'
         DEPLOY_DIR = '/var/www/zzik-frontend'
+        TARGET_BRANCH = 'fe/master'
     }
 
     tools {
@@ -22,6 +22,21 @@ pipeline {
     }
 
     stages {
+        stage('Branch Filter') {
+            steps {
+                script {
+                    def pushedRef = env.GIT_BRANCH ?: ''
+                    def pushedBranch = pushedRef.replaceAll('refs/heads/', '').replaceAll('origin/', '')
+                    if (pushedBranch && pushedBranch != env.TARGET_BRANCH) {
+                        echo "⏭️ Skipping: branch '${pushedBranch}' != '${env.TARGET_BRANCH}'"
+                        currentBuild.result = 'NOT_BUILT'
+                        error("Branch mismatch")
+                    }
+                    echo "✅ Branch filter passed"
+                }
+            }
+        }
+
         stage('Checkout') {
             steps {
                 withCredentials([string(credentialsId: 'zzikgoga-github-url', variable: 'GIT_REPO_URL')]) {

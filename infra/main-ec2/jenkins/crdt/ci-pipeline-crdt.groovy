@@ -17,6 +17,7 @@ pipeline {
     NPM_CONFIG_CACHE = "${WORKSPACE}/.npm"
     CRDT_DIR = 'crdt'
     INFRA_BRANCH = "${params.INFRA_BRANCH}"
+    TARGET_BRANCH = 'crdt/master'
   }
 
   tools {
@@ -24,6 +25,21 @@ pipeline {
   }
 
   stages {
+    stage('Branch Filter') {
+      steps {
+        script {
+          def pushedRef = env.GIT_BRANCH ?: ''
+          def pushedBranch = pushedRef.replaceAll('refs/heads/', '').replaceAll('origin/', '')
+          if (pushedBranch && pushedBranch != env.TARGET_BRANCH) {
+            echo "⏭️ Skipping: branch '${pushedBranch}' != '${env.TARGET_BRANCH}'"
+            currentBuild.result = 'NOT_BUILT'
+            error("Branch mismatch")
+          }
+          echo "✅ Branch filter passed"
+        }
+      }
+    }
+
     stage('Environment Setup') {
       steps {
         echo "🔧 Setting up Node.js environment"
