@@ -122,8 +122,9 @@ const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCard
             onMouseEnter={() => setIsButtonHovered(true)}
             onMouseLeave={() => setIsButtonHovered(false)}
             className="flex-1 transition-all rounded-full text-sm py-2"
+            disabled
           >
-            정산하기
+            정산하기 (준비중)
           </SolidButton>
         </div>
         <div className="flex justify-end gap-2">
