@@ -21,6 +21,15 @@ pipeline {
         stage('Branch Filter') {
             steps {
                 script {
+                    // 수동 빌드인지 확인 (UserIdCause가 있으면 수동)
+                    def isManualBuild = currentBuild.getBuildCauses('hudson.model.Cause$UserIdCause').size() > 0
+                    if (isManualBuild) {
+                        echo "🔧 Manual build detected - skipping branch filter"
+                        echo "✅ Branch filter passed (manual)"
+                        return
+                    }
+
+                    // Webhook 트리거인 경우 브랜치 필터링
                     def pushedRef = env.GIT_BRANCH ?: ''
                     def pushedBranch = pushedRef.replaceAll('refs/heads/', '').replaceAll('origin/', '')
                     if (pushedBranch && pushedBranch != env.TARGET_BRANCH) {
