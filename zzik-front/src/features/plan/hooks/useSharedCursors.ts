@@ -418,7 +418,7 @@ const deduplicateRemoteCursors = (cursors: RemoteCursor[]): RemoteCursor[] => {
 
 export const useSharedCursors = (roomId: string): SharedCursorSession => {
   const authUser = useAuthStore((state) => state.user)
-  const fallbackUserRef = useRef<{ id: string; name: string; picture: string | null }>()
+  const fallbackUserRef = useRef<{ id: string; name: string; picture: string | null } | null>(null)
 
   if (!fallbackUserRef.current) {
     const stored = loadGuestIdentity()
@@ -455,7 +455,7 @@ export const useSharedCursors = (roomId: string): SharedCursorSession => {
     [baseId, baseName, basePicture, assignedColor]
   )
 
-  const awarenessRef = useRef<Awareness>()
+  const awarenessRef = useRef<Awareness | null>(null)
   const frameRef = useRef<number | null>(null)
   const lastCursorRef = useRef<{ x: number; y: number } | null>(null)
   const messageTimeoutRef = useRef<number | null>(null)

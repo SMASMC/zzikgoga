@@ -56,7 +56,7 @@ const PlaceBoard = ({ cursorSession, onOpenPlaceDrawer }: PlaceBoardProps) => {
   const metaStorageKey = tripId ? `plan-meta-${tripId}` : null
 
   const boardRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLInputElement | null>(null)
   const autoHideTimerRef = useRef<number | null>(null)
 
   // 제목 Y.Text - state로 관리하여 업데이트 가능하게

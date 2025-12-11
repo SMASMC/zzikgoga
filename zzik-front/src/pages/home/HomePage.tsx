@@ -1,6 +1,14 @@
 import Header from '@components/blocks/Header'
 import { Button } from '@components/atoms/Button'
-import { useState, useEffect, cloneElement, isValidElement, useRef } from 'react'
+import {
+  useState,
+  useEffect,
+  cloneElement,
+  isValidElement,
+  useRef,
+  type ReactElement,
+  type CSSProperties,
+} from 'react'
 import { ChevronLeft, ChevronRight, Wallet, MessageSquare, BookOpen } from 'lucide-react'
 import { ImageWithFallback } from '@/components/atoms/ImageWithFallback'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -11,7 +19,7 @@ interface OnboardingSlide {
   title: string
   description: string
   image: string
-  icon: React.ReactNode
+  icon: ReactElement<{ className?: string; style?: CSSProperties }>
   color: string
 }
 
@@ -229,11 +237,11 @@ const HomePage = () => {
                     className="absolute inset-0 rounded-full animate-ping opacity-20"
                     style={{ backgroundColor: current.color }}
                   />
-                  {isValidElement(current.icon)
-                    ? cloneElement(current.icon as React.ReactElement, {
+                  {isValidElement<{ className?: string; style?: CSSProperties }>(current.icon)
+                    ? cloneElement(current.icon, {
                         className:
                           'w-32 h-32 z-10 transition-transform duration-500 hover:scale-110',
-                        style: { color: current.color },
+                        style: { ...(current.icon.props.style ?? {}), color: current.color },
                       })
                     : null}
                 </div>

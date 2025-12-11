@@ -62,7 +62,7 @@ interface ChatPanelProps {
   onClose: () => void
   onSubmit: (value: string) => void
   onValueChange: (value: string) => void
-  inputRef?: RefObject<HTMLInputElement>
+  inputRef?: RefObject<HTMLInputElement | null>
   onKeyDown?: (event: KeyboardEvent<HTMLInputElement>) => void
   onFocus?: () => void
   chatMessages?: CursorChatMessage[]
