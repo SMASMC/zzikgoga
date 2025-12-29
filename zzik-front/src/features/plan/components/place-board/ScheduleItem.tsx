@@ -408,6 +408,31 @@ const ScheduleItem = ({
             {(regionLine || roadLine) && (
               <div className={clsMicro}>{[regionLine, roadLine].filter(Boolean).join(' · ')}</div>
             )}
+            {/* 길찾기 버튼 (위도/경도가 있을 때만) */}
+            {location && typeof location.latitude === 'number' && typeof location.longitude === 'number' && (
+              <div className="mt-2 pt-2 border-t border-slate-200 flex gap-2">
+                <button
+                  onClick={() => {
+                    const url = `https://map.naver.com/v5/directions/-/-/-/car?c=${location.longitude},${location.latitude},15,0,0,0,dh`
+                    window.open(url, '_blank', 'noopener,noreferrer')
+                  }}
+                  className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold text-white bg-green-500 hover:bg-green-600 rounded-lg transition-colors"
+                >
+                  <HiMap className="w-4 h-4" />
+                  네이버
+                </button>
+                <button
+                  onClick={() => {
+                    const url = `https://map.kakao.com/link/to/${encodeURIComponent(location.name)},${location.latitude},${location.longitude}`
+                    window.open(url, '_blank', 'noopener,noreferrer')
+                  }}
+                  className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold text-white bg-yellow-500 hover:bg-yellow-600 rounded-lg transition-colors"
+                >
+                  <HiMap className="w-4 h-4" />
+                  카카오
+                </button>
+              </div>
+            )}
             {/* 상세 주소 입력 필드 (location이 있을 때만) */}
             {location && (
               <div className="mt-1.5 pt-1.5 border-t border-slate-200">
