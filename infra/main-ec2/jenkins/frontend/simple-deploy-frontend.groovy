@@ -36,8 +36,13 @@ pipeline {
                     // Webhook 트리거인 경우 브랜치 필터링
                     def pushedRef = env.GIT_BRANCH ?: ''
                     def pushedBranch = pushedRef.replaceAll('refs/heads/', '').replaceAll('origin/', '')
-                    if (pushedBranch && pushedBranch != env.TARGET_BRANCH) {
-                        echo "⏭️ Skipping: branch '${pushedBranch}' != '${env.TARGET_BRANCH}'"
+                    def allowedBranches = [
+                        env.TARGET_BRANCH,
+                        params.BRANCH_NAME,
+                        params.INFRA_BRANCH
+                    ].findAll { it }
+                    if (pushedBranch && !allowedBranches.contains(pushedBranch)) {
+                        echo "⏭️ Skipping: branch '${pushedBranch}' not in allowed branches: ${allowedBranches.join(', ')}"
                         currentBuild.result = 'NOT_BUILT'
                         error("Branch mismatch")
                     }
