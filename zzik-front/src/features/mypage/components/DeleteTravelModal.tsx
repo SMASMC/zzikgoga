@@ -2,7 +2,6 @@ import CloseButton from '@/components/atoms/CloseButton'
 import SolidButton from '@/components/atoms/SolidButton'
 
 interface DeleteTravelModalProps {
-  tripId: number
   title: string
   date: string
   onClose: () => void
@@ -11,7 +10,6 @@ interface DeleteTravelModalProps {
 }
 
 const DeleteTravelModal = ({
-  tripId,
   title,
   date,
   onClose,

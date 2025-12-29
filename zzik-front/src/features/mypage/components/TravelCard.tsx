@@ -203,7 +203,6 @@ const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCard
       {/* Delete Modal */}
       {isDeleteModalOpen && (
         <DeleteTravelModal
-          tripId={tripId}
           title={title}
           date={date}
           onClose={() => setIsDeleteModalOpen(false)}
