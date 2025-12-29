@@ -409,32 +409,52 @@ const ScheduleItem = ({
               <div className={clsMicro}>{[regionLine, roadLine].filter(Boolean).join(' · ')}</div>
             )}
             {/* 길찾기 버튼 (위도/경도가 있을 때만) */}
-            {location && typeof location.latitude === 'number' && typeof location.longitude === 'number' && (
-              <div className="mt-2 pt-2 border-t border-slate-200 flex gap-2">
-                <button
-                  onClick={() => {
-                    // 네이버 지도에서 장소 검색 -> 위치 정보창 표시
-                    const url = `https://map.naver.com/v5/search/${encodeURIComponent(location.name)}?c=${location.longitude},${location.latitude},15,0,0,0,dh`
-                    window.open(url, '_blank', 'noopener,noreferrer')
-                  }}
-                  className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold text-white bg-green-500 hover:bg-green-600 rounded-lg transition-colors"
-                >
-                  <HiMap className="w-4 h-4" />
-                  네이버
-                </button>
-                <button
-                  onClick={() => {
-                    // 카카오맵에서 장소 표시 -> 위치 정보창 표시 (link/map 사용)
-                    const url = `https://map.kakao.com/link/map/${encodeURIComponent(location.name)},${location.latitude},${location.longitude}`
-                    window.open(url, '_blank', 'noopener,noreferrer')
-                  }}
-                  className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold text-white bg-yellow-500 hover:bg-yellow-600 rounded-lg transition-colors"
-                >
-                  <HiMap className="w-4 h-4" />
-                  카카오
-                </button>
-              </div>
-            )}
+            {location &&
+              typeof location.latitude === 'number' &&
+              typeof location.longitude === 'number' &&
+              location.latitude !== null &&
+              location.longitude !== null && (
+                <div className="mt-2 pt-2 border-t border-slate-200 flex gap-2">
+                  <button
+                    onClick={() => {
+                      // 네이버 지도: 주소 우선, 이름 대체 + 좌표로 중심 설정
+                      const searchQuery = location.full_address || location.name
+                      const url = `https://map.naver.com/v5/search/${encodeURIComponent(searchQuery)}?c=${location.longitude},${location.latitude},15,0,0,0,dh`
+                      console.log('네이버 지도 열기:', {
+                        name: location.name,
+                        address: location.full_address,
+                        lat: location.latitude,
+                        lng: location.longitude,
+                        url,
+                      })
+                      window.open(url, '_blank', 'noopener,noreferrer')
+                    }}
+                    className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold text-white bg-green-500 hover:bg-green-600 rounded-lg transition-colors"
+                  >
+                    <HiMap className="w-4 h-4" />
+                    네이버
+                  </button>
+                  <button
+                    onClick={() => {
+                      // 카카오맵: 이름 + 좌표로 장소 표시
+                      const placeName = location.name || location.full_address || '위치'
+                      const url = `https://map.kakao.com/link/map/${encodeURIComponent(placeName)},${location.latitude},${location.longitude}`
+                      console.log('카카오 지도 열기:', {
+                        name: location.name,
+                        address: location.full_address,
+                        lat: location.latitude,
+                        lng: location.longitude,
+                        url,
+                      })
+                      window.open(url, '_blank', 'noopener,noreferrer')
+                    }}
+                    className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold text-white bg-yellow-500 hover:bg-yellow-600 rounded-lg transition-colors"
+                  >
+                    <HiMap className="w-4 h-4" />
+                    카카오
+                  </button>
+                </div>
+              )}
             {/* 상세 주소 입력 필드 (location이 있을 때만) */}
             {location && (
               <div className="mt-1.5 pt-1.5 border-t border-slate-200">
