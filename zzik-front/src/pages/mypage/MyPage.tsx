@@ -281,14 +281,29 @@ const MyPage = () => {
       }
     }
 
+    // 여행 삭제 이벤트 리스너
+    const handleTravelDeleted = () => {
+      if (isMobile) {
+        setTravels([])
+        setCursor(null)
+        setHasMore(true)
+        loadMobileInitial()
+      } else {
+        const page = parseInt(searchParams.get('page') || '1', 10)
+        loadDesktopPage(page)
+      }
+    }
+
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('focus', handleFocus)
     window.addEventListener('travel-updated', handleTravelUpdated as EventListener)
+    window.addEventListener('travel-deleted', handleTravelDeleted as EventListener)
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', handleFocus)
       window.removeEventListener('travel-updated', handleTravelUpdated as EventListener)
+      window.removeEventListener('travel-deleted', handleTravelDeleted as EventListener)
     }
   }, [isMobile, searchParams, loadMobileInitial, loadDesktopPage])
 

@@ -64,4 +64,13 @@ export class TravelService {
     const response = await apiClient.post<unknown>('/plan', data)
     return response
   }
+
+  /**
+   * 여행 삭제
+   * @param tripId - 삭제할 여행 ID
+   * @returns 삭제 성공 여부
+   */
+  public static async deleteTravel(tripId: number): Promise<void> {
+    await apiClient.delete(`/plan/${tripId}`)
+  }
 }

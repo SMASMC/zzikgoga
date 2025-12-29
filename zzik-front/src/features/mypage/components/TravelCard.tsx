@@ -6,6 +6,8 @@ import { TravelAddCardProps, TravelCardProps } from '../types/mypage'
 import SolidButton from '@/components/atoms/SolidButton'
 import { MediaService, MemoryService } from '@/features/memory/services/memoryService'
 import { ToastDock } from '@/components/blocks/ToastDock'
+import DeleteTravelModal from './DeleteTravelModal'
+import { TravelService } from '../services/travelService'
 
 const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCardProps) => {
   const navigate = useNavigate()
@@ -18,6 +20,8 @@ const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCard
     variant: 'success' | 'warning' | 'error' | 'hint'
     message: string
   }>({ open: false, variant: 'success', message: '' })
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // img prop 변경 시 imageSrc 업데이트
   useEffect(() => {
@@ -85,6 +89,34 @@ const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCard
     handleCardClick()
   }
 
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setIsDeleteModalOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    setIsDeleting(true)
+    try {
+      await TravelService.deleteTravel(tripId)
+      setToast({ open: true, variant: 'success', message: '여행이 삭제되었습니다.' })
+      setIsDeleteModalOpen(false)
+
+      // 목록 새로고침 이벤트 발생
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('travel-deleted', { detail: { tripId } }))
+      }, 500)
+    } catch (error) {
+      console.error('여행 삭제 실패:', error)
+      setToast({
+        open: true,
+        variant: 'error',
+        message: error instanceof Error ? error.message : '여행 삭제에 실패했습니다.',
+      })
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   return (
     <>
       <div
@@ -127,7 +159,7 @@ const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCard
             정산하기 (준비중)
           </SolidButton>
         </div>
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-center gap-2">
           <SolidButton
             onClick={handlePhotoClick}
             onMouseEnter={() => setIsButtonHovered(true)}
@@ -136,6 +168,27 @@ const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCard
           >
             기록하기
           </SolidButton>
+          <button
+            onClick={handleDeleteClick}
+            onMouseEnter={() => setIsButtonHovered(true)}
+            onMouseLeave={() => setIsButtonHovered(false)}
+            className="px-3 py-2 rounded-full border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-all text-sm flex items-center gap-1"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth="2"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
+            삭제
+          </button>
         </div>
       </div>
 
@@ -146,6 +199,18 @@ const TravelCard = ({ tripId, title, date, img, startDate, endDate }: TravelCard
         message={toast.message}
         onClose={() => setToast({ ...toast, open: false })}
       />
+
+      {/* Delete Modal */}
+      {isDeleteModalOpen && (
+        <DeleteTravelModal
+          tripId={tripId}
+          title={title}
+          date={date}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onConfirm={handleDeleteConfirm}
+          isDeleting={isDeleting}
+        />
+      )}
     </>
   )
 }
