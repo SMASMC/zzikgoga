@@ -413,7 +413,8 @@ const ScheduleItem = ({
               <div className="mt-2 pt-2 border-t border-slate-200 flex gap-2">
                 <button
                   onClick={() => {
-                    const url = `https://map.naver.com/v5/directions/-/-/-/car?c=${location.longitude},${location.latitude},15,0,0,0,dh`
+                    // 네이버 지도에서 장소 검색 -> 위치 정보창 표시
+                    const url = `https://map.naver.com/v5/search/${encodeURIComponent(location.name)}?c=${location.longitude},${location.latitude},15,0,0,0,dh`
                     window.open(url, '_blank', 'noopener,noreferrer')
                   }}
                   className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold text-white bg-green-500 hover:bg-green-600 rounded-lg transition-colors"
@@ -423,7 +424,8 @@ const ScheduleItem = ({
                 </button>
                 <button
                   onClick={() => {
-                    const url = `https://map.kakao.com/link/to/${encodeURIComponent(location.name)},${location.latitude},${location.longitude}`
+                    // 카카오맵에서 장소 표시 -> 위치 정보창 표시 (link/map 사용)
+                    const url = `https://map.kakao.com/link/map/${encodeURIComponent(location.name)},${location.latitude},${location.longitude}`
                     window.open(url, '_blank', 'noopener,noreferrer')
                   }}
                   className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold text-white bg-yellow-500 hover:bg-yellow-600 rounded-lg transition-colors"
