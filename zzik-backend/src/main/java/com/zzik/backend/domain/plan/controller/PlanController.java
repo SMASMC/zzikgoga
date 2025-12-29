@@ -86,4 +86,13 @@ public class PlanController implements PlanApi {
 
 		return ResponseEntity.ok(ApiResponse.createSuccess(res));
 	}
+
+	@Override
+	public ResponseEntity<ApiResponse<ExitTripResponse>> deleteTrip(@PathVariable Long tripId) {
+		Long memberId = SecurityUtil.getCurrentMemberId();
+
+		var res = planService.deleteTrip(memberId, tripId);
+
+		return ResponseEntity.ok(ApiResponse.createSuccess(res));
+	}
 }

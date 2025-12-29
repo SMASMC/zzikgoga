@@ -123,4 +123,19 @@ public interface PlanApi {
 	)
 	@DeleteMapping(value = "/exit/{tripId}")
 	ResponseEntity<ApiResponse<ExitTripResponse>> exitTrip(@PathVariable Long tripId);
+
+	@Operation(summary = "여행 삭제 (완전 삭제)")
+	@ApiResponseExplanations(
+		success = @ApiSuccessResponseExplanation(
+			description = "여행 삭제 성공",
+			responseClass = ExitTripResponse.class
+		),
+		errors = {
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.TRIP_NOT_FOUND),
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.FORBIDDEN_TRIP),
+			@ApiErrorResponseExplanation(exceptionCode = ExceptionCode.INVALID_ACCESS_TOKEN)
+		}
+	)
+	@DeleteMapping(value = "/{tripId}")
+	ResponseEntity<ApiResponse<ExitTripResponse>> deleteTrip(@PathVariable Long tripId);
 }

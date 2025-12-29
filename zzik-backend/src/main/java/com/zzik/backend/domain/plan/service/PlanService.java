@@ -348,6 +348,25 @@ public class PlanService {
 			.build();
 	}
 
+	@Transactional
+	public ExitTripResponse deleteTrip(Long memberId, Long tripId) {
+		// 여행 ID가 유효한지 확인
+		Trip trip = tripRepository.findById(tripId)
+			.orElseThrow(() -> BusinessException.from(ExceptionCode.TRIP_NOT_FOUND));
+
+		// 요청자가 여행의 소유자인지 확인
+		if (!trip.getOwner().getId().equals(memberId)) {
+			throw BusinessException.from(ExceptionCode.FORBIDDEN_TRIP);
+		}
+
+		// Trip 삭제 (CASCADE 설정으로 관련 TripMember, Schedule 등도 자동 삭제)
+		tripRepository.delete(trip);
+
+		return ExitTripResponse.builder()
+			.deleted(true)
+			.build();
+	}
+
 	private void assertLatestJti(Long tripId, String jti) {
 		String saved = redisTemplate.opsForValue().get(jtiKey(tripId));
 		if (saved == null || !saved.equals(jti)) {
