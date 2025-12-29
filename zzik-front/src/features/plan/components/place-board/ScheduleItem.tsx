@@ -436,8 +436,8 @@ const ScheduleItem = ({
                   </button>
                   <button
                     onClick={() => {
-                      // 카카오맵: 이름 + 좌표로 장소 표시
-                      const placeName = location.name || location.full_address || '위치'
+                      // 카카오맵: 주소 우선, 이름 대체 + 좌표로 장소 표시
+                      const placeName = location.full_address || location.name || '위치'
                       const url = `https://map.kakao.com/link/map/${encodeURIComponent(placeName)},${location.latitude},${location.longitude}`
                       console.log('카카오 지도 열기:', {
                         name: location.name,
