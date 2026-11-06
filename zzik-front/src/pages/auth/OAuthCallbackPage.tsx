@@ -19,7 +19,6 @@ export function OAuthCallbackPage() {
           navigate('/?error=no_code', { replace: true })
           return
         }
-        console.log('카카오 인가 코드:', code)
 
         // 1. 카카오에서 idToken 받기
         const tokenResponse = await axios.post(
@@ -39,14 +38,10 @@ export function OAuthCallbackPage() {
           return
         }
 
-        console.log('idToken 획득 성공', idToken)
-
         // 2. 백엔드로 idToken 전달
         const data = await apiClient.post<OAuthCallbackResponse>('/auth/kakao', {
           idToken: idToken,
         })
-
-        console.log('OAuth Callback Response:', data)
 
         // 3. 로그인 완료
         if (data.loggedIn && data.user) {

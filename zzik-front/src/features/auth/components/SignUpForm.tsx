@@ -26,7 +26,7 @@ const SignUpForm = ({
   const navigate = useNavigate()
   const [formData, setFormData] = useState<Omit<SignupRequest, 'signupSessionToken'>>({
     name: initialName,
-    email: initialEmail,
+    email: initialEmail ?? '',
     picture: initialPicture,
     gender: '',
     birthYear: new Date().getFullYear() - 20,
@@ -164,6 +164,13 @@ const SignUpForm = ({
       <h1 className="text-3xl font-bmjua font-bold text-center mb-6">추가 정보 입력</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        <Input
+          label="이메일"
+          type="email"
+          required
+          value={formData.email}
+          onChange={handleChange('email')}
+        />
         <div className="w-full">
           <label className="block text-lg font-bmjua font-bold text-slate-800 mb-3">성별</label>
           <DropdownSelect
