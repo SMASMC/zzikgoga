@@ -12,6 +12,8 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -40,7 +42,6 @@ import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import shaded_package.com.nimbusds.jwt.SignedJWT;
 
 @Slf4j
 @Service
@@ -65,6 +66,8 @@ public class AuthService {
 
 	private static final String RT_KEY_PREFIX = "RT:";
 	private static final String AT_BLACKLIST_KEY_PREFIX = "BL_AT:";
+	private static final JwtDecoder KAKAO_JWT_DECODER =
+		NimbusJwtDecoder.withJwkSetUri("https://kauth.kakao.com/.well-known/jwks.json").build();
 
 	public KakaoLoginResult handleKakaoLoginFromIdToken(String idToken) throws ParseException {
 		return processKakaoIdToken(idToken);
@@ -75,16 +78,15 @@ public class AuthService {
 	 */
 	private KakaoLoginResult processKakaoIdToken(String idToken) {
 		try {
-			var jwt = SignedJWT.parse(idToken);
-			var claims = jwt.getJWTClaimsSet();
+			var jwt = KAKAO_JWT_DECODER.decode(idToken);
 
-			String iss = claims.getIssuer();
-			String aud = claims.getAudience().get(0);
-			String sub = claims.getSubject();
-			Date exp = claims.getExpirationTime();
-			String nickName = claims.getStringClaim("nickname");
-			String email = claims.getStringClaim("email");
-			String picture = claims.getStringClaim("picture");
+			String iss = jwt.getIssuer().toString();
+			String aud = jwt.getAudience().get(0);
+			String sub = jwt.getSubject();
+			var exp = jwt.getExpiresAt();
+			String nickName = jwt.getClaimAsString("nickname");
+			String email = jwt.getClaimAsString("email");
+			String picture = jwt.getClaimAsString("picture");
 
 			if (!"https://kauth.kakao.com".equals(iss)) {
 				throw BusinessException.from(ExceptionCode.INVALID_KAKAO_ID_TOKEN);
@@ -92,7 +94,7 @@ public class AuthService {
 			if (!kakaoClientId.equals(aud)) {
 				throw BusinessException.from(ExceptionCode.INVALID_KAKAO_ID_TOKEN);
 			}
-			if (exp.before(new Date())) {
+			if (exp.isBefore(java.time.Instant.now())) {
 				throw BusinessException.from(ExceptionCode.INVALID_KAKAO_ID_TOKEN);
 			}
 

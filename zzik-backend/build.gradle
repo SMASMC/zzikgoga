@@ -71,6 +71,7 @@ dependencies {
 
     /* Security */
     implementation 'org.springframework.boot:spring-boot-starter-security:3.3.1'
+    implementation 'org.springframework.security:spring-security-oauth2-jose'
     testImplementation 'org.springframework.security:spring-security-test:6.2.3'
 
     /* JWT */
