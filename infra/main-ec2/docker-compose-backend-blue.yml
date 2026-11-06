@@ -1,5 +1,5 @@
 services:
-  backend:
+  backend-blue:
     image: zzikgoga:latest
     container_name: zzikgoga-blue
     ports:

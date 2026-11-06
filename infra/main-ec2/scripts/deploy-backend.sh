@@ -254,12 +254,8 @@ CURRENT=""; [ "$BLUE_UP" -gt 0 ] && CURRENT=blue; [ "$GREEN_UP" -gt 0 ] && CURRE
 if [ "$CURRENT" = "blue" ]; then NEW=green; NEW_PORT=8082; OLD=blue; OLD_PORT=8081; else NEW=blue; NEW_PORT=8081; OLD=green; OLD_PORT=8082; fi
 echo "📋 current=${CURRENT:-none} → new=$NEW ($NEW_PORT)"
 
-# 4-1) 이전 컨테이너가 있다면 중지 (삭제는 하지 않음 - 롤백을 위해)
+# 4-1) 이전 컨테이너는 새 환경의 헬스 체크가 끝날 때까지 유지
 if [ -n "$CURRENT" ]; then
-  echo "⏸️ 이전 컨테이너 중지 (롤백 대비): zzikgoga-${OLD}"
-  docker stop "zzikgoga-${OLD}" 2>/dev/null || true
-
-  # 중지된 컨테이너의 이미지 ID 백업
   OLD_IMAGE_ID=$(docker inspect -f '{{.Image}}' "zzikgoga-${OLD}" 2>/dev/null || echo "")
   if [ -n "$OLD_IMAGE_ID" ]; then
     echo "💾 이전 컨테이너 이미지 ID 백업: ${OLD_IMAGE_ID}"

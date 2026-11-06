@@ -22,8 +22,8 @@ pipeline {
                         cp "${ENV_FILE}" .env
                         chmod 600 .env
                         sed -i '/^KAKAO_REDIRECT_URI=/ s/zzik[.]kr/zzik.store/' .env
-                        sed -i '/^KAKAO_CLIENT_ID=/d' .env
-                        printf '%s\n' 'KAKAO_CLIENT_ID=5e5f20af7c2f56164ee80f62f6d389f0' >> .env
+                        sed -i 's/^KAKAO_CLIENT_ID=.*/KAKAO_CLIENT_ID=5e5f20af7c2f56164ee80f62f6d389f0/' .env
+                        grep -q '^KAKAO_CLIENT_ID=5e5f20af7c2f56164ee80f62f6d389f0' .env
                         echo "✅ Environment file prepared"
                     '''
                 }
