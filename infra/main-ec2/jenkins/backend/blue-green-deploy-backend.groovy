@@ -21,6 +21,7 @@ pipeline {
                     sh '''
                         cp "${ENV_FILE}" .env
                         chmod 600 .env
+                        sed -i '/^KAKAO_REDIRECT_URI=/ s/zzik[.]kr/zzik.store/' .env
                         echo "✅ Environment file prepared"
                     '''
                 }
