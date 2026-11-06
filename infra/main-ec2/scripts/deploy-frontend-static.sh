@@ -88,7 +88,7 @@ if [ -n "$NGINX_CONF" ] && [ -f "$NGINX_CONF" ]; then
         cat > /tmp/frontend-static-only.conf << 'STATICEOF'
 server {
     listen 80;
-    server_name zzik.kr;
+    server_name zzik.kr zzik.store www.zzik.store;
 
     root /usr/share/nginx/zzik-frontend;
     index index.html;

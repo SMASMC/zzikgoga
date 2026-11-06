@@ -101,6 +101,7 @@ pipeline {
                             cp "${ENV_FILE}" .env
                             chmod 600 .env
                             command -v dos2unix >/dev/null 2>&1 && dos2unix .env || true
+                            sed -i 's/zzik[.]kr/zzik.store/g' .env
                             echo "✅ .env 준비 완료"
                         '''
                     }
