@@ -128,7 +128,7 @@ pipeline {
                     echo "✅ 활성 컨테이너: $CONTAINER_NAME, 포트: $ACTIVE_PORT"
 
                     # nginx 설정 확인
-                    NGINX_CONF=/etc/nginx/sites-enabled/nft.zzik.kr
+                    NGINX_CONF=/etc/nginx/sites-enabled/nft.zzik.store
                     if [ -f "$NGINX_CONF" ]; then
                         NGINX_PORT=$(grep -E "server localhost:" "$NGINX_CONF" | head -1 | sed 's/.*localhost://;s/;.*//')
                         echo "✅ nginx 설정 포트: $NGINX_PORT"

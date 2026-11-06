@@ -8,7 +8,7 @@ echo "⏰ 시작 시간: $(date '+%Y-%m-%d %H:%M:%S')"
 # nginx 설정 파일 경로
 NGINX_SITES_AVAILABLE="/etc/nginx/sites-available"
 NGINX_SITES_ENABLED="/etc/nginx/sites-enabled"
-NGINX_SITE_NAME="nft.zzik.kr"
+NGINX_SITE_NAME="nft.zzik.store"
 
 # 디버그 모드 설정
 DEBUG_MODE="${DEBUG_MODE:-false}"
@@ -28,7 +28,7 @@ echo ""
 echo "🔧 Nginx 설정 사전 점검 중..."
 
 # SSL 인증서 확인
-SSL_CERT="/etc/letsencrypt/live/nft.zzik.kr/fullchain.pem"
+SSL_CERT="/etc/letsencrypt/live/nft.zzik.store/fullchain.pem"
 
 # 환경 변수로 HTTPS 모드가 지정되어 있으면 우선 사용
 if [ "${USE_HTTPS}" = "true" ]; then
@@ -358,9 +358,9 @@ if [ "$USE_HTTPS" = false ]; then
     echo "🔒 SSL 인증서 자동 발급 시작..."
 
     # certbot으로 SSL 인증서 발급
-    if sudo certbot certonly --nginx -d nft.zzik.kr --non-interactive --agree-tos --email admin@zzik.kr 2>&1 | tee /tmp/certbot-output.log; then
+    if sudo certbot certonly --nginx -d nft.zzik.store --non-interactive --agree-tos --email "${EMAIL:-trip325325@gmail.com}" 2>&1 | tee /tmp/certbot-output.log; then
         # 인증서 발급 성공 확인 (sudo로 확인)
-        if sudo test -f "/etc/letsencrypt/live/nft.zzik.kr/fullchain.pem"; then
+        if sudo test -f "/etc/letsencrypt/live/nft.zzik.store/fullchain.pem"; then
             echo "✅ SSL 인증서 발급 성공!"
 
             # HTTPS nginx 설정으로 전환
@@ -374,7 +374,7 @@ if [ "$USE_HTTPS" = false ]; then
                 if sudo nginx -t 2>&1; then
                     sudo systemctl reload nginx
                     echo "✅ HTTPS 전환 완료!"
-                    echo "🌐 서비스 URL: https://nft.zzik.kr"
+                    echo "🌐 서비스 URL: https://nft.zzik.store"
                 else
                     echo "⚠️ HTTPS 설정 테스트 실패 - HTTP로 유지됩니다"
                     echo "   수동으로 확인이 필요합니다"
@@ -389,7 +389,7 @@ if [ "$USE_HTTPS" = false ]; then
     else
         echo "⚠️ SSL 인증서 발급 실패"
         echo "   HTTP로 배포가 완료되었습니다"
-        echo "   수동으로 발급: sudo certbot certonly --nginx -d nft.zzik.kr"
+        echo "   수동으로 발급: sudo certbot certonly --nginx -d nft.zzik.store"
 
         # certbot 로그 확인
         if [ -f /tmp/certbot-output.log ]; then

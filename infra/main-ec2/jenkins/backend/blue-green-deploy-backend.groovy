@@ -48,7 +48,7 @@ pipeline {
                 docker ps --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}" | grep zzikgoga
 
                 # 활성 포트 확인
-                ACTIVE_PORT=$(grep -E "^\\s*server\\s+localhost:" /etc/nginx/sites-enabled/api.zzik.kr | awk -F: '{print $2}' | tr -d ';' | head -n1)
+                ACTIVE_PORT=$(grep -E "^\\s*server\\s+localhost:" /etc/nginx/sites-enabled/api.zzik.store | awk -F: '{print $2}' | tr -d ';' | head -n1)
                 echo "✅ Active port: $ACTIVE_PORT"
 
                 # 헬스 체크
@@ -87,7 +87,7 @@ pipeline {
                 }
             }
             sh '''
-              sudo ln -sf /etc/nginx/sites-available/monitoring.zzik.kr /etc/nginx/sites-enabled/monitoring.zzik.kr
+              sudo ln -sf /etc/nginx/sites-available/monitoring.zzik.store /etc/nginx/sites-enabled/monitoring.zzik.store
               sudo nginx -t && sudo systemctl reload nginx
             '''
         }

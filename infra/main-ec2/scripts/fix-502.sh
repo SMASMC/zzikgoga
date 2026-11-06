@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# fix-502.sh: self-healing deploy helper for API 502 on api.zzik.kr
+# fix-502.sh: self-healing deploy helper for API 502 on api.zzik.store
 # - Ensures .env, DB/Redis up
 # - Ensures backend image exists (pull/load/build if needed)
 # - Runs blue/green deploy script (deploy-backend.sh)
@@ -96,10 +96,10 @@ run_deploy() {
 
 sync_nginx_and_report() {
   echo "[fix-502] nginx active upstream line"
-  if [ -f /etc/nginx/sites-enabled/api.zzik.kr ]; then
-    grep -nE "^\s*server\s+localhost:" /etc/nginx/sites-enabled/api.zzik.kr || true
+  if [ -f /etc/nginx/sites-enabled/api.zzik.store ]; then
+    grep -nE "^\s*server\s+localhost:" /etc/nginx/sites-enabled/api.zzik.store || true
   else
-    echo "  api.zzik.kr vhost not found" >&2
+    echo "  api.zzik.store vhost not found" >&2
   fi
   echo "[fix-502] docker ps (zzikgoga*)"
   docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | (grep zzikgoga || true)

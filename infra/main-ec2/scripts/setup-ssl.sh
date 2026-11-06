@@ -8,11 +8,11 @@ echo "⏰ 시작 시간: $(date '+%Y-%m-%d %H:%M:%S')"
 echo ""
 
 # 도메인 설정
-DOMAINS_FRONTEND="zzik.kr www.zzik.kr"
-DOMAINS_BACKEND="api.zzik.kr"
-DOMAINS_JENKINS="jenkins.zzik.kr"
-DOMAINS_CRDT="crdt.zzik.kr"
-DOMAINS_GRAFANA="${DOMAINS_GRAFANA:-monitoring.zzik.kr}"
+DOMAINS_FRONTEND="zzik.store www.zzik.store"
+DOMAINS_BACKEND="api.zzik.store"
+DOMAINS_JENKINS="jenkins.zzik.store"
+DOMAINS_CRDT="crdt.zzik.store"
+DOMAINS_GRAFANA="${DOMAINS_GRAFANA:-monitoring.zzik.store}"
 EMAIL="${EMAIL:-trip325325@gmail.com}"
 
 # 경로 설정
@@ -45,10 +45,10 @@ echo ""
 
 # 0-1. Broken symlink 제거
 echo "📌 Nginx broken symlink 제거 중..."
-rm -f /etc/nginx/sites-enabled/zzik.kr.conf
-rm -f /etc/nginx/sites-enabled/api.zzik.kr.conf
-rm -f /etc/nginx/sites-enabled/jenkins.zzik.kr.conf
-rm -f /etc/nginx/sites-available/zzik.kr.conf
+rm -f /etc/nginx/sites-enabled/zzik.store.conf
+rm -f /etc/nginx/sites-enabled/api.zzik.store.conf
+rm -f /etc/nginx/sites-enabled/jenkins.zzik.store.conf
+rm -f /etc/nginx/sites-available/zzik.store.conf
 echo -e "${GREEN}✅ Broken symlink 제거 완료${NC}"
 echo ""
 
@@ -125,8 +125,8 @@ echo -e "${BLUE}   도메인: $DOMAINS_FRONTEND${NC}"
 echo -e "${BLUE}=========================================${NC}"
 echo ""
 
-if [ -d "$CERTBOT_PATH/live/zzik.kr" ]; then
-    echo -e "${YELLOW}⚠️ zzik.kr 인증서가 이미 존재합니다. 갱신을 원하면 renew-ssl.sh를 사용하세요.${NC}"
+if [ -d "$CERTBOT_PATH/live/zzik.store" ]; then
+    echo -e "${YELLOW}⚠️ zzik.store 인증서가 이미 존재합니다. 갱신을 원하면 renew-ssl.sh를 사용하세요.${NC}"
 else
     docker run --rm \
         -v $CERTBOT_PATH:/etc/letsencrypt \
@@ -158,8 +158,8 @@ echo -e "${BLUE}   도메인: $DOMAINS_BACKEND${NC}"
 echo -e "${BLUE}=========================================${NC}"
 echo ""
 
-if [ -d "$CERTBOT_PATH/live/api.zzik.kr" ]; then
-    echo -e "${YELLOW}⚠️ api.zzik.kr 인증서가 이미 존재합니다. 갱신을 원하면 renew-ssl.sh를 사용하세요.${NC}"
+if [ -d "$CERTBOT_PATH/live/api.zzik.store" ]; then
+    echo -e "${YELLOW}⚠️ api.zzik.store 인증서가 이미 존재합니다. 갱신을 원하면 renew-ssl.sh를 사용하세요.${NC}"
 else
     docker run --rm \
         -v $CERTBOT_PATH:/etc/letsencrypt \
@@ -191,8 +191,8 @@ echo -e "${BLUE}   도메인: $DOMAINS_JENKINS${NC}"
 echo -e "${BLUE}=========================================${NC}"
 echo ""
 
-if [ -d "$CERTBOT_PATH/live/jenkins.zzik.kr" ]; then
-    echo -e "${YELLOW}⚠️ jenkins.zzik.kr 인증서가 이미 존재합니다. 갱신을 원하면 renew-ssl.sh를 사용하세요.${NC}"
+if [ -d "$CERTBOT_PATH/live/jenkins.zzik.store" ]; then
+    echo -e "${YELLOW}⚠️ jenkins.zzik.store 인증서가 이미 존재합니다. 갱신을 원하면 renew-ssl.sh를 사용하세요.${NC}"
 else
     docker run --rm \
         -v $CERTBOT_PATH:/etc/letsencrypt \
@@ -224,8 +224,8 @@ echo -e "${BLUE}   도메인: $DOMAINS_GRAFANA${NC}"
 echo -e "${BLUE}=========================================${NC}"
 echo ""
 
-if [ -d "$CERTBOT_PATH/live/monitoring.zzik.kr" ]; then
-    echo -e "${YELLOW}⚠️ grafana.zzik.kr 인증서가 이미 존재합니다. 갱신을 원하면 renew-ssl.sh를 사용하세요.${NC}"
+if [ -d "$CERTBOT_PATH/live/monitoring.zzik.store" ]; then
+    echo -e "${YELLOW}⚠️ grafana.zzik.store 인증서가 이미 존재합니다. 갱신을 원하면 renew-ssl.sh를 사용하세요.${NC}"
 else
     docker run --rm \
         -v $CERTBOT_PATH:/etc/letsencrypt \
@@ -256,8 +256,8 @@ echo -e "${BLUE}   도메인: $DOMAINS_CRDT${NC}"
 echo -e "${BLUE}=========================================${NC}"
 echo ""
 
-if [ -d "$CERTBOT_PATH/live/crdt.zzik.kr" ]; then
-    echo -e "${YELLOW}⚠️ crdt.zzik.kr 인증서가 이미 존재합니다. 갱신을 원하면 renew-ssl.sh를 사용하세요.${NC}"
+if [ -d "$CERTBOT_PATH/live/crdt.zzik.store" ]; then
+    echo -e "${YELLOW}⚠️ crdt.zzik.store 인증서가 이미 존재합니다. 갱신을 원하면 renew-ssl.sh를 사용하세요.${NC}"
 else
     docker run --rm \
         -v $CERTBOT_PATH:/etc/letsencrypt \
@@ -288,31 +288,31 @@ echo -e "${BLUE}📋 Step 6: SSL 인증서 확인${NC}"
 echo -e "${BLUE}=========================================${NC}"
 echo ""
 
-CERT_FRONTEND="$CERTBOT_PATH/live/zzik.kr/fullchain.pem"
-CERT_BACKEND="$CERTBOT_PATH/live/api.zzik.kr/fullchain.pem"
-CERT_JENKINS="$CERTBOT_PATH/live/jenkins.zzik.kr/fullchain.pem"
-CERT_CRDT="$CERTBOT_PATH/live/crdt.zzik.kr/fullchain.pem"
+CERT_FRONTEND="$CERTBOT_PATH/live/zzik.store/fullchain.pem"
+CERT_BACKEND="$CERTBOT_PATH/live/api.zzik.store/fullchain.pem"
+CERT_JENKINS="$CERTBOT_PATH/live/jenkins.zzik.store/fullchain.pem"
+CERT_CRDT="$CERTBOT_PATH/live/crdt.zzik.store/fullchain.pem"
 
 if [ -f "$CERT_FRONTEND" ]; then
-    echo -e "${GREEN}✅ Frontend 인증서 존재: zzik.kr${NC}"
+    echo -e "${GREEN}✅ Frontend 인증서 존재: zzik.store${NC}"
 else
     echo -e "${RED}❌ Frontend 인증서 없음${NC}"
 fi
 
 if [ -f "$CERT_BACKEND" ]; then
-    echo -e "${GREEN}✅ Backend 인증서 존재: api.zzik.kr${NC}"
+    echo -e "${GREEN}✅ Backend 인증서 존재: api.zzik.store${NC}"
 else
     echo -e "${RED}❌ Backend 인증서 없음${NC}"
 fi
 
 if [ -f "$CERT_JENKINS" ]; then
-    echo -e "${GREEN}✅ Jenkins 인증서 존재: jenkins.zzik.kr${NC}"
+    echo -e "${GREEN}✅ Jenkins 인증서 존재: jenkins.zzik.store${NC}"
 else
     echo -e "${RED}❌ Jenkins 인증서 없음${NC}"
 fi
 
 if [ -f "$CERT_CRDT" ]; then
-    echo -e "${GREEN}✅ CRDT 인증서 존재: crdt.zzik.kr${NC}"
+    echo -e "${GREEN}✅ CRDT 인증서 존재: crdt.zzik.store${NC}"
 else
     echo -e "${RED}❌ CRDT 인증서 없음${NC}"
 fi
@@ -360,8 +360,8 @@ if [ -n "$FRONTEND_CONTAINER" ] && [ -f "$CERT_FRONTEND" ]; then
     fi
 
     echo "📌 Frontend HTTPS 설정 적용 중 (${FRONTEND_ENV})..."
-    cp "${MAIN_EC2_DIR}/nginx/frontend-${FRONTEND_ENV}.conf" /etc/nginx/sites-available/zzik.kr
-    ln -sf /etc/nginx/sites-available/zzik.kr /etc/nginx/sites-enabled/zzik.kr
+    cp "${MAIN_EC2_DIR}/nginx/frontend-${FRONTEND_ENV}.conf" /etc/nginx/sites-available/zzik.store
+    ln -sf /etc/nginx/sites-available/zzik.store /etc/nginx/sites-enabled/zzik.store
     echo -e "${GREEN}✅ Frontend HTTPS 설정 적용 완료${NC}"
 fi
 
@@ -374,8 +374,8 @@ if [ -n "$BACKEND_CONTAINER" ] && [ -f "$CERT_BACKEND" ]; then
     fi
 
     echo "📌 Backend HTTPS 설정 적용 중 (${BACKEND_ENV})..."
-    cp "${MAIN_EC2_DIR}/nginx/backend-${BACKEND_ENV}.conf" /etc/nginx/sites-available/api.zzik.kr
-    ln -sf /etc/nginx/sites-available/api.zzik.kr /etc/nginx/sites-enabled/api.zzik.kr
+    cp "${MAIN_EC2_DIR}/nginx/backend-${BACKEND_ENV}.conf" /etc/nginx/sites-available/api.zzik.store
+    ln -sf /etc/nginx/sites-available/api.zzik.store /etc/nginx/sites-enabled/api.zzik.store
     echo -e "${GREEN}✅ Backend HTTPS 설정 적용 완료${NC}"
 fi
 
@@ -388,25 +388,18 @@ if [ -n "$NODE_CONTAINER" ] && [ -f "$CERT_CRDT" ]; then
     fi
 
     echo "📌 CRDT Node HTTPS 설정 적용 중 (${NODE_ENV})..."
-    echo -e "${YELLOW}⚠️ 주의: 현재 node-${NODE_ENV}.conf는 HTTP-only 설정입니다.${NC}"
-    echo -e "${YELLOW}   HTTPS를 사용하려면 node-${NODE_ENV}.conf를 수동으로 HTTPS 블록을 추가해야 합니다.${NC}"
-
-    # HTTP-only 설정 적용 (SSL 인증서는 있지만 nginx 설정은 HTTP만 지원)
-    cp "${MAIN_EC2_DIR}/nginx/node-${NODE_ENV}.conf" /etc/nginx/sites-available/crdt.zzik.kr
-    ln -sf /etc/nginx/sites-available/crdt.zzik.kr /etc/nginx/sites-enabled/crdt.zzik.kr
-    echo -e "${GREEN}✅ CRDT Node HTTP 설정 적용 완료${NC}"
+    cp "${MAIN_EC2_DIR}/nginx/crdt-${NODE_ENV}.conf" /etc/nginx/sites-available/crdt.zzik.store
+    ln -sf /etc/nginx/sites-available/crdt.zzik.store /etc/nginx/sites-enabled/crdt.zzik.store
+    echo -e "${GREEN}✅ CRDT Node HTTPS 설정 적용 완료${NC}"
 elif [ -n "$NODE_CONTAINER" ]; then
-    # SSL 인증서가 없으면 HTTP-only 설정 적용
+    # SSL 인증서가 없으면 활성화하지 않음
     if [[ "$NODE_CONTAINER" == *"-blue" ]]; then
         NODE_ENV="blue"
     else
         NODE_ENV="green"
     fi
 
-    echo "📌 CRDT Node HTTP 설정 적용 중 (${NODE_ENV})..."
-    cp "${MAIN_EC2_DIR}/nginx/node-${NODE_ENV}.conf" /etc/nginx/sites-available/crdt.zzik.kr
-    ln -sf /etc/nginx/sites-available/crdt.zzik.kr /etc/nginx/sites-enabled/crdt.zzik.kr
-    echo -e "${GREEN}✅ CRDT Node HTTP 설정 적용 완료${NC}"
+    echo -e "${YELLOW}⚠️ CRDT 인증서가 없어 HTTPS 설정을 건너뜁니다.${NC}"
 fi
 
 # HTTP 전용 설정 제거 (HTTPS로 전환)
@@ -473,11 +466,11 @@ docker ps --format "   - {{.Names}}: {{.Status}} ({{.Ports}})" | grep zzikgoga |
 echo ""
 
 echo -e "${YELLOW}📌 다음 단계:${NC}"
-echo "   1. DNS 확인: zzik.kr, api.zzik.kr, jenkins.zzik.kr → EC2 공인 IP"
+echo "   1. DNS 확인: zzik.store, api.zzik.store, jenkins.zzik.store → EC2 공인 IP"
 echo "   2. HTTPS 테스트:"
-echo "      - https://zzik.kr (Frontend)"
-echo "      - https://api.zzik.kr (Backend)"
-echo "      - https://jenkins.zzik.kr (Jenkins)"
+echo "      - https://zzik.store (Frontend)"
+echo "      - https://api.zzik.store (Backend)"
+echo "      - https://jenkins.zzik.store (Jenkins)"
 echo "   3. Jenkins에서 재배포:"
 echo "      - fe/master 푸시 → Frontend 자동 배포 (HTTPS)"
 echo "      - be/master 푸시 → Backend 자동 배포 (HTTPS)"

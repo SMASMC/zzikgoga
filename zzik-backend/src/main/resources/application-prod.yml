@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:postgresql://zzik.kr:${POSTGRES_PORT}/${POSTGRES_DB}
+    url: jdbc:postgresql://db:${POSTGRES_PORT}/${POSTGRES_DB}
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
   data.redis:
@@ -22,15 +22,15 @@ jwt:
     invite-token: ${JWT_INVITE_SECRET}
 
 swagger:
-  server-url: "https://api.zzik.kr/api"
+  server-url: "https://api.zzik.store/api"
   description: "프로덕션 서버"
 
 invite:
-  base-url: https://zzik.kr/invite
+  base-url: https://zzik.store/invite
 
 kakao:
   redirect-uri: ${KAKAO_REDIRECT_URI}
 
 nft:
   node:
-    url: https://nft.zzik.kr
+    url: https://nft.zzik.store

@@ -58,8 +58,8 @@ pipeline {
                     ACTIVE_PORT=$(docker port $CONTAINER_NAME | grep "80/tcp" | cut -d: -f2)
                     echo "✅ 활성 컨테이너: $CONTAINER_NAME, 포트: $ACTIVE_PORT"
 
-                    # nginx 설정 확인 (sites-enabled/zzik.kr 사용)
-                    NGINX_CONF=/etc/nginx/sites-enabled/zzik.kr
+                    # nginx 설정 확인 (sites-enabled/zzik.store 사용)
+                    NGINX_CONF=/etc/nginx/sites-enabled/zzik.store
                     if [ -f "$NGINX_CONF" ]; then
                         NGINX_PORT=$(grep -E "server localhost:" "$NGINX_CONF" | head -1 | sed 's/.*localhost://;s/;.*//')
                     else

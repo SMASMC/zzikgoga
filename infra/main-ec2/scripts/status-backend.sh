@@ -3,11 +3,11 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-echo "[status] nginx upstream in sites-enabled/api.zzik.kr"
-if [ -f /etc/nginx/sites-enabled/api.zzik.kr ]; then
-  grep -nE "^\s*server\s+localhost:" /etc/nginx/sites-enabled/api.zzik.kr || true
+echo "[status] nginx upstream in sites-enabled/api.zzik.store"
+if [ -f /etc/nginx/sites-enabled/api.zzik.store ]; then
+  grep -nE "^\s*server\s+localhost:" /etc/nginx/sites-enabled/api.zzik.store || true
 else
-  echo "[status] /etc/nginx/sites-enabled/api.zzik.kr not found" >&2
+  echo "[status] /etc/nginx/sites-enabled/api.zzik.store not found" >&2
 fi
 
 echo "[status] running backend containers"
