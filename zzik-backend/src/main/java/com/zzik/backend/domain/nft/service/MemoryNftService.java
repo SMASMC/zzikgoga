@@ -76,7 +76,7 @@ public class MemoryNftService {
 		metadata.put("description", "travel stroy with zzik : " + pdfUrl);
 		metadata.put("image", thumbnailUrl);
 		metadata.put("pdf_url", pdfUrl);
-		metadata.put("external_url", "https://zzik.kr");
+		metadata.put("external_url", "https://zzik.store");
 
 		// Attributes
 		ArrayNode attrs = metadata.putArray("attributes");
