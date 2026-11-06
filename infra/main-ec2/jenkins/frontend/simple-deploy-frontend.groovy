@@ -103,7 +103,10 @@ pipeline {
                             command -v dos2unix >/dev/null 2>&1 && dos2unix .env || true
                             sed -i 's/zzik[.]kr/zzik.store/g' .env
                             sed -i '/^VITE_KAKAO_REST_API_KEY=/d; /^VITE_KAKAO_JS_KEY=/d' .env
+                            echo >> .env
                             printf '%s\n' 'VITE_KAKAO_REST_API_KEY=5e5f20af7c2f56164ee80f62f6d389f0' 'VITE_KAKAO_JS_KEY=eb6e23c73a69bdb5b1446adb926cabaa' >> .env
+                            grep -q '^VITE_KAKAO_REST_API_KEY=5e5f20af7c2f56164ee80f62f6d389f0$' .env
+                            grep -q '^VITE_KAKAO_JS_KEY=eb6e23c73a69bdb5b1446adb926cabaa$' .env
                             echo "✅ .env 준비 완료"
                         '''
                     }
