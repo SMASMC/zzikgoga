@@ -8,7 +8,7 @@ echo "⏰ 시작 시간: $(date '+%Y-%m-%d %H:%M:%S')"
 # nginx 설정 파일 경로
 NGINX_SITES_AVAILABLE="/etc/nginx/sites-available"
 NGINX_SITES_ENABLED="/etc/nginx/sites-enabled"
-NGINX_SITE_NAME="crdt.zzik.kr"
+NGINX_SITE_NAME="crdt.zzik.store"
 
 # 디버그 모드 설정
 DEBUG_MODE="${DEBUG_MODE:-false}"
@@ -30,7 +30,7 @@ echo "🔧 Nginx 설정 사전 점검 중..."
 # 기존 잘못된 HTTPS 설정이 있는지 확인
 if [ -f "${NGINX_SITES_ENABLED}/${NGINX_SITE_NAME}" ]; then
     # SSL 인증서 확인
-    SSL_CERT="/etc/letsencrypt/live/crdt.zzik.kr/fullchain.pem"
+    SSL_CERT="/etc/letsencrypt/live/crdt.zzik.store/fullchain.pem"
 
     if ! [ -f "$SSL_CERT" ]; then
         # SSL 인증서가 없는데 설정이 활성화되어 있으면 문제 가능성 있음

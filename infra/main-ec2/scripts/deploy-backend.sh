@@ -77,8 +77,8 @@ rollback_deployment() {
     # Nginx 설정도 이전 버전으로 복구
     if [ -f "${ROOT_DIR}/nginx/backend-${OLD}.conf" ]; then
       echo "  🔧 Nginx 설정 복구 중..."
-      sudo cp "${ROOT_DIR}/nginx/backend-${OLD}.conf" /etc/nginx/sites-available/api.zzik.kr
-      sudo ln -sf /etc/nginx/sites-available/api.zzik.kr /etc/nginx/sites-enabled/api.zzik.kr
+      sudo cp "${ROOT_DIR}/nginx/backend-${OLD}.conf" /etc/nginx/sites-available/api.zzik.store
+      sudo ln -sf /etc/nginx/sites-available/api.zzik.store /etc/nginx/sites-enabled/api.zzik.store
       if sudo nginx -t 2>/dev/null; then
         sudo systemctl reload nginx
         echo "  ✅ Nginx 설정 복구 완료"
@@ -215,26 +215,26 @@ case "$code" in
     ;;
 esac
 
-# 6) Nginx 설정 적용(backend-<color>.conf → api.zzik.kr) 후 reload
+# 6) Nginx 설정 적용(backend-<color>.conf → api.zzik.store) 후 reload
 echo "🧩 Nginx 설정 적용"
 NGINX_SITES_AVAILABLE="/etc/nginx/sites-available"
 NGINX_SITES_ENABLED="/etc/nginx/sites-enabled"
 BACKEND_CONF_SRC="${ROOT_DIR}/nginx/backend-${NEW}.conf"
 if [ -f "$BACKEND_CONF_SRC" ]; then
-  echo "  - backend conf: $BACKEND_CONF_SRC → api.zzik.kr"
-  sudo cp "$BACKEND_CONF_SRC" ${NGINX_SITES_AVAILABLE}/api.zzik.kr
-  sudo ln -sf ${NGINX_SITES_AVAILABLE}/api.zzik.kr ${NGINX_SITES_ENABLED}/api.zzik.kr
+  echo "  - backend conf: $BACKEND_CONF_SRC → api.zzik.store"
+  sudo cp "$BACKEND_CONF_SRC" ${NGINX_SITES_AVAILABLE}/api.zzik.store
+  sudo ln -sf ${NGINX_SITES_AVAILABLE}/api.zzik.store ${NGINX_SITES_ENABLED}/api.zzik.store
 
   # Also deploy split vhosts to avoid server_name duplication
   if [ -f "${ROOT_DIR}/nginx/jenkins.conf" ]; then
-    echo "  - jenkins conf: ${ROOT_DIR}/nginx/jenkins.conf -> jenkins.zzik.kr"
-    sudo cp "${ROOT_DIR}/nginx/jenkins.conf" ${NGINX_SITES_AVAILABLE}/jenkins.zzik.kr
-    sudo ln -sf ${NGINX_SITES_AVAILABLE}/jenkins.zzik.kr ${NGINX_SITES_ENABLED}/jenkins.zzik.kr
+    echo "  - jenkins conf: ${ROOT_DIR}/nginx/jenkins.conf -> jenkins.zzik.store"
+    sudo cp "${ROOT_DIR}/nginx/jenkins.conf" ${NGINX_SITES_AVAILABLE}/jenkins.zzik.store
+    sudo ln -sf ${NGINX_SITES_AVAILABLE}/jenkins.zzik.store ${NGINX_SITES_ENABLED}/jenkins.zzik.store
   fi
   if [ -f "${ROOT_DIR}/nginx/monitoring.conf" ]; then
-    echo "  - monitoring conf: ${ROOT_DIR}/nginx/monitoring.conf -> monitoring.zzik.kr"
-    sudo cp "${ROOT_DIR}/nginx/monitoring.conf" ${NGINX_SITES_AVAILABLE}/monitoring.zzik.kr
-    sudo ln -sf ${NGINX_SITES_AVAILABLE}/monitoring.zzik.kr ${NGINX_SITES_ENABLED}/monitoring.zzik.kr
+    echo "  - monitoring conf: ${ROOT_DIR}/nginx/monitoring.conf -> monitoring.zzik.store"
+    sudo cp "${ROOT_DIR}/nginx/monitoring.conf" ${NGINX_SITES_AVAILABLE}/monitoring.zzik.store
+    sudo ln -sf ${NGINX_SITES_AVAILABLE}/monitoring.zzik.store ${NGINX_SITES_ENABLED}/monitoring.zzik.store
   fi
 else
   echo "❌ backend conf 누락: $BACKEND_CONF_SRC" >&2
