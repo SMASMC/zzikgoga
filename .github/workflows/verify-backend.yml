@@ -17,3 +17,4 @@ jobs:
           distribution: temurin
           java-version: '21'
       - run: bash ./gradlew bootJar -x test
+      - run: bash ./gradlew test --tests com.zzik.backend.domain.auth.service.AuthServiceKakaoTokenTest
